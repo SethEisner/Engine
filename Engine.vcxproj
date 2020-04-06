@@ -20,12 +20,14 @@
   </ItemGroup>
   <ItemGroup>
     <!--<ClCompile Include="ThreadSafeContainers\Deque.cpp" /> -->
+    <ClCompile Include="InputManager.cpp" />
     <ClCompile Include="JobSystem\JobSystem.cpp" />
     <ClCompile Include="main.cpp" />
     <!-- <ClCompile Include="ThreadSafeContainers\ThreadSafeBoundedDeque.cpp" /> -->
   </ItemGroup>
   <ItemGroup>
     <!--<ClInclude Include="Deque.h" /> -->
+    <ClInclude Include="InputManager.h" />
     <ClInclude Include="JobSystem\JobSystem.h" />
     <ClInclude Include="ThreadSafeContainers\concurrentqueue.h" />
     <!--<ClInclude Include="ThreadSafeContainers\Queue.h" /> -->
