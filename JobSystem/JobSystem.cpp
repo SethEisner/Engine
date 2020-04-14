@@ -82,14 +82,14 @@ namespace JobSystem {
 	inline Job* allocate_job() {
 		return &g_job_buffer[g_allocated_jobs++ & G_MAX_JOB_MASK];
 	}
-	inline moodycamel::ConcurrentQueue<Job*>* get_worker_thread_queue() {
+	inline Queue<Job*>* get_worker_thread_queue() {
 		return m_workers[id].m_queue;
 	}
-	inline moodycamel::ConcurrentQueue<Job*>* get_worker_thread_queue(int i) {
+	inline Queue<Job*>* get_worker_thread_queue(int i) {
 		return m_workers[i].m_queue;
 	}
 	void queue_job(Job* job) {
-		while (!get_worker_thread_queue()->try_enqueue(job)) { // run jobs until there's space in the queue 
+		while (!get_worker_thread_queue()->push(job)) { // run jobs until there's space in the queue 
 			Job* next = get_job();
 			if (next) execute_job(next);
 		}
@@ -105,12 +105,12 @@ namespace JobSystem {
 		return (job == nullptr || job->m_unfinished_jobs.load() == 0);
 	}
 	Job* get_job() {
-		moodycamel::ConcurrentQueue<Job*>* queue = get_worker_thread_queue();
+		Queue<Job*>* queue = get_worker_thread_queue();
 		Job* job = nullptr;
-		if (!queue->try_dequeue(job)) { // unsuccessfully popped a job
+		if (!queue->pop(job)) { // unsuccessfully popped a job
 			uint32_t index = lehmer64() % g_worker_count;
 			queue = get_worker_thread_queue(index);
-			if (!queue->try_dequeue(job)) {
+			if (!queue->pop(job)) {
 				std::this_thread::yield();
 			}
 		}

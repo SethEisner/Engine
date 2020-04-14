@@ -1,6 +1,7 @@
 #pragma once
 #include <thread>
-#include "../ThreadSafeContainers/concurrentqueue.h"
+//#include "../ThreadSafeContainers/concurrentqueue.h"
+#include "../ThreadSafeContainers/Queue.h"
 
 struct alignas (64) Job {
 	void (*m_function) (Job*, const void*);
@@ -20,8 +21,10 @@ namespace JobSystem { // cant be namespace because the variables have to be stat
 	Job* create_job_as_child(JobFunction, Job*, const void*);
 	void finish(Job*);
 	Job* allocate_job();
-	moodycamel::ConcurrentQueue<Job*>* get_worker_thread_queue();
-	moodycamel::ConcurrentQueue<Job*>* get_worker_thread_queue(int);
+	//moodycamel::ConcurrentQueue<Job*>* get_worker_thread_queue();
+	//moodycamel::ConcurrentQueue<Job*>* get_worker_thread_queue(int);
+	Queue<Job*>* get_worker_thread_queue();
+	Queue<Job*>* get_worker_thread_queue(int);
 	void queue_job(Job*);
 	bool job_completed(const Job*);
 	void execute_job(Job*);
@@ -29,9 +32,9 @@ namespace JobSystem { // cant be namespace because the variables have to be stat
 	Job* get_job();
 	void wait(const Job*);
 	struct Worker {
-		moodycamel::ConcurrentQueue<Job*>* m_queue;
+		Queue<Job*>* m_queue;
 		std::thread* m_thread;
-		explicit Worker() : m_queue(new moodycamel::ConcurrentQueue<Job*>(1024)), m_thread() {}
+		explicit Worker() : m_queue(new Queue<Job*>(1024)), m_thread() {}
 		~Worker() {
 			delete m_thread;
 			delete m_queue;

@@ -1,5 +1,2 @@
-﻿  JobSystem.cpp
-C:\Users\Seth Eisner\source\repos\Engine\JobSystem\JobSystem.cpp(17,31): warning C4293: '>>': shift count negative or too big, undefined behavior
-  main.cpp
-  Generating Code...
+﻿  InputManager.cpp
   Engine.vcxproj -> C:\Users\Seth Eisner\source\repos\Engine\x64\Debug\Engine.exe
