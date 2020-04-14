@@ -35,9 +35,9 @@ void InputManager::process_keydown(const MSG& message) {
         case KeyState::PRESSED: // can become held if enough time has passed // only need to change the timestamp when the current time changes
             if (message.time - time >= m_state_delay) {
                 m_keystate[message.wParam].m_curr_state = KeyState::HELD;
-                m_keystate[message.wParam].m_prev_state = KeyState::PRESSED;
                 m_keystate[message.wParam].m_timestamp = message.time;
             }
+            m_keystate[message.wParam].m_prev_state = KeyState::PRESSED;
             return;
         case KeyState::HELD: // can only stay held, if the current state is held the previous state can be pressed so that needs to be updated
             m_keystate[message.wParam].m_prev_state = KeyState::HELD;
