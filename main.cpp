@@ -4,6 +4,7 @@
 #include <random>
 #include <thread>
 #include <chrono>
+#include <string>
 #include "JobSystem/JobSystem.h"
 #include "InputManager/InputManager.h"
 #include <windows.h>
@@ -28,9 +29,9 @@ void empty_job(Job* job, const void* data) { // we pass job incase we create a j
 
 void particle_job(Particles* p_p, const size_t count) {
 	for (int i = 0; i != count; ++i) {
-		p_p[i].x = rand();
-		p_p[i].y = rand();// * ::JobSystem::id;
-		p_p[i].z = rand();// * ::JobSystem::id;
+		p_p[i].x = static_cast<float>(rand());
+		p_p[i].y = static_cast<float>(rand());// * ::JobSystem::id;
+		p_p[i].z = static_cast<float>(rand());// * ::JobSystem::id;
 	}
 	// Job* root = JobSystem::create_job(empty_job);
 	// for (int i = 0; i != 10; i++) {
@@ -45,7 +46,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 
 // int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hprevinstance, LPSTR lpcmdline, int nCmdShow) {
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow) {
+int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pCmdLine, _In_ int nCmdShow) {
 
 	//JobSystem::startup(thread_count);
 	//HINSTANCE hInstance = (HINSTANCE) GetModuleHandle(NULL);
@@ -65,24 +66,39 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow
 		return 99999;
 	}
 	ShowWindow(hwnd, nCmdShow);
+	UpdateWindow(hwnd);
 
-	InputManager* input_manager = new InputManager(hwnd);
+	InputManager* input_manager = new InputManager();
 
 	while (true) {
 		input_manager->get_input();
-		std::this_thread::sleep_for(std::chrono::milliseconds(32));
-		if (input_manager->get_state_of_key('P') == InputManager::KeyState::RELEASED) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(33));
+		if (input_manager->get_state(InputManager::MouseButton::LEFT) == InputManager::KeyState::RELEASED) {
 			OutputDebugStringA("released\n");
 		}
-		if (input_manager->get_state_of_key('P') == InputManager::KeyState::HELD) {
+		if (input_manager->get_state(InputManager::MouseButton::LEFT) == InputManager::KeyState::HELD) {
 			OutputDebugStringA("held\n");
 		}
-		if (input_manager->get_state_of_key('P') == InputManager::KeyState::PRESSED) {
+		if (input_manager->get_state(InputManager::MouseButton::LEFT) == InputManager::KeyState::PRESSED) {
 			OutputDebugStringA("pressed\n");
 		}
-		if (input_manager->get_state_of_key('P') == InputManager::KeyState::UNHELD) {
+		if (input_manager->get_state(InputManager::MouseButton::LEFT) == InputManager::KeyState::UNHELD) {
 			OutputDebugStringA("unheld\n");
 		}
+
+		// if (input_manager->get_state('P') == InputManager::KeyState::RELEASED) {
+		// 	OutputDebugStringA("released\n");
+		// }
+		// if (input_manager->get_state('P') == InputManager::KeyState::HELD) {
+		// 	OutputDebugStringA("held\n");
+		// }
+		// if (input_manager->get_state('P') == InputManager::KeyState::PRESSED) {
+		// 	OutputDebugStringA("pressed\n");
+		// }
+		// if (input_manager->get_state('P') == InputManager::KeyState::UNHELD) {
+		// 	OutputDebugStringA("unheld\n");
+		// }
+		//OutputDebugStringA(((std::to_string(input_manager->m_character_pressed['p']) + "\n").c_str()));
 	}
 	// Job* root = JobSystem::create_job(empty_job);
 	// const uint32_t n_particles = 100000;
@@ -145,7 +161,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		return 0;
+		exit(0); // exit with code zero
 	case WM_PAINT:
 	{
 		PAINTSTRUCT ps;

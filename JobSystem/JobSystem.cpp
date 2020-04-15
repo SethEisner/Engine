@@ -4,20 +4,8 @@
 #include <chrono>
 #include <thread>
 #include "JobSystem.h"
-#include <string>
+#include <string> // for memcpy
 #include <windows.h>
-//#include "../ThreadSafeContainers/Queue.h"
-//#include "../ThreadSafeContainers/Deque.h"
-// typedef void (*JobFunction) (Job*, const void*);
-
-
-size_t g_lehmer64_state = 1;
-
-uint64_t lehmer64() {
-	g_lehmer64_state *= 0xda942042e4dd58b5;
-	return g_lehmer64_state >> 64;
-}
-
 
 namespace JobSystem {
 	void JobSystem::startup(uint8_t worker_count) {
@@ -37,7 +25,7 @@ namespace JobSystem {
 	}
 	void start_thread(uint8_t i) {
 		id = i;
-		SetThreadAffinityMask(GetCurrentThread(), 1u<<static_cast<uint64_t>(i));
+		SetThreadAffinityMask(GetCurrentThread(), static_cast<uint64_t>(1u) << static_cast<uint64_t>(i));
 		while (!shutdown_flag) {
  			Job* job = get_job();
 			if (!is_empty_job(job)) execute_job(job);
@@ -108,7 +96,7 @@ namespace JobSystem {
 		Queue<Job*>* queue = get_worker_thread_queue();
 		Job* job = nullptr;
 		if (!queue->pop(job)) { // unsuccessfully popped a job
-			uint32_t index = lehmer64() % g_worker_count;
+			uint32_t index = rand() % g_worker_count;
 			queue = get_worker_thread_queue(index);
 			if (!queue->pop(job)) {
 				std::this_thread::yield();

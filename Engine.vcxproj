@@ -29,8 +29,8 @@
     <!--<ClInclude Include="Deque.h" /> -->
     <ClInclude Include="InputManager\InputManager.h" />
     <ClInclude Include="JobSystem\JobSystem.h" />
-    <ClInclude Include="ThreadSafeContainers\concurrentqueue.h" />
-    <!--<ClInclude Include="ThreadSafeContainers\Queue.h" /> -->
+    <!-- <ClInclude Include="ThreadSafeContainers\concurrentqueue.h" /> -->
+    <ClInclude Include="ThreadSafeContainers\Queue.h" />
     <!-- <ClInclude Include="ThreadSafeContainers\ThreadSafeBoundedDeque.h" /> -->
   </ItemGroup>
   <PropertyGroup Label="Globals">
