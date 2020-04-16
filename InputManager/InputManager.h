@@ -20,13 +20,13 @@ class InputManager
 {
 public:
 	/*
-	+---------------------+
-	|					  |
-	V					  |
-PRESSED  --->  HELD		UNHELD  <--- start
-	|			|		  ^
-	|			V		  |
-	+----->  RELEASED  ---+
+    +---------------------+
+    |                     |
+    V                     |
+PRESSED  --->  HELD    UNHELD  <--- start
+    |           |         ^
+    |           V         |
+    +----->  RELEASED  ---+
 	*/
 	typedef char Key;
 	class GameAction;
