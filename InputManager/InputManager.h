@@ -46,7 +46,7 @@ PRESSED  --->  HELD		UNHELD  <--- start
 		delete m_name_to_action;
 	}
 	void get_input();
-	// get state of a game action using a hashed string literal (e.g. HASH("shoot")
+	// get state of a game action using a hashed string literal (e.g. HASH("shoot"))
 	bool is_pressed(uint32_t) const;
 	bool is_released(uint32_t) const;
 	bool is_held(uint32_t) const;
