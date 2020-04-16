@@ -4,20 +4,8 @@
 #include <chrono>
 #include <thread>
 #include "JobSystem.h"
-#include <string>
+#include <string> // for memcpy
 #include <windows.h>
-//#include "../ThreadSafeContainers/Queue.h"
-//#include "../ThreadSafeContainers/Deque.h"
-// typedef void (*JobFunction) (Job*, const void*);
-
-
-size_t g_lehmer64_state = 1;
-
-uint64_t lehmer64() {
-	g_lehmer64_state *= 0xda942042e4dd58b5;
-	return g_lehmer64_state >> 64;
-}
-
 
 namespace JobSystem {
 	void JobSystem::startup(uint8_t worker_count) {
@@ -37,7 +25,7 @@ namespace JobSystem {
 	}
 	void start_thread(uint8_t i) {
 		id = i;
-		SetThreadAffinityMask(GetCurrentThread(), 1u<<static_cast<uint64_t>(i));
+		SetThreadAffinityMask(GetCurrentThread(), static_cast<uint64_t>(1u) << static_cast<uint64_t>(i));
 		while (!shutdown_flag) {
  			Job* job = get_job();
 			if (!is_empty_job(job)) execute_job(job);
@@ -82,14 +70,14 @@ namespace JobSystem {
 	inline Job* allocate_job() {
 		return &g_job_buffer[g_allocated_jobs++ & G_MAX_JOB_MASK];
 	}
-	inline moodycamel::ConcurrentQueue<Job*>* get_worker_thread_queue() {
+	inline Queue<Job*>* get_worker_thread_queue() {
 		return m_workers[id].m_queue;
 	}
-	inline moodycamel::ConcurrentQueue<Job*>* get_worker_thread_queue(int i) {
+	inline Queue<Job*>* get_worker_thread_queue(int i) {
 		return m_workers[i].m_queue;
 	}
 	void queue_job(Job* job) {
-		while (!get_worker_thread_queue()->try_enqueue(job)) { // run jobs until there's space in the queue 
+		while (!get_worker_thread_queue()->push(job)) { // run jobs until there's space in the queue 
 			Job* next = get_job();
 			if (next) execute_job(next);
 		}
@@ -105,12 +93,12 @@ namespace JobSystem {
 		return (job == nullptr || job->m_unfinished_jobs.load() == 0);
 	}
 	Job* get_job() {
-		moodycamel::ConcurrentQueue<Job*>* queue = get_worker_thread_queue();
+		Queue<Job*>* queue = get_worker_thread_queue();
 		Job* job = nullptr;
-		if (!queue->try_dequeue(job)) { // unsuccessfully popped a job
-			uint32_t index = lehmer64() % g_worker_count;
+		if (!queue->pop(job)) { // unsuccessfully popped a job
+			uint32_t index = rand() % g_worker_count;
 			queue = get_worker_thread_queue(index);
-			if (!queue->try_dequeue(job)) {
+			if (!queue->pop(job)) {
 				std::this_thread::yield();
 			}
 		}

@@ -19,17 +19,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <!--<ClCompile Include="ThreadSafeContainers\Deque.cpp" /> -->
+    <ClCompile Include="InputManager\InputManager.cpp" />
+    <ClCompile Include="Utilities\Utilities.cpp" />
     <ClCompile Include="JobSystem\JobSystem.cpp" />
     <ClCompile Include="main.cpp" />
-    <!-- <ClCompile Include="ThreadSafeContainers\ThreadSafeBoundedDeque.cpp" /> -->
   </ItemGroup>
   <ItemGroup>
-    <!--<ClInclude Include="Deque.h" /> -->
+    <ClInclude Include="InputManager\InputManager.h" />
+    <ClCompile Include="Utilities\Utilities.h" />
     <ClInclude Include="JobSystem\JobSystem.h" />
-    <ClInclude Include="ThreadSafeContainers\concurrentqueue.h" />
-    <!--<ClInclude Include="ThreadSafeContainers\Queue.h" /> -->
-    <!-- <ClInclude Include="ThreadSafeContainers\ThreadSafeBoundedDeque.h" /> -->
+    <ClInclude Include="ThreadSafeContainers\Queue.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -114,7 +113,7 @@
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
@@ -146,7 +145,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>

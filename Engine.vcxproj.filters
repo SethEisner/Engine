@@ -21,7 +21,7 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ThreadSafeContainers\Deque.cpp">
+    <ClCompile Include="InputManager\InputManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -29,13 +29,10 @@
     <ClInclude Include="JobSystem\JobSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ThreadSafeContainers\queue.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Deque.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ThreadSafeContainers\concurrentqueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="InputManager\InputManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
