@@ -7,6 +7,7 @@
 #include <string>
 #include "JobSystem/JobSystem.h"
 #include "InputManager/InputManager.h"
+#include "Utilities/Utilities.h"
 #include <windows.h>
 
 const int thread_count = 3; //std::min((unsigned int) 3, std::thread::hardware_concurrency() - 1);
@@ -70,35 +71,42 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 
 	InputManager* input_manager = new InputManager();
 
+	input_manager->add_action(HASH("shoot"), InputManager::MouseButton::LEFT);
+	input_manager->add_action(HASH("jump"), InputManager::Key(' '));
+
+	while (!input_manager->is_held(HASH("shoot"))) {
+		input_manager->get_input();
+		std::this_thread::sleep_for(std::chrono::milliseconds(33));
+		if (input_manager->is_released(HASH("shoot"))) {
+			OutputDebugStringA("released\n");
+		}
+		if (input_manager->is_held(HASH("shoot"))) {
+			OutputDebugStringA("held\n");
+		}
+		if (input_manager->is_pressed(HASH("shoot"))) {
+			OutputDebugStringA("pressed\n");
+		}
+		if (input_manager->is_unheld(HASH("shoot"))) {
+			OutputDebugStringA("unheld\n");
+		}
+	}
+
+	input_manager->remap_action(HASH("shoot"), InputManager::MouseButton::RIGHT);
 	while (true) {
 		input_manager->get_input();
 		std::this_thread::sleep_for(std::chrono::milliseconds(33));
-		if (input_manager->get_state(InputManager::MouseButton::LEFT) == InputManager::KeyState::RELEASED) {
+		if (input_manager->is_released(HASH("shoot"))) {
 			OutputDebugStringA("released\n");
 		}
-		if (input_manager->get_state(InputManager::MouseButton::LEFT) == InputManager::KeyState::HELD) {
+		if (input_manager->is_held(HASH("shoot"))) {
 			OutputDebugStringA("held\n");
 		}
-		if (input_manager->get_state(InputManager::MouseButton::LEFT) == InputManager::KeyState::PRESSED) {
+		if (input_manager->is_pressed(HASH("shoot"))) {
 			OutputDebugStringA("pressed\n");
 		}
-		if (input_manager->get_state(InputManager::MouseButton::LEFT) == InputManager::KeyState::UNHELD) {
+		if (input_manager->is_unheld(HASH("shoot"))) {
 			OutputDebugStringA("unheld\n");
 		}
-
-		// if (input_manager->get_state('P') == InputManager::KeyState::RELEASED) {
-		// 	OutputDebugStringA("released\n");
-		// }
-		// if (input_manager->get_state('P') == InputManager::KeyState::HELD) {
-		// 	OutputDebugStringA("held\n");
-		// }
-		// if (input_manager->get_state('P') == InputManager::KeyState::PRESSED) {
-		// 	OutputDebugStringA("pressed\n");
-		// }
-		// if (input_manager->get_state('P') == InputManager::KeyState::UNHELD) {
-		// 	OutputDebugStringA("unheld\n");
-		// }
-		//OutputDebugStringA(((std::to_string(input_manager->m_character_pressed['p']) + "\n").c_str()));
 	}
 	// Job* root = JobSystem::create_job(empty_job);
 	// const uint32_t n_particles = 100000;
@@ -161,7 +169,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		exit(0); // exit with code zero
+		exit(0);
 	case WM_PAINT:
 	{
 		PAINTSTRUCT ps;

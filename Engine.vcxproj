@@ -19,19 +19,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <!--<ClCompile Include="ThreadSafeContainers\Deque.cpp" /> -->
     <ClCompile Include="InputManager\InputManager.cpp" />
+    <ClCompile Include="Utilities\Utilities.cpp" />
     <ClCompile Include="JobSystem\JobSystem.cpp" />
     <ClCompile Include="main.cpp" />
-    <!-- <ClCompile Include="ThreadSafeContainers\ThreadSafeBoundedDeque.cpp" /> -->
   </ItemGroup>
   <ItemGroup>
-    <!--<ClInclude Include="Deque.h" /> -->
     <ClInclude Include="InputManager\InputManager.h" />
+    <ClCompile Include="Utilities\Utilities.h" />
     <ClInclude Include="JobSystem\JobSystem.h" />
-    <!-- <ClInclude Include="ThreadSafeContainers\concurrentqueue.h" /> -->
     <ClInclude Include="ThreadSafeContainers\Queue.h" />
-    <!-- <ClInclude Include="ThreadSafeContainers\ThreadSafeBoundedDeque.h" /> -->
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
