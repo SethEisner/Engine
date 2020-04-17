@@ -1,9 +1,6 @@
 #include "InputManager.h"
 #include <windows.h>
-#include <Windows.h>
-#include <windowsx.h>
-#include <iostream>
-#include <chrono>
+#include <windowsx.h>  // for GET_X/Y_PARAM
 
 void InputManager::get_input() {
 	update_key_states(); // update the states of the relative buttons before we read in more input
@@ -82,13 +79,14 @@ bool InputManager::is_unheld(uint32_t hashed_action_name) const {
 	return m_key_state[action->m_value.m_key].m_curr_state == State::UNHELD;
 }
 void InputManager::add_action(uint32_t hashed_action_name, MouseButton button) {
-	this->m_name_to_action->emplace(hashed_action_name, new GameAction(button)); // copy the game action into the map
+	// use try_emplace so we dont create multiple gameactions with the same key
+	this->m_name_to_action->try_emplace(hashed_action_name, new GameAction(button)); // copy the game action into the map
 }
 void InputManager::add_action(uint32_t hashed_action_name, Key key) {
-	this->m_name_to_action->emplace(hashed_action_name, new GameAction(key));
+	this->m_name_to_action->try_emplace(hashed_action_name, new GameAction(key));
 }
 void InputManager::remap_action(uint32_t hashed_action_name, MouseButton button) {
-	GameAction* action = this->m_name_to_action->at(hashed_action_name);
+	GameAction* action = this->m_name_to_action->at(hashed_action_name); // at function will currently throw an exception if we remap an action that doesn't exist. (probably okay because that's a bug in the user's code and not the intended interface)
 	action->m_type = GameAction::GameAction_t::MOUSEBUTTON;
 	action->m_value.m_button = button;
 }

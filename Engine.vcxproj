@@ -19,14 +19,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Math\Vector.cpp" />
     <ClCompile Include="InputManager\InputManager.cpp" />
     <ClCompile Include="Utilities\Utilities.cpp" />
     <ClCompile Include="JobSystem\JobSystem.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Math\Vector.h" />
     <ClInclude Include="InputManager\InputManager.h" />
-    <ClCompile Include="Utilities\Utilities.h" />
+    <ClInclude Include="Utilities\Utilities.h" />
     <ClInclude Include="JobSystem\JobSystem.h" />
     <ClInclude Include="ThreadSafeContainers\Queue.h" />
   </ItemGroup>

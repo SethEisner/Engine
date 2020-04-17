@@ -1,11 +1,8 @@
 #pragma once
 #include <stdint.h>
 #include "../ThreadSafeContainers/Queue.h"
-//#include "GameAction.h"
-#include <windows.h>
-#include <vector>
 #include <unordered_map>
-#include <string>
+#include <windows.h>
 
 /*  
 TODO:
@@ -53,6 +50,7 @@ PRESSED  --->  HELD    UNHELD  <--- start
 	bool is_unheld(uint32_t) const;
 	void add_action(uint32_t, MouseButton); // calls new which is fine because it's probably only called during inputmanager construction (by reading from a file)
 	void add_action(uint32_t, Key); // eventually should use memory grabbed by the memory allocator so all the engine 
+	// remap functions throw if we are trying to remap an action that doesn't exists (should throw because programmer could have misspelled something)
 	void remap_action(uint32_t, MouseButton); // need to make sure remap functions are threadsafe (updating when no other thread is reading, can use a job for that)
 	void remap_action(uint32_t, Key);
 	int get_mouse_x() const;

@@ -1,11 +1,7 @@
 #pragma once
-#include <atomic>
-#include <iostream>
-#include <chrono>
-#include <thread>
 #include "JobSystem.h"
 #include <string> // for memcpy
-#include <windows.h>
+#include <windows.h> // for thread affinity
 
 namespace JobSystem {
 	void JobSystem::startup(uint8_t worker_count) {

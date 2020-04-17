@@ -1,9 +1,11 @@
 #pragma once
 #include <string.h>
 #include <stdint.h>
-#include <stdio.h>
 
-//TODO: add random number generator
+/*TODO: 
+add random number generator
+add fast inverse squareroot
+*/
 
 // string hashing macro
 #define H1(s,i,x)   (x*65599u+(uint8_t)s[(i)<strlen(s)?strlen(s)-1-(i):strlen(s)])

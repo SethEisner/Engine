@@ -8,11 +8,12 @@
 #include "JobSystem/JobSystem.h"
 #include "InputManager/InputManager.h"
 #include "Utilities/Utilities.h"
+#include "Math/Vector.h"
 #include <windows.h>
 
 const int thread_count = 3; //std::min((unsigned int) 3, std::thread::hardware_concurrency() - 1);
 
-struct  Particles {
+struct Particles {
 	float x;
 	float y;
 	float z;
@@ -69,45 +70,68 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	ShowWindow(hwnd, nCmdShow);
 	UpdateWindow(hwnd);
 
-	InputManager* input_manager = new InputManager();
 
-	input_manager->add_action(HASH("shoot"), InputManager::MouseButton::LEFT);
-	input_manager->add_action(HASH("jump"), InputManager::Key(' '));
+	Vec2 x(1.0f, 2.0f);
+	Vec2 y(2.0f, 3.0f);
 
-	while (!input_manager->is_held(HASH("shoot"))) {
-		input_manager->get_input();
-		std::this_thread::sleep_for(std::chrono::milliseconds(33));
-		if (input_manager->is_released(HASH("shoot"))) {
-			OutputDebugStringA("released\n");
-		}
-		if (input_manager->is_held(HASH("shoot"))) {
-			OutputDebugStringA("held\n");
-		}
-		if (input_manager->is_pressed(HASH("shoot"))) {
-			OutputDebugStringA("pressed\n");
-		}
-		if (input_manager->is_unheld(HASH("shoot"))) {
-			OutputDebugStringA("unheld\n");
-		}
-	}
+	Vec2 z;
+	Vec2 w;
+	z = x - y;
+	w = z - x - y;
 
-	input_manager->remap_action(HASH("shoot"), InputManager::MouseButton::RIGHT);
-	while (true) {
-		input_manager->get_input();
-		std::this_thread::sleep_for(std::chrono::milliseconds(33));
-		if (input_manager->is_released(HASH("shoot"))) {
-			OutputDebugStringA("released\n");
-		}
-		if (input_manager->is_held(HASH("shoot"))) {
-			OutputDebugStringA("held\n");
-		}
-		if (input_manager->is_pressed(HASH("shoot"))) {
-			OutputDebugStringA("pressed\n");
-		}
-		if (input_manager->is_unheld(HASH("shoot"))) {
-			OutputDebugStringA("unheld\n");
-		}
-	}
+	Vec2 a = x * 2.0f;
+	Vec2 b = 2.0f * x;
+
+	Vec2 x1(1.0f, -2.0f);
+	Vec2 x2(-1.0f, 2.0f);
+	float x3 = cross(x1, x2);
+
+	Vec4 p1(2.0f, 3.0f, 4.0f, 1.0f);
+	Vec4 p2(1.0f,1.0f,1.0f,1.0f);
+	Vec4 v1 = p1 - p2; // point - point = vector
+
+
+	// InputManager* input_manager = new InputManager();
+	// 
+	// input_manager->add_action(HASH("shoot"), InputManager::MouseButton::LEFT);
+	// input_manager->add_action(HASH("jump"), InputManager::Key(' '));
+	// 
+	// while (!input_manager->is_held(HASH("shoot"))) {
+	// 	input_manager->get_input();
+	// 	std::this_thread::sleep_for(std::chrono::milliseconds(33));
+	// 	if (input_manager->is_released(HASH("shoot"))) {
+	// 		OutputDebugStringA("released\n");
+	// 	}
+	// 	if (input_manager->is_held(HASH("shoot"))) {
+	// 		OutputDebugStringA("held\n");
+	// 	}
+	// 	if (input_manager->is_pressed(HASH("shoot"))) {
+	// 		OutputDebugStringA("pressed\n");
+	// 	}
+	// 	if (input_manager->is_unheld(HASH("shoot"))) {
+	// 		OutputDebugStringA("unheld\n");
+	// 	}
+	// }
+	// 
+	// input_manager->remap_action(HASH("shoot"), InputManager::MouseButton::RIGHT);
+	// while (true) {
+	// 	input_manager->get_input();
+	// 	std::this_thread::sleep_for(std::chrono::milliseconds(33));
+	// 	if (input_manager->is_released(HASH("shoot"))) {
+	// 		OutputDebugStringA("released\n");
+	// 	}
+	// 	if (input_manager->is_held(HASH("shoot"))) {
+	// 		OutputDebugStringA("held\n");
+	// 	}
+	// 	if (input_manager->is_pressed(HASH("shoot"))) {
+	// 		OutputDebugStringA("pressed\n");
+	// 	}
+	// 	if (input_manager->is_unheld(HASH("shoot"))) {
+	// 		OutputDebugStringA("unheld\n");
+	// 	}
+	// }
+
+
 	// Job* root = JobSystem::create_job(empty_job);
 	// const uint32_t n_particles = 100000;
 	// Particles* parts_1 = new Particles[n_particles]; // allocate 100000 particles
