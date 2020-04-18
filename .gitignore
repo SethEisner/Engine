@@ -55,3 +55,13 @@ x64/Debug/vc142.idb
 x64/Debug/vc142.pdb
 x64/Debug/Vector.obj
 Engine.vcxproj
+x64/Debug/Engine.vcxproj.FileListAbsolute.txt
+.vs/Engine/v16/ipch/AutoPCH/36f5b76cfe990d8e/MATRIX.ipch
+*.ipch
+*.obj
+*.exe
+*.iobj
+*.ipdb
+*.log
+*.pdb
+*.tlog

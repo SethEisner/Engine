@@ -9,6 +9,7 @@
 #include "InputManager/InputManager.h"
 #include "Utilities/Utilities.h"
 #include "Math/Vector.h"
+#include "Math/Matrix.h"
 #include <windows.h>
 
 const int thread_count = 3; //std::min((unsigned int) 3, std::thread::hardware_concurrency() - 1);
@@ -71,27 +72,57 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	UpdateWindow(hwnd);
 
 
+	// Vec2 x(1.0f, 2.0f);
+	// Vec2 y(2.0f, 3.0f);
+	// 
+	// Vec2 z;
+	// Vec2 w;
+	// z = x - y;
+	// w = z - x - y;
+	// 
+	// Vec2 a = x * 2.0f;
+	// Vec2 b = 2.0f * x;
+	// 
+	// Vec2 x1(1.0f, -2.0f);
+	// Vec2 x2(-1.0f, 2.0f);
+	// float x3 = cross(x1, x2);
+	// 
+	// Vec4 p1(2.0f, 3.0f, 4.0f, 1.0f);
+	// Vec4 p2(1.0f,1.0f,1.0f,1.0f);
+	// Vec4 v1 = p1 - p2; // point - point = vector
+
 	Vec2 x(1.0f, 2.0f);
 	Vec2 y(2.0f, 3.0f);
+	Vec2 z = x + y; //3,5
 
-	Vec2 z;
-	Vec2 w;
-	z = x - y;
-	w = z - x - y;
+	projection(x, y);
 
-	Vec2 a = x * 2.0f;
-	Vec2 b = 2.0f * x;
+	Mat2 m1;
+	Mat2 m2(3.0f, 4.0f, 4.0f, 4.0f);
+	Mat2 m3 = m1 + m2;
 
-	Vec2 x1(1.0f, -2.0f);
-	Vec2 x2(-1.0f, 2.0f);
-	float x3 = cross(x1, x2);
+	Vec2 v = m3 * z; 
 
-	Vec4 p1(2.0f, 3.0f, 4.0f, 1.0f);
-	Vec4 p2(1.0f,1.0f,1.0f,1.0f);
-	Vec4 v1 = p1 - p2; // point - point = vector
+	// m3 = m2 * 2;
+	// m3 = 3 * m2;
 
+	float det_ = det(m3);
+	Mat2 m4(transpose(m3));
+	Mat2 m5(inverse(m3));
+	std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+	float a = fast_invsqrt(2);
+	std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+	double nanos = time_span.count()*1000000000;
+	std::string s = std::to_string(nanos);
+	OutputDebugStringA(s.c_str());
 
-	// InputManager* input_manager = new InputManager();
+	Mat2 m(3.0f, 4.0f, 4.0f, 4.0f);
+	orthogonalize(m);
+
+	//std::cout << time_span.count() * 1000000 << " microseconds.\n";
+	// std::cout << time_span.count() * 1000 << " milliseconds.\n";
+	InputManager* input_manager = new InputManager();
 	// 
 	// input_manager->add_action(HASH("shoot"), InputManager::MouseButton::LEFT);
 	// input_manager->add_action(HASH("jump"), InputManager::Key(' '));

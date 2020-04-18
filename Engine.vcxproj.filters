@@ -24,15 +24,33 @@
     <ClCompile Include="InputManager\InputManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Math\Vector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\Utilities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\Matrix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="JobSystem\JobSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ThreadSafeContainers\concurrentqueue.h">
+    <ClInclude Include="InputManager\InputManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="InputManager\InputManager.h">
+    <ClInclude Include="Math\Vector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\Utilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ThreadSafeContainers\Queue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Matrix.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

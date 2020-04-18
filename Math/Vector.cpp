@@ -1,4 +1,5 @@
 #include "Vector.h"
+#include "../Utilities/Utilities.h"
 
 // vec2 functions
 Vec2& Vec2::operator+=(const Vec2& rhs) { // Vec2 += Vec2
@@ -39,8 +40,17 @@ float cross(const Vec2& lhs, const Vec2& rhs) {
 	return (lhs.x * rhs.y) - (lhs.y * rhs.x);
 }
 Vec2 normalize(const Vec2& rhs) {
-	float mag = 1.0f / sqrt(rhs.x * rhs.x + rhs.y * rhs.y);
+	float mag = fast_invsqrt(rhs.x * rhs.x + rhs.y * rhs.y);
 	return Vec2(rhs.x * mag, rhs.y * mag);
+}
+Vec2 perp(const Vec2& u) {
+	return Vec2(-u.x, u.y);
+}
+Vec2 projection(const Vec2& u, const Vec2& v) {
+	return (dot(u, u) == 0.0f) ? (Vec2(0.f, 0.0f)) : (dot(u, v) / dot(v, v) * v);
+}
+Vec2 rejection(const Vec2& u, const Vec2& v) {
+	return (u - projection(u,v));
 }
 
 // vec3 functions
@@ -102,7 +112,7 @@ Vec3 cross(const Vec3& lhs, const Vec3& rhs) {
 		(lhs.x * rhs.y) - (lhs.y * rhs.x));
 }
 Vec3 normalize(const Vec3& rhs) {
-	float mag = 1.0f / sqrt(rhs.x * rhs.x + rhs.y * rhs.y + rhs.z * rhs.z);
+	float mag = fast_invsqrt(rhs.x * rhs.x + rhs.y * rhs.y + rhs.z * rhs.z);
 	return Vec3(rhs.x * mag, rhs.y * mag, rhs.z * mag);
 }
 Vec3 homogenize(const Vec3& rhs) { // for 2d version of homogenous coordinates
@@ -141,7 +151,7 @@ Vec4 operator-(Vec4 lhs, const Vec4& rhs) {
 }
 Vec4 normalize(const Vec4& rhs) {
 	// w coordinate is zero so it doenst change the magnitude for a vector in homogeneous coordinates
-	float mag = 1.0f / sqrt(rhs.x * rhs.x + rhs.y * rhs.y + rhs.z * rhs.z);
+	float mag = fast_invsqrt(rhs.x * rhs.x + rhs.y * rhs.y + rhs.z * rhs.z);
 	return Vec4(rhs.x * mag, rhs.y * mag, rhs.z * mag, 0.0f);
 }
 Vec4 homogenize(const Vec4& rhs) {

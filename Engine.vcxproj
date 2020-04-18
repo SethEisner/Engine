@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Math\Matrix.cpp" />
     <ClCompile Include="Math\Vector.cpp" />
     <ClCompile Include="InputManager\InputManager.cpp" />
     <ClCompile Include="Utilities\Utilities.cpp" />
@@ -26,6 +27,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Math\Matrix.h" />
     <ClInclude Include="Math\Vector.h" />
     <ClInclude Include="InputManager\InputManager.h" />
     <ClInclude Include="Utilities\Utilities.h" />

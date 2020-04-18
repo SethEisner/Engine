@@ -4,7 +4,7 @@
 struct Vec2;
 struct Vec3;
 struct Vec4;
-
+// TODO: add perp, projection, and rejection
 struct Vec2 {
 	float x;
 	float y;
@@ -24,6 +24,9 @@ private: // private so we can't call them directly
 float dot(const Vec2& lhs, const Vec2& rhs);
 float cross(const Vec2& lhs, const Vec2& rhs);
 Vec2 normalize(const Vec2& rhs);
+Vec2 perp(const Vec2& u); // counter clockwise (right handed)
+Vec2 projection(const Vec2& u, const Vec2& v);
+Vec2 rejection(const Vec2& u, const Vec2& v);
 
 struct Vec3 { // also works as a point type
 	float x;
