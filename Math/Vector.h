@@ -4,6 +4,9 @@
 struct Vec2;
 struct Vec3;
 struct Vec4;
+
+static constexpr float EPSILON = 1e-6; // floats have between 6 and 7 digits of precision so use 1e-5 to be greater than all the values in that range
+
 // TODO: add perp, projection, and rejection
 struct Vec2 {
 	float x;
@@ -33,11 +36,11 @@ struct Vec3 { // also works as a point type
 	float y;
 	float z;
 	Vec3() : x(0.0f), y(0.0f), z(0.0f) {}
-	Vec3(const Vec4& v4);
+	explicit Vec3(const Vec4& v4);
 	explicit Vec3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
 	~Vec3() = default;
 	Vec3& operator=(const Vec3&) = default; //use the default copy assignment operator
-	Vec3& operator=(const Vec4& v4);
+	//Vec3& operator=(const Vec4& v4); seems too bug prone to implement
 private: // private so we can't call them directly
 	Vec3& operator+=(const Vec3& rhs);
 	friend Vec3 operator+(Vec3 lhs, const Vec3& rhs);
@@ -50,6 +53,8 @@ private: // private so we can't call them directly
 float dot(const Vec3& lhs, const Vec3& rhs);
 Vec3 cross(const Vec3& lhs, const Vec3& rhs);
 Vec3 normalize(const Vec3& rhs);
+Vec3 projection(const Vec3& u, const Vec3& v);
+Vec3 rejection(const Vec3& u, const Vec3& v);
 Vec3 homogenize(const Vec3& rhs); // can turn a 2d point into a homogeneous coordinate
 
 struct Vec4 { // homogeneous coordinates vec w=0 point w = 1
@@ -68,6 +73,12 @@ private:
 	friend Vec4 operator+(Vec4 lhs, const Vec4& rhs);
 	Vec4& operator-=(const Vec4& rhs);
 	friend Vec4 operator-(Vec4 lhs, const Vec4& rhs);
+	Vec4& operator*=(const float rhs);
+	friend Vec4 operator*(Vec4 lhs, const float rhs);
+	friend Vec4 operator*(const float lhs, Vec4 rhs);
 };
-Vec4 normalize(const Vec4& rhs);
-Vec4 homogenize(const Vec4& rhs);
+float dot(const Vec4&, const Vec4&);
+Vec4 normalize(const Vec4&);
+Vec4 projection(const Vec4&, const Vec4&);
+Vec4 rejection(const Vec4&, const Vec4&);
+Vec4 homogenize(const Vec4&);
