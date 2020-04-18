@@ -65,3 +65,4 @@ x64/Debug/Engine.vcxproj.FileListAbsolute.txt
 *.log
 *.pdb
 *.tlog
+*.enc

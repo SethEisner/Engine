@@ -71,54 +71,13 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	ShowWindow(hwnd, nCmdShow);
 	UpdateWindow(hwnd);
 
+	Mat3 m1;
+	Mat3 m2(1, 2, 3, 4, 5, 6, 7, 8, 9);
+	Mat3 m3 = m1 * m2;
+	Mat3 m4 = m2 * m2;
 
-	// Vec2 x(1.0f, 2.0f);
-	// Vec2 y(2.0f, 3.0f);
-	// 
-	// Vec2 z;
-	// Vec2 w;
-	// z = x - y;
-	// w = z - x - y;
-	// 
-	// Vec2 a = x * 2.0f;
-	// Vec2 b = 2.0f * x;
-	// 
-	// Vec2 x1(1.0f, -2.0f);
-	// Vec2 x2(-1.0f, 2.0f);
-	// float x3 = cross(x1, x2);
-	// 
-	// Vec4 p1(2.0f, 3.0f, 4.0f, 1.0f);
-	// Vec4 p2(1.0f,1.0f,1.0f,1.0f);
-	// Vec4 v1 = p1 - p2; // point - point = vector
-
-	Vec2 x(1.0f, 2.0f);
-	Vec2 y(2.0f, 3.0f);
-	Vec2 z = x + y; //3,5
-
-	projection(x, y);
-
-	Mat2 m1;
-	Mat2 m2(3.0f, 4.0f, 4.0f, 4.0f);
-	Mat2 m3 = m1 + m2;
-
-	Vec2 v = m3 * z; 
-
-	// m3 = m2 * 2;
-	// m3 = 3 * m2;
-
-	float det_ = det(m3);
-	Mat2 m4(transpose(m3));
-	Mat2 m5(inverse(m3));
-	std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-	float a = fast_invsqrt(2);
-	std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
-	double nanos = time_span.count()*1000000000;
-	std::string s = std::to_string(nanos);
-	OutputDebugStringA(s.c_str());
-
-	Mat2 m(3.0f, 4.0f, 4.0f, 4.0f);
-	orthogonalize(m);
+	Vec3 v1(1, 2, 3);
+	Vec3 v2 = m3 * v1;
 
 	//std::cout << time_span.count() * 1000000 << " microseconds.\n";
 	// std::cout << time_span.count() * 1000 << " milliseconds.\n";
