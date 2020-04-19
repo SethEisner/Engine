@@ -278,8 +278,6 @@ Mat4 operator-(Mat4 lhs, const Mat4& rhs) {
 	return lhs;
 }
 Mat4& Mat4::operator*=(const Mat4& rhs) { // matrix matrix multiplication
-	//float a = (*this)(0,0)*rhs(0,0) + (*this)(0,1)*rhs(1,0)
-
 	float a = (*this)(0, 0) * rhs(0, 0) + (*this)(0, 1) * rhs(1, 0) + (*this)(0, 2) * rhs(2, 0) + (*this)(0, 3) * rhs(3, 0);
 	float b = (*this)(0, 0) * rhs(0, 1) + (*this)(0, 1) * rhs(1, 1) + (*this)(0, 2) * rhs(2, 1) + (*this)(0, 3) * rhs(3, 1);
 	float c = (*this)(0, 0) * rhs(0, 2) + (*this)(0, 1) * rhs(1, 2) + (*this)(0, 2) * rhs(2, 2) + (*this)(0, 3) * rhs(3, 2);
@@ -389,16 +387,16 @@ Mat4 transpose(const Mat4& m) {
 				m(0, 2), m(1, 2), m(2, 2), m(3, 2), 
 				m(0, 3), m(1, 3), m(2, 3), m(3, 3));
 }
-Mat4 inverse(const Mat4& n) {
-	Mat4 m = transpose(n); // method presented in the book uses column major order so we need to transpose first
-	const Vec3& a = reinterpret_cast<const Vec3&>(m[0]);
-	const Vec3& b = reinterpret_cast<const Vec3&>(m[1]);
-	const Vec3& c = reinterpret_cast<const Vec3&>(m[2]);
-	const Vec3& d = reinterpret_cast<const Vec3&>(m[3]);
+Mat4 inverse(const Mat4& m) {
+	// method presented in the book uses column major order so we need to transpose first
+	const Vec3 a(m(0, 0), m(1, 0), m(2, 0));
+	const Vec3 b(m(0, 1), m(1, 1), m(2, 1));
+	const Vec3 c(m(0, 2), m(1, 2), m(2, 2));
+	const Vec3 d(m(0, 3), m(1, 3), m(2, 3));
 
-	const float& x = m(0, 3);
-	const float& y = m(1, 3);
-	const float& z = m(2, 3);
+	const float& x = m(3, 0);
+	const float& y = m(3, 1);
+	const float& z = m(3, 2);
 	const float& w = m(3, 3);
 
 	Vec3 s = cross(a, b);
@@ -501,12 +499,11 @@ Point3 operator*(Trans4 lhs, const Point3& rhs) { // w is 1
 				  lhs(2, 0) * rhs.x + lhs(2, 1) * rhs.y + lhs(2, 2) * rhs.z + lhs(2, 3));// add in the translation for z direction
 }
 Trans4 inverse(const Trans4& m) {
-	Mat4 h = transpose(m);
-	// get the rows and convret them to Vec3's
-	const Vec3& a = reinterpret_cast<const Vec3&>(h[0]);
-	const Vec3& b = reinterpret_cast<const Vec3&>(h[1]);
-	const Vec3& c = reinterpret_cast<const Vec3&>(h[2]);
-	const Vec3& d = reinterpret_cast<const Vec3&>(h[3]);
+	// get each column of the matrix
+	const Vec3 a(m(0, 0), m(1, 0), m(2, 0));
+	const Vec3 b(m(0, 1), m(1, 1), m(2, 1));
+	const Vec3 c(m(0, 2), m(1, 2), m(2, 2));
+	const Vec3 d(m(0, 3), m(1, 3), m(2, 3));
 
 	Vec3 s = cross(a, b);
 	Vec3 t = cross(c, d);
@@ -524,30 +521,30 @@ Trans4 inverse(const Trans4& m) {
 				  r1.x, r1.y, r1.z,  dot(a, t),
 				  s.x,   s.y,  s.z, -dot(d, s));
 }
-Trans4 make_rotation_x(float degrees) {
-	float c = cos(degrees);
-	float s = sin(degrees);
+Trans4 make_rotation_x(float radians) {
+	float c = cos(radians);
+	float s = sin(radians);
 	return Trans4(1.0f, 0.0f, 0.0f, 0.0f,
 				  0.0f,    c,   -s, 0.0f,
 				  0.0f,    s,    c, 0.0f);
 }
-Trans4 make_rotation_y(float degrees) {
-	float c = cos(degrees);
-	float s = sin(degrees);
+Trans4 make_rotation_y(float radians) {
+	float c = cos(radians);
+	float s = sin(radians);
 	return Trans4(   c, 0.0f,    s, 0.0f,
 				  0.0f, 1.0f, 0.0f, 0.0f,
 				    -s, 0.0f,    c, 0.0f);
 }
-Trans4 make_rotation_z(float degrees) {
-	float c = cos(degrees);
-	float s = sin(degrees);
+Trans4 make_rotation_z(float radians) {
+	float c = cos(radians);
+	float s = sin(radians);
 	return Trans4(   c,   -s, 0.0f, 0.0f,
 				     s,    c, 0.0f, 0.0f,
 				  0.0f, 0.0f, 1.0f, 0.0f);
 }
-Trans4 make_rotation(float degrees, const Vec3& a) { // rotates around vector a by degrees degrees
-	float c = cos(degrees);
-	float s = sin(degrees);
+Trans4 make_rotation(float radians, const Vec3& a) { // rotates around vector a by radians radians
+	float c = cos(radians);
+	float s = sin(radians);
 	float d = 1.0f - c;
 	
 	float x = a.x * d;

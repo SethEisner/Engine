@@ -14,3 +14,10 @@ float fast_invsqrt(float x) {
 	y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
 	return y;
 }
+
+float degrees(float rads) { // convert radians to degrees;
+	return rads * deg_per_rad;
+}
+float radians(float degrees) { // convert degrees to radians;
+	return degrees * rad_per_deg;
+}

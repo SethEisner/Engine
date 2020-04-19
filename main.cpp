@@ -81,6 +81,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	Mat4 m3 = transpose(m2);
 	Mat4 m4 = inverse(m2);
 
+	Mat4 m0 = make_rotation_z(1.5707f); //pi/4 radians
+
 	Trans4 m6;
 
 	Trans4 scale2(2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0);
@@ -92,7 +94,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	Trans4 st = scale2 * translation;
 	Trans4 ts = translation * scale2;
 
-	Trans4 inv = inverse(st);
+	Mat4 inv = inverse(st);
 
 	Vec3 v1 = st * v;
 	Point3 p1 = st * p;

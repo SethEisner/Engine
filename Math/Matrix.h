@@ -97,10 +97,10 @@ struct Trans4 : Mat4 {
 	friend Point3 operator*(Trans4 lhs, const Point3& rhs); // w is 1
 };
 Trans4 inverse(const Trans4& m);
-Trans4 make_rotation_x(float degrees);
-Trans4 make_rotation_y(float degrees);
-Trans4 make_rotation_z(float degrees);
-Trans4 make_rotation(float degrees, const Vec3& a); // rotates around vector a by degrees degrees
+Trans4 make_rotation_x(float radians);
+Trans4 make_rotation_y(float radians);
+Trans4 make_rotation_z(float radians);
+Trans4 make_rotation(float radians, const Vec3& a); // rotates around vector a by degrees degrees
 Trans4 make_scale(float s);
 Trans4 make_scale(float x, float y, float z);
 Trans4 make_translation(const Vec3& t);
