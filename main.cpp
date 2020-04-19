@@ -72,17 +72,30 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	UpdateWindow(hwnd);
 
 	Mat4 m1;
-	Mat4 m2(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
-	Mat4 m3 = m1 * m2;
-	Mat4 m4 = m2 * m2;
+	Mat4 m2(1, 3, 5, 9, 1, 3, 1, 7, 4, 3, 9, 7, 5, 2, 0, 9);
 
-	Vec4 v1(1, 2, 3, 4);
-	Vec4 v2 = m2 * v1;
 
 	Mat4 ortho = orthogonalize(m2);
-	//float a = det(m2);
-	//Mat4 m5 = transpose(m2);
-	//Mat4 m6 = inverse(m2);
+	float f1 = det(m1);
+	float f2 = det(m2);
+	Mat4 m3 = transpose(m2);
+	Mat4 m4 = inverse(m2);
+
+	Trans4 m6;
+
+	Trans4 scale2(2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0);
+	Trans4 translation(1, 0, 0, 3, 0, 1, 0, 2, 0, 0, 1, 1);
+
+	Vec3 v(1.0, 1.0, 1.0);
+	Point3 p(1.0, 1.0, 1.0);
+
+	Trans4 st = scale2 * translation;
+	Trans4 ts = translation * scale2;
+
+	Trans4 inv = inverse(st);
+
+	Vec3 v1 = st * v;
+	Point3 p1 = st * p;
 
 	//std::cout << time_span.count() * 1000000 << " microseconds.\n";
 	// std::cout << time_span.count() * 1000 << " milliseconds.\n";

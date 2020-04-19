@@ -16,7 +16,6 @@ public:
 	const Vec2& operator[](int index) const; // get a row
 	const float operator()(int i, int j); // get an element
 	const float operator()(int i, int j) const; // get an element
-private:
 	Mat2& operator+=(const Mat2& rhs); // matrix matrix addition
 	friend Mat2 operator+(Mat2 lhs, const Mat2& rhs);
 	Mat2& operator-=(const Mat2& rhs); // matrix matrix subtraction
@@ -44,7 +43,6 @@ public:
 	const Vec3& operator[](int index) const; // get a row
 	const float operator()(int i, int j); // get an element
 	const float operator()(int i, int j) const; // get an element
-private:
 	Mat3& operator+=(const Mat3& rhs); // matrix matrix addition
 	friend Mat3 operator+(Mat3 lhs, const Mat3& rhs);
 	Mat3& operator-=(const Mat3& rhs); // matrix matrix subtraction
@@ -71,7 +69,6 @@ public:
 	const Vec4& operator[](int index) const; // get a row
 	const float operator()(int i, int j); // get an element
 	const float operator()(int i, int j) const; // get an element
-private:
 	float n[4][4];
 	Mat4& operator+=(const Mat4& rhs); // matrix matrix addition
 	friend Mat4 operator+(Mat4 lhs, const Mat4& rhs);
@@ -89,8 +86,22 @@ Mat4 transpose(const Mat4&);
 Mat4 inverse(const Mat4&);
 Mat4 orthogonalize(const Mat4& m);
 
-struct Transform4 : Mat4 {
-
-private:
-	float n[3][4]; // bottom row is always [0, 0, 0, 1]
+struct Trans4 : Mat4 {
+	Trans4() = default; // uses Mat4's default constructor
+	Trans4(float a, float b, float c, float d, float e, float f, float g, float h, float i, float j, float k, float l) : Mat4(a, b, c, d, e, f, g, h, i, j, k, l, 0.0f, 0.0f, 0.0f, 1.0f) {}
+	const Vec3& get_translation() const;
+	void set_translation(const Vec3&);
+	Trans4& operator*=(const Trans4 rhs);
+	friend Trans4 operator*(Trans4 lhs, const Trans4& rhs); // can ignore multiplication of bottom row
+	friend Vec3 operator*(Trans4 lhs, const Vec3& rhs);   // w is 0
+	friend Point3 operator*(Trans4 lhs, const Point3& rhs); // w is 1
 };
+Trans4 inverse(const Trans4& m);
+Trans4 make_rotation_x(float degrees);
+Trans4 make_rotation_y(float degrees);
+Trans4 make_rotation_z(float degrees);
+Trans4 make_rotation(float degrees, const Vec3& a); // rotates around vector a by degrees degrees
+Trans4 make_scale(float s);
+Trans4 make_scale(float x, float y, float z);
+Trans4 make_translation(const Vec3& t);
+

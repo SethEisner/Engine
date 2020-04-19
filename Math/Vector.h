@@ -15,7 +15,6 @@ struct Vec2 {
 	explicit Vec2(float _x, float _y) : x(_x), y(_y) {}
 	~Vec2() = default;
 	Vec2& operator=(const Vec2&) = default; //use the default copy assignment operator
-private: // private so we can't call them directly
 	Vec2& operator+=(const Vec2& rhs);
 	friend Vec2 operator+(Vec2 lhs, const Vec2& rhs);
 	Vec2& operator-=(const Vec2& rhs);
@@ -40,8 +39,7 @@ struct Vec3 { // also works as a point type
 	explicit Vec3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
 	~Vec3() = default;
 	Vec3& operator=(const Vec3&) = default; //use the default copy assignment operator
-	//Vec3& operator=(const Vec4& v4); seems too bug prone to implement
-private: // private so we can't call them directly
+	//Vec3& operator=(const Vec4& v4); //seems too bug prone to implement
 	Vec3& operator+=(const Vec3& rhs);
 	friend Vec3 operator+(Vec3 lhs, const Vec3& rhs);
 	Vec3& operator-=(const Vec3& rhs);
@@ -57,6 +55,20 @@ Vec3 projection(const Vec3& u, const Vec3& v);
 Vec3 rejection(const Vec3& u, const Vec3& v);
 Vec3 homogenize(const Vec3& rhs); // can turn a 2d point into a homogeneous coordinate
 
+
+struct Point3 : Vec3 {
+	Point3() = default;
+	explicit Point3(float _x, float _y, float _z) : Vec3(_x, _y, _z) {}
+	inline friend Point3 operator+(const Point3& lhs, const Point3& rhs) {
+		return Point3(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
+	}
+	inline friend Point3 operator-(const Point3& lhs, const Point3& rhs) {
+		return Point3(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z);
+	}
+};
+
+
+
 struct Vec4 { // homogeneous coordinates vec w=0 point w = 1
 	float x;
 	float y;
@@ -67,8 +79,6 @@ struct Vec4 { // homogeneous coordinates vec w=0 point w = 1
 	explicit Vec4(float _x, float _y, float _z, float _w) : x(_x), y(_y), z(_z), w(_w) {}
 	~Vec4() = default;
 	Vec4& operator=(const Vec4&) = default; //use the default copy assignment operator
-private:
-	// adding two points makes no sense so these Vec4 must be vectors (w = 0) and returns a vector (w = 0)
 	Vec4& operator+=(const Vec4& rhs);
 	friend Vec4 operator+(Vec4 lhs, const Vec4& rhs);
 	Vec4& operator-=(const Vec4& rhs);

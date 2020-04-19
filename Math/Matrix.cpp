@@ -219,7 +219,6 @@ Mat3 orthogonalize(const Mat3& m) {
 	return Mat3(e1.x, e1.y, e1.z, e2.x, e2.y, e2.z, e3.x, e3.y, e3.z);
 }
 
-
 const Vec4& Mat4::operator[](int index) { // get a row
 	return (*reinterpret_cast<const Vec4*>(n[index]));
 }
@@ -357,14 +356,71 @@ Mat4 operator*(const float lhs, Mat4 rhs) {
 	rhs *= lhs;
 	return rhs;
 }
-float det(const Mat4&) {
-	return 0.0f;
+float det(const Mat4& m) {
+	// store duplicated multiplications
+	float a = m(2, 0) * m(3, 1);
+	float b = m(2, 0) * m(3, 2);
+	float c = m(2, 0) * m(3, 3);
+	float d = m(2, 1) * m(3, 0);
+	float e = m(2, 1) * m(3, 2);
+	float f = m(2, 1) * m(3, 3);
+	float g = m(2, 2) * m(3, 0);
+	float h = m(2, 2) * m(3, 1);
+	float i = m(2, 2) * m(3, 3);
+	float j = m(2, 3) * m(3, 0);
+	float k = m(2, 3) * m(3, 1);
+	float l = m(2, 3) * m(3, 2);
+	// store duplicated subtractions
+	float i_l = i - l;
+	float j_c = j - c;
+	float e_h = e - h;
+	float a_d = a - d;
+
+	float x = m(0, 0) * (m(1, 1) * i_l     + m(1, 2) * (k - f) + m(1, 3) * e_h);
+	float y = m(0, 1) * (m(1, 0) * i_l     + m(1, 2) * j_c     + m(1, 3) * (b - g));
+	float z = m(0, 2) * (m(1, 0) * (f - k) + m(1, 1) * j_c     + m(1, 3) * a_d);
+	float w = m(0, 3) * (m(1, 0) * e_h     + m(1, 1) * (g - b) + m(1, 2) * a_d);
+
+	return x - y + z - w;
 }
-Mat4 transpose(const Mat4&) {
-	return Mat4();
+Mat4 transpose(const Mat4& m) {
+	return Mat4(m(0, 0), m(1, 0), m(2, 0), m(3, 0),
+				m(0, 1), m(1, 1), m(2, 1), m(3, 1), 
+				m(0, 2), m(1, 2), m(2, 2), m(3, 2), 
+				m(0, 3), m(1, 3), m(2, 3), m(3, 3));
 }
-Mat4 inverse(const Mat4&) {
-	return Mat4();
+Mat4 inverse(const Mat4& n) {
+	Mat4 m = transpose(n); // method presented in the book uses column major order so we need to transpose first
+	const Vec3& a = reinterpret_cast<const Vec3&>(m[0]);
+	const Vec3& b = reinterpret_cast<const Vec3&>(m[1]);
+	const Vec3& c = reinterpret_cast<const Vec3&>(m[2]);
+	const Vec3& d = reinterpret_cast<const Vec3&>(m[3]);
+
+	const float& x = m(0, 3);
+	const float& y = m(1, 3);
+	const float& z = m(2, 3);
+	const float& w = m(3, 3);
+
+	Vec3 s = cross(a, b);
+	Vec3 t = cross(c, d);
+	Vec3 u = a * y - b * x;
+	Vec3 v = c * w - d * z;
+
+	float inv = 1.0f / (dot(s, v) + dot(t, u));
+	s *= inv;
+	t *= inv;
+	u *= inv;
+	v *= inv;
+
+	Vec3 r0 = cross(b, v) + t * y;
+	Vec3 r1 = cross(v, a) - t * x;
+	Vec3 r2 = cross(d, u) + s * w;
+	Vec3 r3 = cross(u, c) - s * z;
+
+	return Mat4(r0.x, r0.y, r0.z, -dot(b, t),
+				r1.x, r1.y, r1.z,  dot(a, t),
+				r2.x, r2.y, r2.z, -dot(d, s),
+				r3.x, r3.y, r3.z,  dot(c, s));
 }
 Mat4 orthogonalize(const Mat4& m) {
 	Vec4 u1 = m[0];
@@ -391,4 +447,133 @@ Mat4 orthogonalize(const Mat4& m) {
 				e2.x, e2.y, e2.z, e2.w, 
 				e3.x, e3.y, e3.z, e3.w, 
 				e4.x, e4.y, e4.z, e4.w);
+}
+
+const Vec3& Trans4::get_translation() const {
+	return Vec3((*this)(0, 3), (*this)(1, 3), (*this)(2, 3)); // bottom right is always 1, no point in returning it
+}
+void Trans4::set_translation(const Vec3& p) {
+	n[0][3] = p.x;
+	n[1][3] = p.y;
+	n[2][3] = p.z;
+}
+Trans4& Trans4::operator*=(const Trans4 rhs) {
+	float a = (*this)(0, 0) * rhs(0, 0) + (*this)(0, 1) * rhs(1, 0) + (*this)(0, 2) * rhs(2, 0);
+	float b = (*this)(0, 0) * rhs(0, 1) + (*this)(0, 1) * rhs(1, 1) + (*this)(0, 2) * rhs(2, 1);
+	float c = (*this)(0, 0) * rhs(0, 2) + (*this)(0, 1) * rhs(1, 2) + (*this)(0, 2) * rhs(2, 2);
+	float d = (*this)(0, 0)* rhs(0, 3) + (*this)(0, 1) * rhs(1, 3) + (*this)(0, 2) * rhs(2, 3) + (*this)(0, 3);  // can simply add last term because rhs(3,3) is always 1
+	float e = (*this)(1, 0) * rhs(0, 0) + (*this)(1, 1) * rhs(1, 0) + (*this)(1, 2) * rhs(2, 0);
+	float f = (*this)(1, 0) * rhs(0, 1) + (*this)(1, 1) * rhs(1, 1) + (*this)(1, 2) * rhs(2, 1);
+	float g = (*this)(1, 0) * rhs(0, 2) + (*this)(1, 1) * rhs(1, 2) + (*this)(1, 2) * rhs(2, 2);
+	float h = (*this)(1, 0)* rhs(0, 3) + (*this)(1, 1) * rhs(1, 3) + (*this)(1, 2) * rhs(2, 3) + (*this)(1, 3);  // can simply add last term because rhs(3,3) is always 1
+	float i = (*this)(2, 0) * rhs(0, 0) + (*this)(2, 1) * rhs(1, 0) + (*this)(2, 2) * rhs(2, 0);
+	float j = (*this)(2, 0) * rhs(0, 1) + (*this)(2, 1) * rhs(1, 1) + (*this)(2, 2) * rhs(2, 1);
+	float k = (*this)(2, 0) * rhs(0, 2) + (*this)(2, 1) * rhs(1, 2) + (*this)(2, 2) * rhs(2, 2);
+	float l = (*this)(2, 0) * rhs(0, 3) + (*this)(2, 1) * rhs(1, 3) + (*this)(2, 2) * rhs(2, 3) + (*this)(2, 3); // can simply add last term because rhs(3,3) is always 1
+	
+	this->n[0][0] = a;
+	this->n[0][1] = b;
+	this->n[0][2] = c;
+	this->n[0][3] = d;
+	this->n[1][0] = e;
+	this->n[1][1] = f;
+	this->n[1][2] = g;
+	this->n[1][3] = h;
+	this->n[2][0] = i;
+	this->n[2][1] = j;
+	this->n[2][2] = k;
+	this->n[2][3] = l;
+
+	return *this;
+}
+Trans4 operator*(Trans4 lhs, const Trans4& rhs) {
+	lhs *= rhs;
+	return lhs;
+}
+Vec3 operator*(Trans4 lhs, const Vec3& rhs) {   // w is 0
+	return Vec3(lhs(0, 0) * rhs.x + lhs(0, 1) * rhs.y + lhs(0, 2) * rhs.z, // vectors cannot be translated
+				lhs(1, 0) * rhs.x + lhs(1, 1) * rhs.y + lhs(1, 2) * rhs.z,
+				lhs(2, 0) * rhs.x + lhs(2, 1) * rhs.y + lhs(2, 2) * rhs.z);
+}
+Point3 operator*(Trans4 lhs, const Point3& rhs) { // w is 1
+	return Point3(lhs(0, 0) * rhs.x + lhs(0, 1) * rhs.y + lhs(0, 2) * rhs.z + lhs(0, 3), // add in the translation for x direction
+				  lhs(1, 0) * rhs.x + lhs(1, 1) * rhs.y + lhs(1, 2) * rhs.z + lhs(1, 3), // add in the translation for y direction
+				  lhs(2, 0) * rhs.x + lhs(2, 1) * rhs.y + lhs(2, 2) * rhs.z + lhs(2, 3));// add in the translation for z direction
+}
+Trans4 inverse(const Trans4& m) {
+	Mat4 h = transpose(m);
+	// get the rows and convret them to Vec3's
+	const Vec3& a = reinterpret_cast<const Vec3&>(h[0]);
+	const Vec3& b = reinterpret_cast<const Vec3&>(h[1]);
+	const Vec3& c = reinterpret_cast<const Vec3&>(h[2]);
+	const Vec3& d = reinterpret_cast<const Vec3&>(h[3]);
+
+	Vec3 s = cross(a, b);
+	Vec3 t = cross(c, d);
+
+	float inv = 1.0f / dot(s, c);
+
+	s *= inv;
+	t *= inv;
+	Vec3 v = c * inv;
+
+	Vec3 r0 = cross(b, v);
+	Vec3 r1 = cross(v, a);
+
+	return Trans4(r0.x, r0.y, r0.z, -dot(b, t), 
+				  r1.x, r1.y, r1.z,  dot(a, t),
+				  s.x,   s.y,  s.z, -dot(d, s));
+}
+Trans4 make_rotation_x(float degrees) {
+	float c = cos(degrees);
+	float s = sin(degrees);
+	return Trans4(1.0f, 0.0f, 0.0f, 0.0f,
+				  0.0f,    c,   -s, 0.0f,
+				  0.0f,    s,    c, 0.0f);
+}
+Trans4 make_rotation_y(float degrees) {
+	float c = cos(degrees);
+	float s = sin(degrees);
+	return Trans4(   c, 0.0f,    s, 0.0f,
+				  0.0f, 1.0f, 0.0f, 0.0f,
+				    -s, 0.0f,    c, 0.0f);
+}
+Trans4 make_rotation_z(float degrees) {
+	float c = cos(degrees);
+	float s = sin(degrees);
+	return Trans4(   c,   -s, 0.0f, 0.0f,
+				     s,    c, 0.0f, 0.0f,
+				  0.0f, 0.0f, 1.0f, 0.0f);
+}
+Trans4 make_rotation(float degrees, const Vec3& a) { // rotates around vector a by degrees degrees
+	float c = cos(degrees);
+	float s = sin(degrees);
+	float d = 1.0f - c;
+	
+	float x = a.x * d;
+	float y = a.y * d;
+	float z = a.z * d;
+
+	float axay = x * a.y;
+	float axaz = x * a.z;
+	float ayaz = y * a.z;
+
+	return Trans4(c + x * a.x, axay - s * a.z, axaz + s * a.y, 0.0f,
+				  axay + s * a.z, c + y * a.y, ayaz - s * a.x, 0.0f,
+				  axaz - s * a.y, ayaz + s * a.x, c + z * a.z, 0.0f);
+}
+Trans4 make_scale(float s) {
+	return Trans4(s,    0.0f, 0.0f, 0.0f,
+				  0.0f,    s, 0.0f, 0.0f,
+				  0.0f, 0.0f,    s, 0.0f);
+}
+Trans4 make_scale(float x, float y, float z) {
+	return Trans4(x, 0.0f, 0.0f, 0.0f,
+				  0.0f, y, 0.0f, 0.0f,
+				  0.0f, 0.0f, x, 0.0f);
+}
+Trans4 make_translation(const Vec3& t) {
+	return Trans4(1.0f, 0.0f, 0.0f, t.x,
+				  0.0f, 1.0f, 0.0f, t.y,
+				  0.0f, 0.0f, 1.0f, t.z);
 }
