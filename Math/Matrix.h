@@ -89,6 +89,7 @@ Mat4 orthogonalize(const Mat4& m);
 struct Trans4 : Mat4 {
 	Trans4() = default; // uses Mat4's default constructor
 	Trans4(float a, float b, float c, float d, float e, float f, float g, float h, float i, float j, float k, float l) : Mat4(a, b, c, d, e, f, g, h, i, j, k, l, 0.0f, 0.0f, 0.0f, 1.0f) {}
+	explicit Trans4(const Mat3& m) : Mat4(m(0, 0), m(0, 1), m(0, 2), 0.0f, m(1, 0), m(1, 1), m(1, 2), 0.0f, m(2, 0), m(2, 1), m(2, 2), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f) {}
 	const Vec3& get_translation() const;
 	void set_translation(const Vec3&);
 	Trans4& operator*=(const Trans4 rhs);

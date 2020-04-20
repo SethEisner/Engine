@@ -10,6 +10,7 @@
 #include "Utilities/Utilities.h"
 #include "Math/Vector.h"
 #include "Math/Matrix.h"
+#include "Math/Quaternion.h"
 #include <windows.h>
 
 const int thread_count = 3; //std::min((unsigned int) 3, std::thread::hardware_concurrency() - 1);
@@ -81,23 +82,17 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	Mat4 m3 = transpose(m2);
 	Mat4 m4 = inverse(m2);
 
-	Mat4 m0 = make_rotation_z(1.5707f); //pi/4 radians
+	//Trans4 m0 = make_rotation_z(1.5707f); //pi/4 radians
 
-	Trans4 m6;
+	Quaternion q;
+	Vec3 v(0.0f, 0.0f, 3.0f);
 
-	Trans4 scale2(2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0);
-	Trans4 translation(1, 0, 0, 3, 0, 1, 0, 2, 0, 0, 1, 1);
-
-	Vec3 v(1.0, 1.0, 1.0);
-	Point3 p(1.0, 1.0, 1.0);
-
-	Trans4 st = scale2 * translation;
-	Trans4 ts = translation * scale2;
-
-	Mat4 inv = inverse(st);
-
-	Vec3 v1 = st * v;
-	Point3 p1 = st * p;
+	//q.set_rotation_matrix(make_rotation_z(radians(90)));
+	Quaternion qp(Vec3(0, 0, 1), radians(90));
+	Quaternion qc(Vec3(1, 0, 0), radians(90));
+	Vec3 res = transform(v, qp * qc); // performs parent then child rotation
+	Vec3 res1 = transform(v, q * q); // performs two rotations of zero degrees
+	float x = magnitude(qp * qc);
 
 	//std::cout << time_span.count() * 1000000 << " microseconds.\n";
 	// std::cout << time_span.count() * 1000 << " milliseconds.\n";

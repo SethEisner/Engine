@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Math\Matrix.cpp" />
+    <ClCompile Include="Math\Quaternion.cpp" />
     <ClCompile Include="Math\Vector.cpp" />
     <ClCompile Include="InputManager\InputManager.cpp" />
     <ClCompile Include="Utilities\Utilities.cpp" />
@@ -30,6 +31,7 @@
     <ClInclude Include="Math\Matrix.h" />
     <ClInclude Include="Math\Vector.h" />
     <ClInclude Include="InputManager\InputManager.h" />
+    <ClInclude Include="Quaternion.h" />
     <ClInclude Include="Utilities\Utilities.h" />
     <ClInclude Include="JobSystem\JobSystem.h" />
     <ClInclude Include="ThreadSafeContainers\Queue.h" />
