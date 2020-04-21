@@ -1,6 +1,6 @@
 #pragma once
+#include <atomic>
 #include <thread>
-//#include "../ThreadSafeContainers/concurrentqueue.h"
 #include "../ThreadSafeContainers/Queue.h"
 
 struct alignas (64) Job {
@@ -21,8 +21,6 @@ namespace JobSystem { // cant be namespace because the variables have to be stat
 	Job* create_job_as_child(JobFunction, Job*, const void*);
 	void finish(Job*);
 	Job* allocate_job();
-	//moodycamel::ConcurrentQueue<Job*>* get_worker_thread_queue();
-	//moodycamel::ConcurrentQueue<Job*>* get_worker_thread_queue(int);
 	Queue<Job*>* get_worker_thread_queue();
 	Queue<Job*>* get_worker_thread_queue(int);
 	void queue_job(Job*);
@@ -50,8 +48,6 @@ namespace JobSystem { // cant be namespace because the variables have to be stat
 		static thread_local int8_t id;
 		static Worker* m_workers;
 	}
-
-	
 }
 class CountSplitter {
 public:

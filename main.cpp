@@ -8,11 +8,14 @@
 #include "JobSystem/JobSystem.h"
 #include "InputManager/InputManager.h"
 #include "Utilities/Utilities.h"
+#include "Math/Vector.h"
+#include "Math/Matrix.h"
+#include "Math/Quaternion.h"
 #include <windows.h>
 
 const int thread_count = 3; //std::min((unsigned int) 3, std::thread::hardware_concurrency() - 1);
 
-struct  Particles {
+struct Particles {
 	float x;
 	float y;
 	float z;
@@ -69,45 +72,74 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	ShowWindow(hwnd, nCmdShow);
 	UpdateWindow(hwnd);
 
+	Mat4 m1;
+	Mat4 m2(1, 3, 5, 9, 1, 3, 1, 7, 4, 3, 9, 7, 5, 2, 0, 9);
+
+
+
+	Mat4 ortho = orthogonalize(m2);
+	float f1 = det(m1);
+	float f2 = det(m2);
+	Mat4 m3 = transpose(m2);
+	Mat4 m4 = inverse(m2);
+
+	//Trans4 m0 = make_rotation_z(1.5707f); //pi/4 radians
+
+	Quaternion q;
+	Vec3 v(0.0f, 0.0f, 3.0f);
+
+	//q.set_rotation_matrix(make_rotation_z(radians(90)));
+	Quaternion qp(Vec3(0, 0, 1), radians(90));
+	Quaternion qc(Vec3(1, 0, 0), radians(90));
+	Vec3 res = transform(v, qp * qc); // performs parent then child rotation
+	Vec3 res1 = transform(v, q * q); // performs two rotations of zero degrees
+	float x = magnitude(qp * qc);
+
+	Trans4 t = make_scale(3.0f);
+	float f = det(t);
+	//std::cout << time_span.count() * 1000000 << " microseconds.\n";
+	// std::cout << time_span.count() * 1000 << " milliseconds.\n";
 	InputManager* input_manager = new InputManager();
+	// 
+	// input_manager->add_action(HASH("shoot"), InputManager::MouseButton::LEFT);
+	// input_manager->add_action(HASH("jump"), InputManager::Key(' '));
+	// 
+	// while (!input_manager->is_held(HASH("shoot"))) {
+	// 	input_manager->get_input();
+	// 	std::this_thread::sleep_for(std::chrono::milliseconds(33));
+	// 	if (input_manager->is_released(HASH("shoot"))) {
+	// 		OutputDebugStringA("released\n");
+	// 	}
+	// 	if (input_manager->is_held(HASH("shoot"))) {
+	// 		OutputDebugStringA("held\n");
+	// 	}
+	// 	if (input_manager->is_pressed(HASH("shoot"))) {
+	// 		OutputDebugStringA("pressed\n");
+	// 	}
+	// 	if (input_manager->is_unheld(HASH("shoot"))) {
+	// 		OutputDebugStringA("unheld\n");
+	// 	}
+	// }
+	// 
+	// input_manager->remap_action(HASH("shoot"), InputManager::MouseButton::RIGHT);
+	// while (true) {
+	// 	input_manager->get_input();
+	// 	std::this_thread::sleep_for(std::chrono::milliseconds(33));
+	// 	if (input_manager->is_released(HASH("shoot"))) {
+	// 		OutputDebugStringA("released\n");
+	// 	}
+	// 	if (input_manager->is_held(HASH("shoot"))) {
+	// 		OutputDebugStringA("held\n");
+	// 	}
+	// 	if (input_manager->is_pressed(HASH("shoot"))) {
+	// 		OutputDebugStringA("pressed\n");
+	// 	}
+	// 	if (input_manager->is_unheld(HASH("shoot"))) {
+	// 		OutputDebugStringA("unheld\n");
+	// 	}
+	// }
 
-	input_manager->add_action(HASH("shoot"), InputManager::MouseButton::LEFT);
-	input_manager->add_action(HASH("jump"), InputManager::Key(' '));
 
-	while (!input_manager->is_held(HASH("shoot"))) {
-		input_manager->get_input();
-		std::this_thread::sleep_for(std::chrono::milliseconds(33));
-		if (input_manager->is_released(HASH("shoot"))) {
-			OutputDebugStringA("released\n");
-		}
-		if (input_manager->is_held(HASH("shoot"))) {
-			OutputDebugStringA("held\n");
-		}
-		if (input_manager->is_pressed(HASH("shoot"))) {
-			OutputDebugStringA("pressed\n");
-		}
-		if (input_manager->is_unheld(HASH("shoot"))) {
-			OutputDebugStringA("unheld\n");
-		}
-	}
-
-	input_manager->remap_action(HASH("shoot"), InputManager::MouseButton::RIGHT);
-	while (true) {
-		input_manager->get_input();
-		std::this_thread::sleep_for(std::chrono::milliseconds(33));
-		if (input_manager->is_released(HASH("shoot"))) {
-			OutputDebugStringA("released\n");
-		}
-		if (input_manager->is_held(HASH("shoot"))) {
-			OutputDebugStringA("held\n");
-		}
-		if (input_manager->is_pressed(HASH("shoot"))) {
-			OutputDebugStringA("pressed\n");
-		}
-		if (input_manager->is_unheld(HASH("shoot"))) {
-			OutputDebugStringA("unheld\n");
-		}
-	}
 	// Job* root = JobSystem::create_job(empty_job);
 	// const uint32_t n_particles = 100000;
 	// Particles* parts_1 = new Particles[n_particles]; // allocate 100000 particles

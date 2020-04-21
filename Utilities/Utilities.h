@@ -1,9 +1,18 @@
 #pragma once
 #include <string.h>
 #include <stdint.h>
-#include <stdio.h>
 
-//TODO: add random number generator
+/*TODO: 
+add random number generator
+add faster trigonometric functions (may not be necessary with /fp:fast)
+*/
+
+float fast_invsqrt(float);
+static constexpr float pi = 3.14159256359;
+static constexpr float rad_per_deg = 0.01745329252;
+static constexpr float deg_per_rad = 57.2957795131;
+float degrees(float rads); // convert radians to degrees;
+float radians(float degrees); // convert degrees to radians;
 
 // string hashing macro
 #define H1(s,i,x)   (x*65599u+(uint8_t)s[(i)<strlen(s)?strlen(s)-1-(i):strlen(s)])

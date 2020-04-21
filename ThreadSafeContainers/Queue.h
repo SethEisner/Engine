@@ -16,10 +16,6 @@ public:
 public:
 	Queue(size_t size) : m_buffer(new cell_t[size]), m_buffer_mask(size - 1) {
 		assert((size >= 2) && ((size & (m_buffer_mask)) == 0)); // provided size must be a power of two
-		// for (size_t i = 0; i != size; ++i) {
-		// 	m_buffer[i].cell_t.m_cell_num.store(0);
-		// 	memset(m_buffer[i].cell_t.m_data, 0, 64);
-		// }
 		for (size_t i = 0; i != size; ++i) {
 			// operations can be in any order because initialization is single threaded.
 			m_buffer[i].m_cell_num.store(i, std::memory_order_relaxed);

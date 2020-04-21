@@ -19,14 +19,20 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Math\Matrix.cpp" />
+    <ClCompile Include="Math\Quaternion.cpp" />
+    <ClCompile Include="Math\Vector.cpp" />
     <ClCompile Include="InputManager\InputManager.cpp" />
     <ClCompile Include="Utilities\Utilities.cpp" />
     <ClCompile Include="JobSystem\JobSystem.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Math\Matrix.h" />
+    <ClInclude Include="Math\Vector.h" />
     <ClInclude Include="InputManager\InputManager.h" />
-    <ClCompile Include="Utilities\Utilities.h" />
+    <ClInclude Include="Quaternion.h" />
+    <ClInclude Include="Utilities\Utilities.h" />
     <ClInclude Include="JobSystem\JobSystem.h" />
     <ClInclude Include="ThreadSafeContainers\Queue.h" />
   </ItemGroup>
@@ -111,6 +117,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -143,6 +150,7 @@
       <ConformanceMode>true</ConformanceMode>
       <Optimization>MaxSpeed</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
