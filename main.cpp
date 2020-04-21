@@ -76,6 +76,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	Mat4 m2(1, 3, 5, 9, 1, 3, 1, 7, 4, 3, 9, 7, 5, 2, 0, 9);
 
 
+
 	Mat4 ortho = orthogonalize(m2);
 	float f1 = det(m1);
 	float f2 = det(m2);
@@ -94,6 +95,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	Vec3 res1 = transform(v, q * q); // performs two rotations of zero degrees
 	float x = magnitude(qp * qc);
 
+	Trans4 t = make_scale(3.0f);
+	float f = det(t);
 	//std::cout << time_span.count() * 1000000 << " microseconds.\n";
 	// std::cout << time_span.count() * 1000 << " milliseconds.\n";
 	InputManager* input_manager = new InputManager();

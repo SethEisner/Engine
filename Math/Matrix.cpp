@@ -488,15 +488,27 @@ Trans4 operator*(Trans4 lhs, const Trans4& rhs) {
 	lhs *= rhs;
 	return lhs;
 }
-Vec3 operator*(Trans4 lhs, const Vec3& rhs) {   // w is 0
+Vec3 operator*(const Trans4& lhs, const Vec3& rhs) {   // transform non-normal vector
 	return Vec3(lhs(0, 0) * rhs.x + lhs(0, 1) * rhs.y + lhs(0, 2) * rhs.z, // vectors cannot be translated
 				lhs(1, 0) * rhs.x + lhs(1, 1) * rhs.y + lhs(1, 2) * rhs.z,
 				lhs(2, 0) * rhs.x + lhs(2, 1) * rhs.y + lhs(2, 2) * rhs.z);
 }
-Point3 operator*(Trans4 lhs, const Point3& rhs) { // w is 1
+Point3 operator*(const Trans4& lhs, const Point3& rhs) { // transform point
 	return Point3(lhs(0, 0) * rhs.x + lhs(0, 1) * rhs.y + lhs(0, 2) * rhs.z + lhs(0, 3), // add in the translation for x direction
 				  lhs(1, 0) * rhs.x + lhs(1, 1) * rhs.y + lhs(1, 2) * rhs.z + lhs(1, 3), // add in the translation for y direction
 				  lhs(2, 0) * rhs.x + lhs(2, 1) * rhs.y + lhs(2, 2) * rhs.z + lhs(2, 3));// add in the translation for z direction
+}
+Vec3 operator*(const Vec3& n, const Trans4& rhs) { // transform normal vector
+	// normal vector treated like a row matrix and multiplied by the column of the rhs matrix. need to give it the inverse matrix for proper behavior 
+	return Vec3(n.x * rhs(0, 0) + n.y * rhs(1, 0) + n.z * rhs(2, 0),
+				n.x * rhs(0, 1) + n.y * rhs(1, 1) + n.z * rhs(2, 1),
+				n.x * rhs(0, 2) + n.y * rhs(1, 2) + n.z * rhs(2, 2));
+}
+float det(const Trans4& m) {
+	// last row is [0, 0, 0, 1] so determinant of transpose is same as determinant of upper left 3x3 minor
+	return (m(0, 0) * (m(1, 1) * m(2, 2) - m(1, 2) * m(2, 1))) +
+		   (m(0, 1) * (m(1, 2) * m(2, 0) - m(1, 0) * m(2, 2))) +
+		   (m(0, 2) * (m(1, 0) * m(2, 1) - m(1, 1) * m(2, 0)));
 }
 Trans4 inverse(const Trans4& m) {
 	// get each column of the matrix

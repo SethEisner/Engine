@@ -94,9 +94,11 @@ struct Trans4 : Mat4 {
 	void set_translation(const Vec3&);
 	Trans4& operator*=(const Trans4 rhs);
 	friend Trans4 operator*(Trans4 lhs, const Trans4& rhs); // can ignore multiplication of bottom row
-	friend Vec3 operator*(Trans4 lhs, const Vec3& rhs);   // w is 0
-	friend Point3 operator*(Trans4 lhs, const Point3& rhs); // w is 1
+	friend Vec3 operator*(const Trans4& lhs, const Vec3& rhs);   // w is 0
+	friend Point3 operator*(const Trans4& lhs, const Point3& rhs); // w is 1
+	friend Vec3 operator*(const Vec3& n, const Trans4& h); // transforms the normal vector n by h, need to take transpose or inverse first
 };
+float det(const Trans4&);
 Trans4 inverse(const Trans4& m);
 Trans4 make_rotation_x(float radians);
 Trans4 make_rotation_y(float radians);
