@@ -62,7 +62,7 @@ struct Point3 : Vec3 {
 	inline friend Point3 operator+(const Point3& lhs, const Point3& rhs) {
 		return Point3(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
 	}
-	inline friend Point3 operator-(const Point3& lhs, const Point3& rhs) {
+	inline friend Vec3 operator-(const Point3& lhs, const Point3& rhs) {
 		return Point3(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z);
 	}
 };
