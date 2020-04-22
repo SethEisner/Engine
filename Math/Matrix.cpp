@@ -447,8 +447,8 @@ Mat4 orthogonalize(const Mat4& m) {
 				e4.x, e4.y, e4.z, e4.w);
 }
 
-const Vec3& Trans4::get_translation() const {
-	return Vec3((*this)(0, 3), (*this)(1, 3), (*this)(2, 3)); // bottom right is always 1, no point in returning it
+const Point3& Trans4::get_translation() const {
+	return Point3((*this)(0, 3), (*this)(1, 3), (*this)(2, 3)); // bottom right is always 1, no point in returning it
 }
 void Trans4::set_translation(const Vec3& p) {
 	n[0][3] = p.x;
