@@ -36,10 +36,10 @@
     <ClCompile Include="Math\Quaternion.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Line.cpp">
+    <ClCompile Include="Math\Line.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Plane.cpp">
+    <ClCompile Include="Math\Plane.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

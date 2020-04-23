@@ -16,3 +16,4 @@ x64/Debug/Engine.vcxproj.FileListAbsolute.txt
 *.enc
 *.iobj
 *.ipdb
+*.opendb
