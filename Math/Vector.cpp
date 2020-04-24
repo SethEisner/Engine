@@ -106,6 +106,16 @@ Vec3 operator*(const float lhs, Vec3 rhs) { // 9.0f * Vec3
 	rhs *= lhs;
 	return rhs;
 }
+void Vec3::normalize() {
+	float sqrd_mag = dot(*this, *this);
+	if (sqrd_mag > EPSILON) { // we dont have a super small basically zero vector
+		float mag = fast_invsqrt(sqrd_mag);
+		*this *= mag;
+	}
+}
+float magnitude(const Vec3& v) {
+	return sqrtf(dot(v,v));
+}
 float dot(const Vec3& lhs, const Vec3& rhs) {
 	return (lhs.x * rhs.x) + (lhs.y * rhs.y) + (lhs.z * rhs.z);
 }

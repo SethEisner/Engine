@@ -19,23 +19,23 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Line.cpp" />
+    <ClCompile Include="Math\Line.cpp" />
     <ClCompile Include="Math\Matrix.cpp" />
+    <ClCompile Include="Math\Plane.cpp" />
     <ClCompile Include="Math\Quaternion.cpp" />
     <ClCompile Include="Math\Vector.cpp" />
     <ClCompile Include="InputManager\InputManager.cpp" />
-    <ClCompile Include="Plane.cpp" />
     <ClCompile Include="Utilities\Utilities.cpp" />
     <ClCompile Include="JobSystem\JobSystem.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Line.h" />
+    <ClInclude Include="Math\Line.h" />
     <ClInclude Include="Math\Matrix.h" />
+    <ClInclude Include="Math\Plane.h" />
+    <ClInclude Include="Math\Quaternion.h" />
     <ClInclude Include="Math\Vector.h" />
     <ClInclude Include="InputManager\InputManager.h" />
-    <ClInclude Include="Plane.h" />
-    <ClInclude Include="Quaternion.h" />
     <ClInclude Include="Utilities\Utilities.h" />
     <ClInclude Include="JobSystem\JobSystem.h" />
     <ClInclude Include="ThreadSafeContainers\Queue.h" />

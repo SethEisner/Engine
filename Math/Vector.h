@@ -47,7 +47,9 @@ struct Vec3 { // also works as a point type
 	Vec3& operator*=(const float rhs);
 	friend Vec3 operator*(Vec3 lhs, const float rhs);
 	friend Vec3 operator*(const float lhs, Vec3 rhs);
+	void normalize();
 };
+float magnitude(const Vec3& v);
 float dot(const Vec3& lhs, const Vec3& rhs);
 Vec3 cross(const Vec3& lhs, const Vec3& rhs);
 Vec3 normalize(const Vec3& rhs);
@@ -63,6 +65,19 @@ struct Point3 : Vec3 {
 		return Point3(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
 	}
 	inline friend Point3 operator-(const Point3& lhs, const Point3& rhs) {
+		return Point3(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z);
+	}
+	// adding or subtracting a point and a vector results in a point
+	inline friend Point3 operator+(const Point3& lhs, const Vec3& rhs) {
+		return Point3(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
+	}
+	inline friend Point3 operator+(const Vec3& lhs, const Point3& rhs) {
+		return Point3(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
+	}
+	inline friend Point3 operator-(const Point3& lhs, const Vec3& rhs) {
+		return Point3(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z);
+	}
+	inline friend Point3 operator-(const Vec3& lhs, const Point3& rhs) {
 		return Point3(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z);
 	}
 };

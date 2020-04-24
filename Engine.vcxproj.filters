@@ -36,10 +36,10 @@
     <ClCompile Include="Math\Quaternion.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Line.cpp">
+    <ClCompile Include="Math\Line.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Plane.cpp">
+    <ClCompile Include="Math\Plane.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -62,13 +62,13 @@
     <ClInclude Include="Math\Matrix.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Quaternion.h">
+    <ClInclude Include="Math\Quaternion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Line.h">
+    <ClInclude Include="Math\Line.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Plane.h">
+    <ClInclude Include="Math\Plane.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
