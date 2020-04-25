@@ -3,6 +3,7 @@
 #include "../ThreadSafeContainers/Queue.h"
 #include <unordered_map>
 #include <windows.h>
+#include "../Globals.h"
 
 /*  
 TODO:
@@ -38,9 +39,13 @@ PRESSED  --->  HELD    UNHELD  <--- start
 		MIDDLE = 1,
 		RIGHT = 2
 	};
-	InputManager() : m_key_state(), m_character_pressed(), m_mouse_state(), m_name_to_action(new std::unordered_map<uint32_t, GameAction*>) {}
+	// InputManager() : m_key_state(), m_character_pressed(), m_mouse_state(), m_name_to_action(new std::unordered_map<uint32_t, GameAction*>) {}
+	InputManager() : m_key_state(), m_character_pressed(), m_mouse_state() {
+		// allocate an array of game_objects
+		m_name_to_action = static_cast<GameAction*>(linear_allocator.allocate_aligned(sizeof(GameAction) * action_count, alignof(GameAction)));
+	}
 	~InputManager() {
-		delete m_name_to_action;
+		//delete m_name_to_action;
 	}
 	void get_input();
 	// get state of a game action using a hashed string literal (e.g. HASH("shoot"))
@@ -77,6 +82,13 @@ private:
 			m_type = GameAction_t::KEY;
 			m_value.m_key = key;
 		}
+		GameAction& operator= (GameAction&& other) noexcept {
+			if (this != &other) {
+				this->m_type = other.m_type;
+				this->m_value = other.m_value;
+			}
+			return *this;
+		}
 		~GameAction() = default;
 	};
 	struct KeyEntry {
@@ -93,7 +105,9 @@ private:
 		Mouse() : x(0), y(0), m_button_count(3), m_buttons() {}
 	};
 	// should use pointer so the input manager can manage the lifetime of the GameAction objects
-	std::unordered_map<uint32_t, GameAction*>* m_name_to_action; // stores the mapping from the hashed string literal used by the programmer to identify a game action to the actual game action object itself
+	// std::unordered_map<uint32_t, GameAction*>* m_name_to_action; // stores the mapping from the hashed string literal used by the programmer to identify a game action to the actual game action object itself
+	const size_t action_count = 64;
+	GameAction* m_name_to_action;
 	const uint32_t m_held_delay = 100;	// milliseconds of delay that should be present before switching from PRESSED to HELD (anything shorter seems to convert to held instead of pressed)
 	KeyEntry m_key_state[256];			// array of keystates, used for input to the actual game, array of entries, one for each key, manages the curr, prev, and timestamps for each key.
 	uint8_t m_character_pressed[256];	// used for generic typing into a textbox or the eventual console menu. not used for controlling a character

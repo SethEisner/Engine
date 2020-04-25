@@ -9,9 +9,14 @@
 #include "InputManager/InputManager.h"
 #include "Utilities/Utilities.h"
 #include <windows.h>
-#include <DirectXMath.h>
+#include "Memory/LinearAllocator.h"
+#include "Math/Matrix.h"
+#include "Math/Line.h"
+#include "Math/Plane.h"
+#include "Globals.h"
 
 const int thread_count = 3; //std::min((unsigned int) 3, std::thread::hardware_concurrency() - 1);
+//LinearAllocator linear_allocator(1024);
 
 struct Particles {
 	float x;
@@ -50,7 +55,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 // int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hprevinstance, LPSTR lpcmdline, int nCmdShow) {
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pCmdLine, _In_ int nCmdShow) {
 
-	//JobSystem::startup(thread_count);
+	JobSystem::startup(thread_count);
 	//HINSTANCE hInstance = (HINSTANCE) GetModuleHandle(NULL);
 	const wchar_t CLASS_NAME[] = L"Sample Window Class";
 	WNDCLASS wc = { };
@@ -70,16 +75,24 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	ShowWindow(hwnd, nCmdShow);
 	UpdateWindow(hwnd);
 
-	// Mat4 m1;
-	// Mat4 m2(1, 3, 5, 9, 1, 3, 1, 7, 4, 3, 9, 7, 5, 2, 0, 9);
-	// 
-	// Point3 p(0, 0, 1);
-	// Point3 q(1, 0, 0);
-	// Line l(p, q);
-	// 
-	// p.x = 1;
+	
 
 
+	Mat4 m1;
+	Mat4 m2(1, 3, 5, 9, 1, 3, 1, 7, 4, 3, 9, 7, 5, 2, 0, 9);
+	
+	Point3 p(0, 0, 1);
+	Point3 q(1, 0, 0);
+	Line l(p, q);
+	
+	p.x = 1;
+
+	//LinearAllocator alloc(1024); // create linear alocator 1ith 1kB of memory
+	// int* a = static_cast<int*>(linear_allocator.allocate_aligned(sizeof(int), alignof(int)));
+	// *a = 10;
+	// linear_allocator.reset();
+	// std::cout << a << std::endl;
+	// std::cout << std::endl;
 
 	// Mat4 ortho = orthogonalize(m2);
 	// float f1 = det(m1);
@@ -103,7 +116,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	// float f = det(t);
 	//std::cout << time_span.count() * 1000000 << " microseconds.\n";
 	// std::cout << time_span.count() * 1000 << " milliseconds.\n";
-	InputManager* input_manager = new InputManager();
+	// InputManager* input_manager = new InputManager();
 	// 
 	// input_manager->add_action(HASH("shoot"), InputManager::MouseButton::LEFT);
 	// input_manager->add_action(HASH("jump"), InputManager::Key(' '));

@@ -2,7 +2,7 @@
 #include <atomic>
 #include <thread>
 #include "../ThreadSafeContainers/Queue.h"
-
+#include "../Globals.h"
 struct alignas (64) Job {
 	void (*m_function) (Job*, const void*);
 	Job* m_parent;
