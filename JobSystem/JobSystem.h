@@ -3,6 +3,11 @@
 #include <thread>
 #include "../ThreadSafeContainers/Queue.h"
 #include "../Globals.h"
+
+/*	TODO:
+	make parallel_for_job use a pool allocator with chunks of 32 bytes (sizeof(JobData) = 32)
+	create function that free's the dynamic memory stored in a job->m_data (needed for dynamic memory created in parallel_for_job)
+*/
 struct alignas (64) Job {
 	void (*m_function) (Job*, const void*);
 	Job* m_parent;
@@ -29,13 +34,18 @@ namespace JobSystem { // cant be namespace because the variables have to be stat
 	bool is_empty_job(Job*);
 	Job* get_job();
 	void wait(const Job*);
+	void free_job_data(Job*);
 	struct Worker {
 		Queue<Job*>* m_queue;
 		std::thread* m_thread;
-		explicit Worker() : m_queue(new Queue<Job*>(1024)), m_thread() {}
+		// Worker() : m_queue(new Queue<Job*>(1024)), m_thread() {}
+		Worker() : m_queue(), m_thread() {
+			m_queue = NEW (Queue<Job*>, linear_allocator) (1024);
+		}
 		~Worker() {
-			delete m_thread;
-			delete m_queue;
+			//delete m_thread;
+			//DELETE (m_queue, linear_allocator);
+			linear_allocator.free(m_queue);
 		}
 	};
 	namespace { // anonymous namespace to make the members private. intended to stop other translation units from trying to access the static members
@@ -93,6 +103,7 @@ void parallel_for_job(Job* job, const void* job_data) {
 template <typename T, typename S>
 Job* parallel_for(T* data, uint32_t count, void (*function)(T*, size_t), const S& splitter) {
 	typedef parallel_for_job_data<T, S> JobData;
+	// allocate from a pool allocator of size 32 bytes here
 	const JobData* job_data = new JobData(data, count, function, splitter);
 	Job* job = JobSystem::create_job(parallel_for_job<JobData>, job_data); // create a job that runs the splitting function
 	return job;

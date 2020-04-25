@@ -26,12 +26,12 @@ struct Particles {
 	Particles() : x(0.0f), y(0.0f), z(0.0f) {}
 };
 
-thread_local uint64_t sum = 0;
+std::atomic<uint64_t> sum;
 
 void empty_job(Job* job, const void* data) { // we pass job incase we create a job we can set it's parent to the job argument
 	// std::cout << std::this_thread::get_id() << std::endl;
 	// std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	sum += static_cast<uint64_t>(sqrt(sum*2));
+	sum.fetch_add(1);
 }
 
 void particle_job(Particles* p_p, const size_t count) {
@@ -76,17 +76,23 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	UpdateWindow(hwnd);
 
 	
+	int* a = NEW_ARRAY(int, 10, linear_allocator);
+	for (int i = 0; i != 10; i++) {
+		*(a + i) = i;
+	}
+	for (int i = 0; i != 10; i++) {
+		int q = a[i];
+	}
 
-
-	Mat4 m1;
-	Mat4 m2(1, 3, 5, 9, 1, 3, 1, 7, 4, 3, 9, 7, 5, 2, 0, 9);
+	// Mat4 m1;
+	// Mat4 m2(1, 3, 5, 9, 1, 3, 1, 7, 4, 3, 9, 7, 5, 2, 0, 9);
+	// 
+	// Point3 p(0, 0, 1);
+	// Point3 q(1, 0, 0);
+	// Line l(p, q);
+	// 
+	// p.x = 1;
 	
-	Point3 p(0, 0, 1);
-	Point3 q(1, 0, 0);
-	Line l(p, q);
-	
-	p.x = 1;
-
 	//LinearAllocator alloc(1024); // create linear alocator 1ith 1kB of memory
 	// int* a = static_cast<int*>(linear_allocator.allocate_aligned(sizeof(int), alignof(int)));
 	// *a = 10;
@@ -156,9 +162,9 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	// 	}
 	// }
 
-
-	// Job* root = JobSystem::create_job(empty_job);
-	// const uint32_t n_particles = 100000;
+	sum.store(0);
+	Job* root = JobSystem::create_job(empty_job);
+	const uint32_t n_particles = 100000;
 	// Particles* parts_1 = new Particles[n_particles]; // allocate 100000 particles
 	// Particles* parts_2 = new Particles[n_particles];
 	// Particles* parts_3 = new Particles[n_particles];
@@ -166,14 +172,14 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	// 
 	// std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 	// 
-	// Job* job_1 = parallel_for(parts_1, n_particles, particle_job, CountSplitter(1024*32));
-	// Job* job_2 = parallel_for(parts_2, n_particles, particle_job, CountSplitter(1024));
-	// Job* job_3 = parallel_for(parts_3, n_particles, particle_job, CountSplitter(1024));
-	// Job* job_4 = parallel_for(parts_4, n_particles, particle_job, CountSplitter(1024));
+	// Job* job_1 = parallel_for(parts_1, n_particles, particle_job, CountSplitter(1024));
+	//Job* job_2 = parallel_for(parts_2, n_particles, particle_job, CountSplitter(1024));
+	//Job* job_3 = parallel_for(parts_3, n_particles, particle_job, CountSplitter(1024));
+	//Job* job_4 = parallel_for(parts_4, n_particles, particle_job, CountSplitter(1024));
 	// JobSystem::queue_job(job_1);
-	// JobSystem::queue_job(job_2);
-	// JobSystem::queue_job(job_3);
-	// JobSystem::queue_job(job_4);
+	//JobSystem::queue_job(job_2);
+	//JobSystem::queue_job(job_3);
+	//JobSystem::queue_job(job_4);
 	// 
 	// // parallel_for is much faster if we do work after queuing the jobs -> the entire point of the job system is to exploit this data parallelism 
 	// uint64_t sum = 1;
@@ -181,7 +187,9 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	// 	sum += rand();
 	// }
 	// 
-	// JobSystem::wait(job_1);
+	//obSystem::wait(job_1);
+	// for parallel_for jobs, m_data points to dynamically allocated memory. need to make sure we give that back to the pool allocator when we are done with it
+	//delete job_1->m_data;
 	// JobSystem::wait(job_2);
 	// JobSystem::wait(job_3);
 	// JobSystem::wait(job_4);
@@ -192,22 +200,43 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	// particle_job(parts_3, n_particles);
 	// particle_job(parts_4, n_particles);
 
+	// Queue<int>* a = NEW(Queue<int>, linear_allocator)(16);
+	// a->push(0);
+	// a->push(1);
+	// a->push(2);
+	// a->push(3);
+	// a->push(4);
+	// a->push(5);
+	// a->push(6);
+	// a->push(7);
+	// a->push(8);
+	// a->push(9);
+	// a->push(10);
+	// 
+	// int _i;
+	// a->pop(_i);
+	// a->pop(_i);
+	// a->pop(_i);
+	// a->pop(_i);
+	// a->pop(_i);
+	// a->pop(_i);
+	// a->pop(_i);
 
 
-
-	// for (int i = 0; i != n_particles; i++) {
-	// 	Job* job = JobSystem::create_job_as_child(empty_job, root);
-	// 	JobSystem::queue_job(job);
-	// }
-	// JobSystem::queue_job(root);
-	// JobSystem::wait(root);
+	for (int i = 0; i != n_particles; i++) {
+		Job* job = JobSystem::create_job_as_child(empty_job, root);
+		JobSystem::queue_job(job);
+	}
+	JobSystem::queue_job(root);
+	JobSystem::wait(root);
 	 
+	int sum_ = sum.load();
 
 	// std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
 	// std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
 	// //std::cout << time_span.count() * 1000000 << " microseconds.\n";
 	// std::cout << time_span.count() * 1000 << " milliseconds.\n";
-	// JobSystem::shutdown();
+	JobSystem::shutdown();
 	return 0;
 }
 

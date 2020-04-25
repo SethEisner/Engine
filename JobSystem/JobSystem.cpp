@@ -2,13 +2,19 @@
 #include "JobSystem.h"
 #include <string> // for memcpy
 #include <windows.h> // for thread affinity
+#include "../Globals.h"
 
 namespace JobSystem {
 	void JobSystem::startup(uint8_t worker_count) {
 		shutdown_flag = false;
 		g_worker_count = worker_count + 1;
-		m_workers = new Worker[g_worker_count];
+		// m_workers = new Worker[g_worker_count];
+		m_workers = NEW_ARRAY(Worker, g_worker_count, linear_allocator)();
 		for (uint8_t i = 1; i != g_worker_count; ++i) {
+			m_workers[i].m_queue = NEW(Queue<Job*>, linear_allocator)(1024);
+		}
+		for (uint8_t i = 1; i != g_worker_count; ++i) {
+			// must declare threads with new because they need to be able to reallocate their own storage requirements
 			m_workers[i].m_thread = new std::thread(start_thread, i);
 		}
 	}
@@ -16,8 +22,12 @@ namespace JobSystem {
 		shutdown_flag = true;
 		for (int i = 1; i != g_worker_count; ++i) {
 			m_workers[i].m_thread->join();
+			delete m_workers[i].m_thread;
 		}
-		delete[] m_workers;
+		for (int i = 1; i != g_worker_count; ++i) {
+			m_workers[i].m_queue->~Queue();
+		}
+		m_workers->~Worker();
 	}
 	void start_thread(uint8_t i) {
 		id = i;

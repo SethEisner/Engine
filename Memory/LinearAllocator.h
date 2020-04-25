@@ -18,9 +18,7 @@ static inline T* align_pointer(T* p_mem, size_t alignment) {
 	return reinterpret_cast<T*>(aligned_address);
 }
 
-void* operator new (size_t size, size_t alignment) {
-	void* p = linear_allocator.allocate_aligned(size, alignment);
-}
+
 
 // allocator should manage it's own memory
 class LinearAllocator {
@@ -63,12 +61,16 @@ public:
 		m_current = m_begin;
 		m_lock.unlock();
 	}
+	//static void* operator new (size_t size, size_t alignment) {
+	//	void* p = linear_allocator.allocate_aligned(size, alignment);
+	//	return p;
+	//}
 private:
 	std::mutex m_lock; // could easily make it lock free, but this will have basically no overhead
 	uint8_t* m_begin;
 	uint8_t* m_end; // points to one past the end
 	uint8_t* m_current;
-}
+};
 
 // void* operator new(size_t size, size_t alignment) {
 // 	void* p = allocate_aligned(size, alignment);
