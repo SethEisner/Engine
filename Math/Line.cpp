@@ -2,6 +2,7 @@
 #include "Matrix.h"
 #include "Vector.h"
 
+/*
 Line& Line::operator*=(const Trans4& h) {
 	// get the column vectors of the transform h
 	Vec3 _v1 = cross(Vec3(h(0, 1), h(1, 1), h(2, 1)), Vec3(h(0, 2), h(1, 2), h(2, 2)));
@@ -11,7 +12,7 @@ Line& Line::operator*=(const Trans4& h) {
 			 _v2.x, _v2.y, _v2.z,
 			 _v3.x, _v3.y, _v3.z);
 	const Point3& t = h.get_translation();
-	Vec3 _v = h * this->v;
+	Vec3 _v = h * this->dir;
 	Vec3 _m = adj * this->m + cross(t, _v);
 	this->v = _v;
 	this->m = _m;
@@ -52,3 +53,4 @@ Vec4 operator^(const Plane& f, const Line& l) { // antiwedge product of a line a
 float operator^(const Line& l1, const Line& l2) { // antiwedge product of a line and a line is their distance
 	return (-(dot(l1.v, l2.m) + dot(l2.v, l1.m)));
 }
+*/

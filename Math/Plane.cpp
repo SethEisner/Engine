@@ -1,5 +1,6 @@
 #include "Plane.h"
 
+/*
 const Vec3& Plane::get_normal() const {
 	return (reinterpret_cast<const Vec3&>(x));
 }
@@ -54,3 +55,4 @@ Trans4 make_reflection(const Plane& f) {
 				  nxny, y * f.y + 1.0f, nynz, y * f.w,
 				  nxnz, nynz, z * f.x + 1.0f, z * f.w);
 }
+*/
