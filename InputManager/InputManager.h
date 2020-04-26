@@ -43,7 +43,9 @@ PRESSED  --->  HELD    UNHELD  <--- start
 	// InputManager() : m_key_state(), m_character_pressed(), m_mouse_state(), m_name_to_action(new std::unordered_map<uint32_t, GameAction*>) {}
 	InputManager() : m_key_state(), m_character_pressed(), m_mouse_state() {
 		// allocate an array of game_objects
-		m_name_to_action = static_cast<GameAction*>(linear_allocator.allocate_aligned(sizeof(GameAction) * action_count, alignof(GameAction)));
+		//m_name_to_action = static_cast<GameAction*>(linear_allocator.allocate_aligned(sizeof(GameAction) * m_action_count, alignof(GameAction)));
+		// allocate an array of game_objects using the default constructor
+		m_name_to_action = NEW_ARRAY(GameAction, m_action_count, linear_allocator)();
 	}
 	~InputManager() {
 		//delete m_name_to_action;
@@ -74,7 +76,9 @@ private:
 		};
 		GameAction_t m_type; // type of game action input (mouse button or keyboard button)
 		GameAction_v m_value; // the actual mouse button or keyboard key that we use to look up the state
-		GameAction() = delete; // must be given either a mousebutton or a key to make a new gameaction. 
+		GameAction() : m_type(GameAction_t::KEY) { // default game action has input of null character so it's impossible to input
+			m_value.m_key = Key('\0');
+		}
 		explicit GameAction(MouseButton index) : m_type(), m_value() {
 			m_type = GameAction_t::MOUSEBUTTON;
 			m_value.m_button = index;
@@ -82,13 +86,6 @@ private:
 		explicit GameAction(Key key) : m_type(), m_value() {
 			m_type = GameAction_t::KEY;
 			m_value.m_key = key;
-		}
-		GameAction& operator= (GameAction&& other) noexcept {
-			if (this != &other) {
-				this->m_type = other.m_type;
-				this->m_value = other.m_value;
-			}
-			return *this;
 		}
 		~GameAction() = default;
 	};
@@ -107,7 +104,7 @@ private:
 	};
 	// should use pointer so the input manager can manage the lifetime of the GameAction objects
 	// std::unordered_map<uint32_t, GameAction*>* m_name_to_action; // stores the mapping from the hashed string literal used by the programmer to identify a game action to the actual game action object itself
-	const size_t action_count = 64;
+	const size_t m_action_count = 64;
 	GameAction* m_name_to_action;
 	const uint32_t m_held_delay = 100;	// milliseconds of delay that should be present before switching from PRESSED to HELD (anything shorter seems to convert to held instead of pressed)
 	KeyEntry m_key_state[256];			// array of keystates, used for input to the actual game, array of entries, one for each key, manages the curr, prev, and timestamps for each key.

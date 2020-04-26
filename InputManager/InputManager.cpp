@@ -53,48 +53,48 @@ void InputManager::get_input() {
 }
 
 bool InputManager::is_pressed(uint32_t hashed_action_name) const {
-	const GameAction* action = &(this->m_name_to_action[hashed_action_name % action_count]); // return a const gameaction pointer so we dont modify the object here
+	const GameAction* action = &(this->m_name_to_action[hashed_action_name % m_action_count]); // return a const gameaction pointer so we dont modify the object here
 	if (action->m_type == GameAction::GameAction_t::MOUSEBUTTON) { // find which array we need to index into (super low overhead because this type rarely changes)
 		return m_mouse_state.m_buttons[static_cast<uint32_t>(action->m_value.m_button)].m_curr_state == State::PRESSED;
 	}
 	return m_key_state[action->m_value.m_key].m_curr_state == State::PRESSED;
 }
 bool InputManager::is_released(uint32_t hashed_action_name) const {
-	const GameAction* action = &(this->m_name_to_action[hashed_action_name % action_count]);
+	const GameAction* action = &(this->m_name_to_action[hashed_action_name % m_action_count]);
 	if (action->m_type == GameAction::GameAction_t::MOUSEBUTTON) {
 		return m_mouse_state.m_buttons[static_cast<uint32_t>(action->m_value.m_button)].m_curr_state == State::RELEASED;
 	}
 	return m_key_state[action->m_value.m_key].m_curr_state == State::RELEASED;
 }
 bool InputManager::is_held(uint32_t hashed_action_name) const {
-	const GameAction* action = &(m_name_to_action[hashed_action_name % action_count]);
+	const GameAction* action = &(m_name_to_action[hashed_action_name % m_action_count]);
 	if (action->m_type == GameAction::GameAction_t::MOUSEBUTTON) {
 		return m_mouse_state.m_buttons[static_cast<uint32_t>(action->m_value.m_button)].m_curr_state == State::HELD;
 	}
 	return m_key_state[action->m_value.m_key].m_curr_state == State::HELD;
 }
 bool InputManager::is_unheld(uint32_t hashed_action_name) const {
-	const GameAction* action = &(this->m_name_to_action[hashed_action_name % action_count]);
+	const GameAction* action = &(this->m_name_to_action[hashed_action_name % m_action_count]);
 	if (action->m_type == GameAction::GameAction_t::MOUSEBUTTON) {
 		return m_mouse_state.m_buttons[static_cast<uint32_t>(action->m_value.m_button)].m_curr_state == State::UNHELD;
 	}
 	return m_key_state[action->m_value.m_key].m_curr_state == State::UNHELD;
 }
 void InputManager::add_action(uint32_t hashed_action_name, MouseButton button) {
-	m_name_to_action[hashed_action_name % this->action_count] = GameAction(button);
+	m_name_to_action[hashed_action_name % m_action_count] = GameAction(button);
 
 }
 void InputManager::add_action(uint32_t hashed_action_name, Key key) {
-	m_name_to_action[hashed_action_name % action_count] = GameAction(key);
+	m_name_to_action[hashed_action_name % m_action_count] = GameAction(key);
 
 }
 void InputManager::remap_action(uint32_t hashed_action_name, MouseButton button) {
-	GameAction* action = &(this->m_name_to_action[hashed_action_name % action_count]); // at function will currently throw an exception if we remap an action that doesn't exist. (probably okay because that's a bug in the user's code and not the intended interface)
+	GameAction* action = &(this->m_name_to_action[hashed_action_name % m_action_count]); // at function will currently throw an exception if we remap an action that doesn't exist. (probably okay because that's a bug in the user's code and not the intended interface)
 	action->m_type = GameAction::GameAction_t::MOUSEBUTTON;
 	action->m_value.m_button = button;
 }
 void InputManager::remap_action(uint32_t hashed_action_name, Key key) {
-	GameAction* action = &(this->m_name_to_action[hashed_action_name % action_count]);
+	GameAction* action = &(this->m_name_to_action[hashed_action_name % m_action_count]);
 	action->m_type = GameAction::GameAction_t::KEY;
 	action->m_value.m_key = key;
 }

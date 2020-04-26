@@ -52,6 +52,12 @@ void particle_job(Particles* p_p, const size_t count) {
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 
+template<typename T>
+size_t size_of(T ptr) {
+	return sizeof(*ptr);
+}
+
+
 // int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hprevinstance, LPSTR lpcmdline, int nCmdShow) {
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pCmdLine, _In_ int nCmdShow) {
 
@@ -76,13 +82,40 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	UpdateWindow(hwnd);
 
 	
-	int* a = NEW_ARRAY(int, 10, linear_allocator);
-	for (int i = 0; i != 10; i++) {
-		*(a + i) = i;
-	}
-	for (int i = 0; i != 10; i++) {
-		int q = a[i];
-	}
+	// int* a = NEW_ARRAY(int, 10, linear_allocator);
+	// for (int i = 0; i != 10; i++) {
+	// 	*(a + i) = i;
+	// }
+	// for (int i = 0; i != 10; i++) {
+	// 	int q = a[i];
+	// }
+
+	int* a = NEW(int, stack_allocator)(1);
+	int* b = NEW(int, stack_allocator)(2);
+	int* c = NEW(int, stack_allocator)(3);
+	int* d = NEW(int, stack_allocator)(4);
+
+	struct temp {
+		union {
+			int* iptr;
+			size_t size;
+		};
+		std::atomic<int> atomic_int;
+	};
+	
+
+	size_t i = sizeof(std::atomic<int>);
+	int i_array[40];
+	int f = 9;
+	temp* e = new temp;
+	size_t size = sizeof(*e);
+	size_t size_1 = size_of(i_array);
+
+	stack_allocator.free(d);
+	stack_allocator.free(c);
+	stack_allocator.free(b);
+	stack_allocator.free(a);
+	std::cout << std::endl;
 
 	// Mat4 m1;
 	// Mat4 m2(1, 3, 5, 9, 1, 3, 1, 7, 4, 3, 9, 7, 5, 2, 0, 9);
@@ -162,9 +195,9 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	// 	}
 	// }
 
-	sum.store(0);
-	Job* root = JobSystem::create_job(empty_job);
-	const uint32_t n_particles = 100000;
+	// sum.store(0);
+	// Job* root = JobSystem::create_job(empty_job);
+	// const uint32_t n_particles = 100000;
 	// Particles* parts_1 = new Particles[n_particles]; // allocate 100000 particles
 	// Particles* parts_2 = new Particles[n_particles];
 	// Particles* parts_3 = new Particles[n_particles];
@@ -223,20 +256,20 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	// a->pop(_i);
 
 
-	for (int i = 0; i != n_particles; i++) {
-		Job* job = JobSystem::create_job_as_child(empty_job, root);
-		JobSystem::queue_job(job);
-	}
-	JobSystem::queue_job(root);
-	JobSystem::wait(root);
-	 
-	int sum_ = sum.load();
+	// for (int i = 0; i != n_particles; i++) {
+	// 	Job* job = JobSystem::create_job_as_child(empty_job, root);
+	// 	JobSystem::queue_job(job);
+	// }
+	// JobSystem::queue_job(root);
+	// JobSystem::wait(root);
+	//  
+	// int sum_ = sum.load();
 
 	// std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
 	// std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
 	// //std::cout << time_span.count() * 1000000 << " microseconds.\n";
 	// std::cout << time_span.count() * 1000 << " milliseconds.\n";
-	JobSystem::shutdown();
+	// JobSystem::shutdown();
 	return 0;
 }
 

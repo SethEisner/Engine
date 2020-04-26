@@ -41,6 +41,7 @@
     <ClInclude Include="InputManager\InputManager.h" />
     <ClInclude Include="Memory\LinearAllocator.h" />
     <ClInclude Include="Memory\MemoryArena.h" />
+    <ClInclude Include="StackAllocator.h" />
     <ClInclude Include="Utilities\Utilities.h" />
     <ClInclude Include="JobSystem\JobSystem.h" />
     <ClInclude Include="ThreadSafeContainers\Queue.h" />
