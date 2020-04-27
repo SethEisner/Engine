@@ -36,12 +36,6 @@
     <ClCompile Include="Math\Quaternion.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Math\Line.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Math\Plane.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Memory\MemoryManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
