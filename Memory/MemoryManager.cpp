@@ -1,6 +1,6 @@
 #include "MemoryManager.h"
 
-MemoryManager memory_manager = *(new MemoryManager());
+MemoryManager* memory_manager = new MemoryManager();
 
 MemoryManager::MemoryManager() :
 	m_linear(new LinearAllocator(1024 * 1024)),
@@ -23,10 +23,10 @@ MemoryManager::~MemoryManager() {
 	delete m_stack;
 	delete m_linear;
 }
-inline LinearAllocator* MemoryManager::get_linear_allocator() {
+LinearAllocator* MemoryManager::get_linear_allocator() {
 	return m_linear;
 }
-inline StackAllocator* MemoryManager::get_stack_allocator() {
+StackAllocator* MemoryManager::get_stack_allocator() {
 	return m_stack;
 }
 PoolAllocator* MemoryManager::get_pool_allocator(size_t size) {

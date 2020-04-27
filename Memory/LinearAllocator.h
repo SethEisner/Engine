@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <mutex>
 #include "memory.h"
-// allocator should manage it's own memory
+
 class LinearAllocator {
 	typedef uint8_t byte;
 public:

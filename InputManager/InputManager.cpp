@@ -1,8 +1,6 @@
 #include "InputManager.h"
 #include <windows.h>
 #include <windowsx.h>  // for GET_X/Y_PARAM
-#include "../Memory/LinearAllocator.h"
-#include <iostream>
 
 void InputManager::get_input() {
 	update_key_states(); // update the states of the relative buttons before we read in more input

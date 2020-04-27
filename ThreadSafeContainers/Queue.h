@@ -2,6 +2,7 @@
 #include <atomic>
 #include <assert.h>
 #include "../Memory/MemoryManager.h"
+
 template <typename T>
 class Queue {
 public:
@@ -15,7 +16,7 @@ public:
 	std::atomic<size_t> m_push_pos;
 	
 public:
-	Queue(size_t size) : m_buffer(NEW_ARRAY(cell_t, size, memory_manager.get_linear_allocator())()), m_buffer_mask(size - 1) {
+	Queue(size_t size) : m_buffer(NEW_ARRAY(cell_t, size, memory_manager->get_linear_allocator())()), m_buffer_mask(size - 1) {
 	//Queue(size_t size) : m_buffer(new cell_t[size]), m_buffer_mask(size - 1) {
 		assert((size >= 2) && ((size & (m_buffer_mask)) == 0)); // provided size must be a power of two
 		m_push_pos.store(0, std::memory_order_relaxed);
@@ -27,7 +28,7 @@ public:
 	}
 	~Queue() {
 		// dont need to call the destructor on cell_t because it's all static
-		free(m_buffer, memory_manager.get_linear_allocator());
+		free(m_buffer, memory_manager->get_linear_allocator());
 	}
 	Queue(Queue& q) = delete;
 	void operator= (Queue& q) = delete;

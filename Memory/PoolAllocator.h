@@ -4,8 +4,6 @@
 #include <malloc.h>
 #include <mutex>
 
-
-
 class PoolAllocator {
 	typedef uint8_t byte;
 public:

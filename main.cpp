@@ -14,7 +14,7 @@
 #include "Math/Plane.h"
 #include <malloc.h>
 #include <stdint.h>
-//#include "Memory/MemoryManager.h"
+#include "Memory/MemoryManager.h"
 
 const int thread_count = 3; //std::min((unsigned int) 3, std::thread::hardware_concurrency() - 1);
 //LinearAllocator linear_allocator(1024);
@@ -80,8 +80,9 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	ShowWindow(hwnd, nCmdShow);
 	UpdateWindow(hwnd);
 
+	//MemoryManager* memory_manager = new MemoryManager();
 	JobSystem::startup(thread_count);
-	//memory_manager.initialize();
+	//memory_manager->initialize();
 	
 	// int* a = NEW_ARRAY(int, 10, linear_allocator);
 	// for (int i = 0; i != 10; i++) {
@@ -91,10 +92,10 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	// 	int q = a[i];
 	// }
 
-	int* a = NEW(int, memory_manager.get_stack_allocator())(1);
-	int* b = NEW(int, memory_manager.get_stack_allocator())(2);
-	int* c = NEW(int, memory_manager.get_stack_allocator())(3);
-	int* d = NEW(int, memory_manager.get_stack_allocator())(4);
+	int* a = NEW(int, memory_manager->get_stack_allocator())(1);
+	int* b = NEW(int, memory_manager->get_stack_allocator())(2);
+	int* c = NEW(int, memory_manager->get_stack_allocator())(3);
+	int* d = NEW(int, memory_manager->get_stack_allocator())(4);
 
 	struct temp {
 		union {
@@ -112,10 +113,10 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	size_t size_0 = sizeof(*e);
 	size_t size_1 = size_of(i_array);
 
-	FREE(d, memory_manager.get_stack_allocator());
-	FREE(c, memory_manager.get_stack_allocator());
-	FREE(b, memory_manager.get_stack_allocator());
-	FREE(a, memory_manager.get_stack_allocator());
+	FREE(d, memory_manager->get_stack_allocator());
+	FREE(c, memory_manager->get_stack_allocator());
+	FREE(b, memory_manager->get_stack_allocator());
+	FREE(a, memory_manager->get_stack_allocator());
 	std::cout << std::endl;
 
 	size_t size = 4;
@@ -256,10 +257,12 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	JobSystem::wait(job_3);
 	JobSystem::wait(job_4);
 	// make happen at end of frame for every parallel_for job...
-	FREE(job_1->m_data, memory_manager.get_pool_allocator(32));
-	FREE(job_2->m_data, memory_manager.get_pool_allocator(32));
-	FREE(job_3->m_data, memory_manager.get_pool_allocator(32));
-	FREE(job_4->m_data, memory_manager.get_pool_allocator(32));
+	// FREE(job_1->m_data, memory_manager->get_pool_allocator(32));
+	// FREE(job_2->m_data, memory_manager->get_pool_allocator(32));
+	// FREE(job_3->m_data, memory_manager->get_pool_allocator(32));
+	// FREE(job_4->m_data, memory_manager->get_pool_allocator(32));
+
+
 	// for parallel_for jobs, m_data points to dynamically allocated memory. need to make sure we give that back to the pool allocator when we are done with it
 	
 	// particle_job(parts_1, n_particles);
@@ -306,7 +309,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	std::string time(std::to_string(time_span.count() * 1000) + '\n');
 	OutputDebugStringA(time.c_str());
 	JobSystem::shutdown();
-	//memory_manager.shutdown(); // this needs to be one of the last things we shutdown
+	//memory_manager->shutdown(); // this needs to be one of the last things we shutdown
+	//delete memory_manager;
 	return 0;
 }
 

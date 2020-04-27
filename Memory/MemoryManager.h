@@ -7,8 +7,8 @@ class MemoryManager {
 public:
 	MemoryManager();
 	~MemoryManager();
-	inline LinearAllocator* get_linear_allocator();
-	inline StackAllocator* get_stack_allocator();
+	LinearAllocator* get_linear_allocator();
+	StackAllocator* get_stack_allocator();
 	PoolAllocator* get_pool_allocator(size_t size);
 private:
 	LinearAllocator* m_linear;
@@ -22,7 +22,7 @@ private:
 	PoolAllocator* m_pool256;
 };
 
-extern MemoryManager memory_manager;
+extern MemoryManager* memory_manager;
 
 void* operator new (size_t bytes, size_t alignment, LinearAllocator* allocator);
 void* operator new (size_t bytes, size_t alignment, StackAllocator* allocator);
@@ -32,6 +32,7 @@ void* operator new (size_t bytes, size_t count, size_t alignment, LinearAllocato
 void* operator new (size_t bytes, size_t count, size_t alignment, StackAllocator* allocator);
 
 void operator delete(void* ptr) noexcept; // dont do anything here. if we throw while making memory then the engine wont ever run anyway
+
 // need to ensure that what we allocate will fit in the pool
 // template <>
 // void* operator new<PoolAllocator>(size_t bytes, size_t count, size_t alignment, PoolAllocator& _pool_allocator) {
@@ -43,6 +44,8 @@ template <class Allocator>
 void free(void* ptr, Allocator* allocator) {
 	allocator->free(ptr);
 }
+
+
 
 
 #define NEW(type, allocator) new(static_cast<size_t>(alignof(type)), allocator) type

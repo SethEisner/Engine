@@ -5,9 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-
-
-class StackAllocator { // double ended stack allocator
+class StackAllocator { // single ended stack allocator
 	typedef uint8_t byte;
 public:
 	explicit StackAllocator(size_t size) { // size is number of bytes to allocate
