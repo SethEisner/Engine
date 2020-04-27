@@ -35,6 +35,7 @@
     <ClInclude Include="Math\Quaternion.h" />
     <ClInclude Include="Math\Vector.h" />
     <ClInclude Include="InputManager\InputManager.h" />
+    <ClInclude Include="Memory\GeneralAllocator.h" />
     <ClInclude Include="Memory\LinearAllocator.h" />
     <ClInclude Include="Memory\memory.h" />
     <ClInclude Include="Memory\MemoryManager.h" />

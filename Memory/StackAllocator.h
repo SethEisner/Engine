@@ -38,7 +38,7 @@ public:
 	void free(void* addr) {
 		if (addr != nullptr && addr < m_current) {
 			byte* p_aligned_mem = reinterpret_cast<byte*>(addr);
-			ptrdiff_t shift = p_aligned_mem[-1];
+			ptrdiff_t shift = *(p_aligned_mem - 1);
 			if (shift == 0) shift = 256;
 			byte* p_mem = p_aligned_mem - shift;
 			m_lock.lock();
