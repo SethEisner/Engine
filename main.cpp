@@ -9,11 +9,12 @@
 #include "InputManager/InputManager.h"
 #include "Utilities/Utilities.h"
 #include <windows.h>
-#include "Memory/LinearAllocator.h"
 #include "Math/Matrix.h"
 #include "Math/Line.h"
 #include "Math/Plane.h"
-#include "Globals.h"
+#include <malloc.h>
+#include <stdint.h>
+//#include "Memory/MemoryManager.h"
 
 const int thread_count = 3; //std::min((unsigned int) 3, std::thread::hardware_concurrency() - 1);
 //LinearAllocator linear_allocator(1024);
@@ -60,8 +61,6 @@ size_t size_of(T ptr) {
 
 // int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hprevinstance, LPSTR lpcmdline, int nCmdShow) {
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pCmdLine, _In_ int nCmdShow) {
-
-	JobSystem::startup(thread_count);
 	//HINSTANCE hInstance = (HINSTANCE) GetModuleHandle(NULL);
 	const wchar_t CLASS_NAME[] = L"Sample Window Class";
 	WNDCLASS wc = { };
@@ -81,6 +80,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	ShowWindow(hwnd, nCmdShow);
 	UpdateWindow(hwnd);
 
+	JobSystem::startup(thread_count);
+	//memory_manager.initialize();
 	
 	// int* a = NEW_ARRAY(int, 10, linear_allocator);
 	// for (int i = 0; i != 10; i++) {
@@ -90,10 +91,10 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	// 	int q = a[i];
 	// }
 
-	int* a = NEW(int, stack_allocator)(1);
-	int* b = NEW(int, stack_allocator)(2);
-	int* c = NEW(int, stack_allocator)(3);
-	int* d = NEW(int, stack_allocator)(4);
+	int* a = NEW(int, memory_manager.get_stack_allocator())(1);
+	int* b = NEW(int, memory_manager.get_stack_allocator())(2);
+	int* c = NEW(int, memory_manager.get_stack_allocator())(3);
+	int* d = NEW(int, memory_manager.get_stack_allocator())(4);
 
 	struct temp {
 		union {
@@ -108,15 +109,45 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	int i_array[40];
 	int f = 9;
 	temp* e = new temp;
-	size_t size = sizeof(*e);
+	size_t size_0 = sizeof(*e);
 	size_t size_1 = size_of(i_array);
 
-	stack_allocator.free(d);
-	stack_allocator.free(c);
-	stack_allocator.free(b);
-	stack_allocator.free(a);
+	FREE(d, memory_manager.get_stack_allocator());
+	FREE(c, memory_manager.get_stack_allocator());
+	FREE(b, memory_manager.get_stack_allocator());
+	FREE(a, memory_manager.get_stack_allocator());
 	std::cout << std::endl;
 
+	size_t size = 4;
+	uint16_t count = 14;
+	uint8_t* m_pool = static_cast<uint8_t*>(_aligned_malloc(count, size));
+	assert(size >= 2); //
+	for (int i = 0; i != count * size; i += size) {
+		uint8_t upper = (size >> 8) & 0xFF;
+		*(m_pool + i) = upper; // store upper byte of offset
+		uint8_t lower = size & 0xFF;
+		*(m_pool + i + 1) = lower; // store lower byte of offset
+	}
+	for (int i = 0; i != count * size; i += size) {
+		uint16_t upper = (*(m_pool + i) << 8);// = static_cast<uint8_t>((size >> 8) & 0x00FF); // store upper byte of offset
+		uint8_t lower = *(m_pool + i + 1);// = static_cast<uint8_t>((size & 0x00FF) >> 8); // store lowe byte of offset
+		uint16_t c = upper + lower;
+		uint16_t d = 0;
+	}
+
+
+	// PoolAllocator pool(4, (1u<<16) - 1);
+	// int* object_0 = static_cast<int*>(pool.allocate());
+	// int* object_1 = static_cast<int*>(pool.allocate());
+	// *object_0 = 100;
+	// pool.free(object_1);
+	// object_1 = static_cast<int*>(pool.allocate());
+	// *object_0 = 500;
+	// int* object_2 = static_cast<int*>(pool.allocate());
+	// *object_2 = 300;
+	// int h = 9999;
+
+	//while (true) {}
 	// Mat4 m1;
 	// Mat4 m2(1, 3, 5, 9, 1, 3, 1, 7, 4, 3, 9, 7, 5, 2, 0, 9);
 	// 
@@ -196,37 +227,40 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	// }
 
 	// sum.store(0);
-	// Job* root = JobSystem::create_job(empty_job);
-	// const uint32_t n_particles = 100000;
-	// Particles* parts_1 = new Particles[n_particles]; // allocate 100000 particles
-	// Particles* parts_2 = new Particles[n_particles];
-	// Particles* parts_3 = new Particles[n_particles];
-	// Particles* parts_4 = new Particles[n_particles];
+	Job* root = JobSystem::create_job(empty_job);
+	const uint32_t n_particles = 100000;
+	Particles* parts_1 = new Particles[n_particles]; // allocate 100000 particles
+	Particles* parts_2 = new Particles[n_particles];
+	Particles* parts_3 = new Particles[n_particles];
+	Particles* parts_4 = new Particles[n_particles];
 	// 
-	// std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+	std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 	// 
-	// Job* job_1 = parallel_for(parts_1, n_particles, particle_job, CountSplitter(1024));
-	//Job* job_2 = parallel_for(parts_2, n_particles, particle_job, CountSplitter(1024));
-	//Job* job_3 = parallel_for(parts_3, n_particles, particle_job, CountSplitter(1024));
-	//Job* job_4 = parallel_for(parts_4, n_particles, particle_job, CountSplitter(1024));
-	// JobSystem::queue_job(job_1);
-	//JobSystem::queue_job(job_2);
-	//JobSystem::queue_job(job_3);
-	//JobSystem::queue_job(job_4);
-	// 
-	// // parallel_for is much faster if we do work after queuing the jobs -> the entire point of the job system is to exploit this data parallelism 
-	// uint64_t sum = 1;
-	// for (size_t i = 0; i != n_particles * 100; ++i) {
-	// 	sum += rand();
-	// }
-	// 
-	//obSystem::wait(job_1);
+	Job* job_1 = parallel_for(parts_1, n_particles, particle_job, CountSplitter(1024));
+	Job* job_2 = parallel_for(parts_2, n_particles, particle_job, CountSplitter(1024));
+	Job* job_3 = parallel_for(parts_3, n_particles, particle_job, CountSplitter(1024));
+	Job* job_4 = parallel_for(parts_4, n_particles, particle_job, CountSplitter(1024));
+	JobSystem::queue_job(job_1);
+	JobSystem::queue_job(job_2);
+	JobSystem::queue_job(job_3);
+	JobSystem::queue_job(job_4);
+	
+	// parallel_for is much faster if we do work after queuing the jobs -> the entire point of the job system is to exploit this data parallelism 
+	uint64_t sum = 1;
+	for (size_t i = 0; i != n_particles * 100; ++i) {
+		sum += rand();
+	}
+	 
+	JobSystem::wait(job_1);
+	JobSystem::wait(job_2);
+	JobSystem::wait(job_3);
+	JobSystem::wait(job_4);
+	// make happen at end of frame for every parallel_for job...
+	FREE(job_1->m_data, memory_manager.get_pool_allocator(32));
+	FREE(job_2->m_data, memory_manager.get_pool_allocator(32));
+	FREE(job_3->m_data, memory_manager.get_pool_allocator(32));
+	FREE(job_4->m_data, memory_manager.get_pool_allocator(32));
 	// for parallel_for jobs, m_data points to dynamically allocated memory. need to make sure we give that back to the pool allocator when we are done with it
-	//delete job_1->m_data;
-	// JobSystem::wait(job_2);
-	// JobSystem::wait(job_3);
-	// JobSystem::wait(job_4);
-
 	
 	// particle_job(parts_1, n_particles);
 	// particle_job(parts_2, n_particles);
@@ -265,11 +299,14 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	//  
 	// int sum_ = sum.load();
 
-	// std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-	// std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
-	// //std::cout << time_span.count() * 1000000 << " microseconds.\n";
-	// std::cout << time_span.count() * 1000 << " milliseconds.\n";
-	// JobSystem::shutdown();
+	std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+	//std::cout << time_span.count() * 1000000 << " microseconds.\n";
+	//std::cout << time_span.count() * 1000 << " milliseconds.\n";
+	std::string time(std::to_string(time_span.count() * 1000) + '\n');
+	OutputDebugStringA(time.c_str());
+	JobSystem::shutdown();
+	//memory_manager.shutdown(); // this needs to be one of the last things we shutdown
 	return 0;
 }
 

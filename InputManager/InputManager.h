@@ -3,7 +3,8 @@
 #include "../ThreadSafeContainers/Queue.h"
 #include <unordered_map>
 #include <windows.h>
-#include "../Globals.h"
+//#include "../Globals.h"
+#include "../Memory/MemoryManager.h"
 
 /*  
 TODO:
@@ -43,12 +44,13 @@ PRESSED  --->  HELD    UNHELD  <--- start
 	// InputManager() : m_key_state(), m_character_pressed(), m_mouse_state(), m_name_to_action(new std::unordered_map<uint32_t, GameAction*>) {}
 	InputManager() : m_key_state(), m_character_pressed(), m_mouse_state() {
 		// allocate an array of game_objects
-		//m_name_to_action = static_cast<GameAction*>(linear_allocator.allocate_aligned(sizeof(GameAction) * m_action_count, alignof(GameAction)));
+		//m_name_to_action = static_cast<GameAction*>(memory_manager.get_linear_allocator().allocate_aligned(sizeof(GameAction) * m_action_count, alignof(GameAction)));
 		// allocate an array of game_objects using the default constructor
-		m_name_to_action = NEW_ARRAY(GameAction, m_action_count, linear_allocator)();
+		m_name_to_action = NEW_ARRAY(GameAction, m_action_count, memory_manager.get_linear_allocator())();
 	}
 	~InputManager() {
 		//delete m_name_to_action;
+		FREE(m_name_to_action, memory_manager.get_linear_allocator());
 	}
 	void get_input();
 	// get state of a game action using a hashed string literal (e.g. HASH("shoot"))

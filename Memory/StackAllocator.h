@@ -11,6 +11,7 @@ class StackAllocator { // double ended stack allocator
 	typedef uint8_t byte;
 public:
 	explicit StackAllocator(size_t size) { // size is number of bytes to allocate
+		//m_stack = malloc(size);
 		m_begin = reinterpret_cast<byte*>(malloc(size));
 		assert(m_begin != nullptr);
 		m_end = static_cast<byte*>(m_begin + size); // point to one past the end to be consistent with c++ iterator behavior
@@ -21,7 +22,7 @@ public:
 	StackAllocator& operator=(StackAllocator&) = delete;
 	StackAllocator& operator=(StackAllocator&&) = delete;
 	~StackAllocator() {
-		::free(static_cast<void*>(m_begin)); // call global free when we destroy the stack
+		std::free(m_begin); // call global free when we destroy the stack
 	}
 	//virtual void* allocate(size_t, size_t) = 0; // make the allocate function be a pure virtual so we always go the child's appropriate
 	void* allocate(size_t size, size_t alignment) {
@@ -53,6 +54,7 @@ public:
 	}
 protected:
 	std::mutex m_lock;
+	//void* m_stack;
 	byte* m_begin; // begin of bottom stack
 	byte* m_end; // begin of the top of the stack (grows downwards) 
 	byte* m_current;

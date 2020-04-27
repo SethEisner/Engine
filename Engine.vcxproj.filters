@@ -42,10 +42,7 @@
     <ClCompile Include="Math\Plane.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Memory\MemoryArena.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Globals.cpp">
+    <ClCompile Include="Memory\MemoryManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -80,13 +77,16 @@
     <ClInclude Include="Memory\LinearAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Memory\MemoryArena.h">
+    <ClInclude Include="Memory\PoolAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Globals.h">
+    <ClInclude Include="Memory\StackAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="StackAllocator.h">
+    <ClInclude Include="Memory\memory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\MemoryManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

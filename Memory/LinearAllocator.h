@@ -3,7 +3,6 @@
 #include <stdlib.h> // for malloc
 #include <assert.h>
 #include <mutex>
-#include "../Globals.h"
 #include "memory.h"
 // allocator should manage it's own memory
 class LinearAllocator {
@@ -20,7 +19,7 @@ public:
 	LinearAllocator& operator=(LinearAllocator&) = delete;
 	LinearAllocator& operator=(LinearAllocator&&) = delete;
 	~LinearAllocator() {
-		free(static_cast<void*>(m_begin));
+		std::free(m_begin);
 	}
 	// if we enable the allocation of unaligned memory, how will we know how to free it?
 	void* allocate(size_t size, size_t alignment) { // allocates aligned memory

@@ -2,7 +2,7 @@
 #include <atomic>
 #include <thread>
 #include "../ThreadSafeContainers/Queue.h"
-#include "../Globals.h"
+//#include "../Memory/MemoryManager.h"
 
 /*	TODO:
 	make parallel_for_job use a pool allocator with chunks of 32 bytes (sizeof(JobData) = 32)
@@ -40,12 +40,13 @@ namespace JobSystem { // cant be namespace because the variables have to be stat
 		std::thread* m_thread;
 		// Worker() : m_queue(new Queue<Job*>(1024)), m_thread() {}
 		Worker() : m_queue(), m_thread() {
-			m_queue = NEW (Queue<Job*>, linear_allocator) (1024);
+			m_queue = NEW (Queue<Job*>, memory_manager.get_linear_allocator()) (1024);
 		}
 		~Worker() {
 			//delete m_thread;
 			//DELETE (m_queue, linear_allocator);
-			linear_allocator.free(m_queue);
+			//  (memory_manager.get_linear_allocator()).free(m_queue);
+			FREE (m_queue, memory_manager.get_linear_allocator());
 		}
 	};
 	namespace { // anonymous namespace to make the members private. intended to stop other translation units from trying to access the static members
@@ -104,7 +105,8 @@ template <typename T, typename S>
 Job* parallel_for(T* data, uint32_t count, void (*function)(T*, size_t), const S& splitter) {
 	typedef parallel_for_job_data<T, S> JobData;
 	// allocate from a pool allocator of size 32 bytes here
-	const JobData* job_data = new JobData(data, count, function, splitter);
+	// const JobData* job_data = new JobData(data, count, function, splitter);
+	const JobData* job_data = NEW(JobData, memory_manager.get_pool_allocator(32))(data, count, function, splitter);
 	Job* job = JobSystem::create_job(parallel_for_job<JobData>, job_data); // create a job that runs the splitting function
 	return job;
 }
