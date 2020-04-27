@@ -36,14 +36,15 @@ public:
 		return align(p_mem, alignment);
 	}
 	void free(void* addr) {
-		assert(addr && addr < m_current);
-		byte* p_aligned_mem = reinterpret_cast<byte*>(addr);
-		ptrdiff_t shift = p_aligned_mem[-1];
-		if (shift == 0) shift = 256;
-		byte* p_mem = p_aligned_mem - shift;
-		m_lock.lock();
-		m_current = p_mem;
-		m_lock.unlock();
+		if (addr != nullptr && addr < m_current) {
+			byte* p_aligned_mem = reinterpret_cast<byte*>(addr);
+			ptrdiff_t shift = p_aligned_mem[-1];
+			if (shift == 0) shift = 256;
+			byte* p_mem = p_aligned_mem - shift;
+			m_lock.lock();
+			m_current = p_mem;
+			m_lock.unlock();
+		}
 	}
 	inline void reset() { // resets the pointers to initial state to effectively clear the memory
 		m_lock.lock();
