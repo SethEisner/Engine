@@ -88,10 +88,12 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 
 
 	uint64_t a = reinterpret_cast<uint64_t>(nullptr);
-
+	uint8_t* b = nullptr;
 	GeneralAllocator allocator(1024);
 	int h = allocator.allocate(4, 4);
+	int i = allocator.allocate(4, 4);
 	allocator.free(h);
+	int j = allocator.allocate(4, 4);
 	/*
 	input_manager->add_action(HASH("shoot"), InputManager::MouseButton::LEFT);
 	input_manager->add_action(HASH("jump"), InputManager::Key(' '));
