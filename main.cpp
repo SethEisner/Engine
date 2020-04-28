@@ -84,7 +84,14 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	
 	JobSystem::startup(thread_count);
 
-	
+	size_t size = sizeof(byte*);
+
+
+	uint64_t a = reinterpret_cast<uint64_t>(nullptr);
+
+	GeneralAllocator allocator(1024);
+	int h = allocator.allocate(4, 4);
+	allocator.free(h);
 	/*
 	input_manager->add_action(HASH("shoot"), InputManager::MouseButton::LEFT);
 	input_manager->add_action(HASH("jump"), InputManager::Key(' '));
