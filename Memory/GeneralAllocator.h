@@ -22,7 +22,7 @@ class GeneralAllocator {
 public:
 	GeneralAllocator() = delete;
 	// malloc already aligns to 8 bytes so memory isnt awful
-	GeneralAllocator(int64_t size) : m_begin(static_cast<uintptr_t*>(malloc(size))), m_last_handle(0) {
+	GeneralAllocator(int64_t size) : m_begin(static_cast<uintptr_t*>(calloc(1,size))), m_last_handle(0) {
 		assert(size > 0);
 		assert(size % 32 == 0); // size must be even multiple of 32 because that is the minimum size of a free-chunk (may not make sense to force this requirement)
 		assert(size % 512 == 0);
@@ -163,32 +163,30 @@ public:
 		// dont want to read these pointers from an allocated block, because they hold an old view of the free list and will eventually cause a memory leak if used
 		uintptr_t* prev_free_block = nullptr;
 		uintptr_t* next_free_block = nullptr;
-		
+		// update the freelist
 		uintptr_t* next_block = this_free_block + (this_free_size / 8);
 		uintptr_t* prev_block = this_free_block;
 		int64_t free_size;// = 0;
-		if (next_block < m_end/* && !next_free_block */) { // next free block is a nullpointer so we need to go looking for an actual one
+		if (next_block < m_end) { // next free block is a nullpointer so we need to go looking for an actual one
 			free_size = get_free_size(next_block);
-			// if free_size is negative, then next_free_block automatically has 
 			while (next_block < m_end && free_size > 0) { // we are not out of bounds or the block we are looking at is in use
 				next_block += free_size / 8; // fast division because it's a shift by 2
 				free_size = get_free_size(next_block);
 			}
 			next_free_block = next_block; // next_free_block is either the next free block, or it is out of bounds
 		}
-		if (this_free_block > m_begin/* && !prev_free_block*/) { // need to make sure we can actually traverse backwards and that our prev_free_block is null so we actually need to find one
-			do { // need to get past myself
-				free_size = static_cast<int64_t>(*(this_free_block - 1)) / 8;
+		if (this_free_block > m_begin) { // need to make sure we can actually traverse backwards and that our prev_free_block is null so we actually need to find one
+			while (prev_block > m_begin) {
+				free_size = get_adjacent_free_size(prev_block);
 				if (free_size < 0) {
-					prev_block += free_size; // freesize is negative so we add to subtract (needed to get the start of the prev block because we read the end)
+					prev_block += (free_size / 8); // freesize is negative so we add to subtract (needed to get the start of the prev block because we read the end)
 					break;
 				}
-				prev_block -= free_size;
-			} while (prev_block > m_begin);
+				prev_block -= (free_size / 8);
+			}
 			prev_free_block = prev_block;
 		}
 		// check that next_free and prev_free_block are inbounds before assigning them
-
 		if (next_free_block >= m_end) {
 			next_free_block = nullptr;
 		}
@@ -201,46 +199,51 @@ public:
 		else { // set the prev_block's next to me
 			set_next_free(prev_free_block, reinterpret_cast<uintptr_t>(this_free_block));
 		}
-		// set my next to the found next
-		set_next_free(this_free_block, reinterpret_cast<uintptr_t>(next_free_block));
-		// set my prev to the found prev
-		set_prev_free(this_free_block, reinterpret_cast<uintptr_t>(prev_free_block));
-		
+		set_free_size(this_free_block, -this_free_size); // store the negative value because we are now a complete freeblock
+		set_next_free(this_free_block, reinterpret_cast<uintptr_t>(next_free_block)); // set my next to the found next
+		set_prev_free(this_free_block, reinterpret_cast<uintptr_t>(prev_free_block)); // set my prev to the found prev
+
 		auto temp1 = get_next_free(this_free_block);
 		auto temp2 = get_prev_free(this_free_block);
-		m_current = reinterpret_cast<byte*>(this_free_block);
-		set_free_size(this_free_block, -this_free_size);
 		auto temp3 = get_free_size(this_free_block);
 
-		// hanlde coalescing
+		//	COALESCE (use if statements because there will be at most one free block next to us (guaranteed because we coalesce on every free)
+		if (next_free_block && next_free_block < m_end && (this_free_block + (this_free_size / 8) == next_free_block)) { // coalesce forwards
+			int64_t next_free_size = -get_free_size(next_free_block);
+			this_free_size += next_free_size;
+			set_free_size(this_free_block, -this_free_size);
+			next_free_block = reinterpret_cast<uintptr_t*>(get_next_free(next_free_block)); // store the next free block of the next free block
+		}
+		int64_t prev_free_size = -get_free_size(prev_free_block);
+		if (prev_free_block && prev_free_block > m_begin && (this_free_block - (prev_free_size / 8) == prev_free_block)) { // coalesce backwards
+			// block to our left is free because pointer_math was correct which would only happen if the size was negative
+			set_next_free(prev_free_block, get_next_free(this_free_block)); // set the next of the previous to be our next
+			this_free_size += prev_free_size;
+			set_free_size(prev_free_block, -this_free_size); // set the size to be the negated total sum
+			this_free_block = prev_free_block;
+			prev_free_block = reinterpret_cast<uintptr_t*>(get_prev_free(this_free_block)); // store the prev free block of the prev_free_block
+		}
 
+		// we have coalesced everything we can. need to update our next pointer, and the prev pointer of the next
+		// previous pointer stays the same because it was already being stored in the freeblock we coalesced
+		set_next_free(this_free_block, reinterpret_cast<uintptr_t>(next_free_block));
+		if (next_free_block) set_prev_free(next_free_block, reinterpret_cast<uintptr_t>(this_free_block));
 
-		// // insert the block into the free list
-		// set_next_free(&prev_free_block, *this_free_block);
-		// set_prev_free(&next_free_block, *this_free_block);
-		// 
-		// // coalesce forwards first because forwards direction doesnt change the this_free_block pointer
-		// 
-		// size_t next_free_size = get_free_size(next_free_block);
-		// // coalesce forwards (should only run 1 or 2 times)
-		// while (next_free_block && (*this_free_block + this_free_size == next_free_block)) { // next free block is adjacent to us to coalesce
-		// 	set_free_size(*this_free_block, this_free_size + next_free_size);
-		// 	set_next_free(this_free_block, static_cast<byte*>(get_next_free(&next_free_block))); // set our next pointer to be the next of the block we absorbed
-		// 	this_free_size = get_free_size(*this_free_block);
-		// 	next_free_block = static_cast<byte*>(get_next_free(this_free_block)); // set the pointer to the next_free_block to be our next block (because we set out next block already)
-		// 	next_free_size = get_free_size(next_free_block);
-		// 	// no need to update this_free_block
-		// }
-		// coalesce backwards (should only run 1 or 2 times)
-		//size_t prev_free_size = get_free_size(prev_free_block);
-		//while (prev_free_block && (prev_free_block + prev_free_size == this_free_block)) { // previous free block is adjacent to us so coalesce
-		//	set_free_size(prev_free_block, prev_free_size + this_free_size); // set the size to be the combined size
-		//	// prev pointer of prev block stays the same
-		//	set_next_free(&prev_free_block, static_cast<byte*>(get_next_free(&this_free_block))); // set the next pointer of previous to our next
-		//	this_free_block = prev_free_block; // set ourselves to be the previous
-		//	prev_free_size = get_free_size(this_free_block); // grab our new previous block
-		//	prev_free_block = static_cast<byte*>(get_prev_free(&this_free_block)); // update our pointer to the previous to be our previous
-		//}
+		// asserts to catch any corruption of the free_list when it happens
+		if (next_free_block) assert(this_free_block == reinterpret_cast<uintptr_t*>(get_prev_free(next_free_block)));
+		if (prev_free_block) assert(this_free_block == reinterpret_cast<uintptr_t*>(get_next_free(prev_free_block)));
+		if (next_free_block && prev_free_block) assert(get_prev_free(next_free_block) == get_next_free(prev_free_block));
+		assert(next_free_block == reinterpret_cast<uintptr_t*>(get_next_free(this_free_block)));
+		assert(prev_free_block == reinterpret_cast<uintptr_t*>(get_prev_free(this_free_block)));
+		
+		auto final_size = get_free_size(this_free_block);
+		auto prev = get_prev_free(this_free_block);
+		auto next = get_next_free(this_free_block);
+		uintptr_t* previouss_next = nullptr;
+		uintptr_t* nexts_prev = nullptr;
+		if (prev) previouss_next = reinterpret_cast<uintptr_t*>(get_next_free(reinterpret_cast<uintptr_t*>(prev)));
+		if (next) nexts_prev = reinterpret_cast<uintptr_t*>(get_prev_free(reinterpret_cast<uintptr_t*>(next)));
+		m_current = reinterpret_cast<byte*>(this_free_block);
 	}
 private:
 	Handle get_free_handle() {
@@ -278,6 +281,9 @@ private:
 	int64_t get_free_size(uintptr_t* free_block) {
 		if (!free_block) return 0; // return zero if the free_block is a nullptr
 		return static_cast<int64_t>(*free_block);
+	}
+	int64_t get_adjacent_free_size(uintptr_t* free_block){
+		return static_cast<int64_t>(*(free_block - 1));
 	}
 	std::mutex m_lock;
 	static const size_t m_handle_table_size = 128;

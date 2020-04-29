@@ -84,24 +84,26 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	
 	JobSystem::startup(thread_count);
 
-	size_t size = sizeof(byte*);
-
-
-	uint64_t a = reinterpret_cast<uint64_t>(nullptr);
-	uint8_t* b = nullptr;
 	GeneralAllocator allocator(1024);
 	// int h = allocator.allocate(32, 8);
 	// int i = allocator.allocate(4, 4);
 	// allocator.free(h);
 	// int j = allocator.allocate(4, 4);
 	// int k = allocator.allocate(4, 4);
-	int  h = allocator.allocate(224, 8);
-	int  i = allocator.allocate(224, 8);
-	int  j = allocator.allocate(224, 8);
-	int  k = allocator.allocate(224, 8);
+	int  a = allocator.allocate(32, 8);
+	int  b = allocator.allocate(32, 8);
+	int  c = allocator.allocate(32, 8);
+	int  d = allocator.allocate(32, 8);
+	int  h = allocator.allocate(32, 8);
+	int  i = allocator.allocate(32, 8);
+	int  j = allocator.allocate(32, 8);
+	int  k = allocator.allocate(32, 8);
+	int  l = allocator.allocate(32, 8);
+	allocator.free(b);
+	allocator.free(k);
+	allocator.free(d);
 	allocator.free(i);
-	allocator.free(j);
-	int l = allocator.allocate(224, 8);
+	allocator.free(h);
 	/*
 	input_manager->add_action(HASH("shoot"), InputManager::MouseButton::LEFT);
 	input_manager->add_action(HASH("jump"), InputManager::Key(' '));
