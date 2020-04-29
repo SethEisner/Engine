@@ -95,6 +95,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	// allocator.free(h);
 	// int j = allocator.allocate(4, 4);
 	// int k = allocator.allocate(4, 4);
+	int  h = allocator.allocate(224, 8);
 	int  i = allocator.allocate(224, 8);
 	int  j = allocator.allocate(224, 8);
 	int  k = allocator.allocate(224, 8);
