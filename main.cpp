@@ -94,16 +94,18 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	int  b = allocator.allocate(32, 8);
 	int  c = allocator.allocate(32, 8);
 	int  d = allocator.allocate(32, 8);
-	int  h = allocator.allocate(32, 8);
-	int  i = allocator.allocate(32, 8);
-	int  j = allocator.allocate(32, 8);
-	int  k = allocator.allocate(32, 8);
-	int  l = allocator.allocate(32, 8);
 	allocator.free(b);
-	allocator.free(k);
-	allocator.free(d);
-	allocator.free(i);
-	allocator.free(h);
+	allocator.defragment();
+	//int  h = allocator.allocate(32, 8);
+	//int  i = allocator.allocate(32, 8);
+	//int  j = allocator.allocate(32, 8);
+	//int  k = allocator.allocate(32, 8);
+	//int  l = allocator.allocate(32, 8);
+	//allocator.free(b);
+	//allocator.free(k);
+	//allocator.free(d);
+	//allocator.free(i);
+	//allocator.free(h);
 	/*
 	input_manager->add_action(HASH("shoot"), InputManager::MouseButton::LEFT);
 	input_manager->add_action(HASH("jump"), InputManager::Key(' '));

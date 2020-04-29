@@ -11,9 +11,14 @@
 	implement defragmenting
 */
 
+
+static const size_t bytes_for_size = 8;
+static const size_t bytes_for_handle = 8;
+static const size_t bytes_for_free_block = 32;
+
 class GeneralAllocator {
 	typedef uint8_t byte;
-	typedef int32_t Handle;
+	typedef int64_t Handle;
 	struct FreeBlockInfo {
 		int64_t m_size;		// the size of the free block, make negative if it's free
 		uintptr_t* m_prev_free;  // stores the address of the first byte of the next free block
@@ -24,8 +29,7 @@ public:
 	// malloc already aligns to 8 bytes so memory isnt awful
 	GeneralAllocator(int64_t size) : m_begin(static_cast<uintptr_t*>(calloc(1,size))), m_last_handle(0) {
 		assert(size > 0);
-		assert(size % 32 == 0); // size must be even multiple of 32 because that is the minimum size of a free-chunk (may not make sense to force this requirement)
-		assert(size % 512 == 0);
+		assert(size % bytes_for_free_block == 0); // size must be even multiple of 32 because that is the minimum size of a free-chunk (may not make sense to force this requirement)
 		m_current = reinterpret_cast<byte*>(m_begin);
 		m_end = reinterpret_cast<uintptr_t*>(m_current + size); // cast to byte pointer so we can add to it
 		for (size_t index = 0; index != m_handle_table_size; index++) {
@@ -43,21 +47,11 @@ public:
 		std::lock_guard<std::mutex> lock(m_lock); // can assert and/or return without worry
 		Handle handle;
 		size_t sum = size + alignment;
-		int64_t required_size;
 		if (sum < 8) { // need to make sure we allocate enough space for the eventual freeblock
-			alignment = 4; // set the alignment to half way inbetween the last byte
-			required_size = 32; // make sure we alocate at least 32 bytes
-			// added the last 8 bytes automatically for the alignment to occur without worry
+			alignment = 4; // set the alignment to half way inbetween the last byte, will make the aligned pointer function use 8 bytes
+			sum = 8;
 		}
-		//else if (sum < 24){ // before we do this, we need to make sure that the pointer we return has skipped any of the book keeping memory (set to tskip 24 bytes right now)
-		//	required_size = 32;
-		//}
-		else { // may be too complicated if we overwrite those pointers because we're supposed to leave space for them if the size is small enough
-			// sum includes the required extra space for the alignment so we dont need to worry about it and can just allocate what we need for everything
-			required_size = 8 + 8 + 8 + sum;
-			//requred_size = 8 + sum; (if the sum is 24 or greater than we can overwrite the pointers)
-		}
-	
+		int64_t required_size = bytes_for_size + bytes_for_handle + sum + bytes_for_size;
 		 // manipulate free_block pointer to find a suitable free block
 		uintptr_t* free_block = reinterpret_cast<uintptr_t*>(m_current);
 		int64_t free_size = -get_free_size(free_block);
@@ -65,11 +59,11 @@ public:
 		uintptr_t* prev_free_block = reinterpret_cast<uintptr_t*>(get_prev_free(free_block));
 		uintptr_t* next_free_block = reinterpret_cast<uintptr_t*>(get_next_free(free_block));
 
-		if (!(required_size == free_size || free_size >= required_size + 32)) { // the block we are looking at is too small so we need to find a free block big enough
+		if (!(required_size == free_size || free_size >= required_size + bytes_for_free_block)) { // the block we are looking at is too small so we need to find a free block big enough
 			while (prev_free_block) { // seach backwards
 				free_size = -get_free_size(prev_free_block);
 				assert(free_size > 0); // make sure free blocks are only connected to other freeblocks
-				if (required_size == free_size || free_size >= required_size + 32) { // this block will fit what we need
+				if (required_size == free_size || free_size >= required_size + bytes_for_free_block) { // this block will fit what we need
 					free_block = prev_free_block;
 					prev_free_block = reinterpret_cast<uintptr_t*>(get_prev_free(free_block));
 					next_free_block = reinterpret_cast<uintptr_t*>(get_next_free(free_block));
@@ -80,7 +74,7 @@ public:
 			while(next_free_block){ // search forwards
 				free_size = -get_free_size(next_free_block);
 				assert(free_size > 0); // make sure free blocks are only connected to other freeblocks
-				if (required_size == free_size || free_size >= required_size + 32) {
+				if (required_size == free_size || free_size >= required_size + bytes_for_free_block) {
 					free_block = next_free_block;
 					prev_free_block = reinterpret_cast<uintptr_t*>(get_prev_free(free_block));
 					next_free_block = reinterpret_cast<uintptr_t*>(get_next_free(free_block));
@@ -92,6 +86,7 @@ public:
 			return -1;
 		}
 	found_block: // we found a block in the loop and got all of it's pointers
+		handle = get_free_handle(); // get the handle we will use to access this free block
 		if (free_size == required_size) { // the freeblock exactly fits what we need, dont need to create a new freeblock at the end, but do need to update the free-block chain
 			// update the pointers to remove this block from the freechain
 			if (prev_free_block) {
@@ -122,11 +117,11 @@ public:
 			m_current = reinterpret_cast<byte*>(remaining_free_block);
 		}
 		set_free_size(free_block, required_size); // set the first and last 8 bytes to be the size of the allocation
-		set_next_free(free_block, reinterpret_cast<uintptr_t>(nullptr)); // want these to be null because we dont want to rely on the pointers in an allocated block
-		set_prev_free(free_block, reinterpret_cast<uintptr_t>(nullptr));
-		byte* user_mem = reinterpret_cast<byte*>(free_block) + 24;
-		void* p_aligned = align(user_mem, alignment); // add 24 so we skip over the first 3 8 byte values
-		handle = get_free_handle();
+		// store the handle where the prev_free pointer goes so the defragment function can quickly get the handle associated with a block
+		set_prev_free(free_block, static_cast<uintptr_t>(handle));
+		byte* user_mem = reinterpret_cast<byte*>(free_block) + bytes_for_size + bytes_for_handle; // skip over the overhead
+		void* p_aligned = align(user_mem, alignment);
+		
 		m_handle_table[handle] = p_aligned;
 	
 		return handle;
@@ -141,7 +136,7 @@ public:
 		byte* p_aligned_mem = reinterpret_cast<byte*>(ptr);
 		ptrdiff_t shift = *(p_aligned_mem - 1);
 		if (shift == 0) shift = 256;
-		uintptr_t* this_free_block = reinterpret_cast<uintptr_t*>(p_aligned_mem - shift - sizeof(FreeBlockInfo));
+		uintptr_t* this_free_block = reinterpret_cast<uintptr_t*>(p_aligned_mem - shift - bytes_for_size - bytes_for_handle);
 		int64_t this_free_size = get_free_size(this_free_block);
 		// dont want to read these pointers from an allocated block, because they hold an old view of the free list and will eventually cause a memory leak if used
 		uintptr_t* prev_free_block = nullptr;
@@ -186,7 +181,83 @@ public:
 		set_next_free(this_free_block, reinterpret_cast<uintptr_t>(next_free_block)); // set my next to the found next
 		set_prev_free(this_free_block, reinterpret_cast<uintptr_t>(prev_free_block)); // set my prev to the found prev
 
-		//	COALESCE (use if statements because there will be at most one free block next to us (guaranteed because we coalesce on every free)
+		//	COALESCE the free blocks around us into one big block
+		this_free_block = coalesce(this_free_block);
+
+		// asserts to catch any corruption of the free list 
+		if (next_free_block) assert(this_free_block == reinterpret_cast<uintptr_t*>(get_prev_free(next_free_block)));
+		if (prev_free_block) assert(this_free_block == reinterpret_cast<uintptr_t*>(get_next_free(prev_free_block)));
+		if (next_free_block && prev_free_block) assert(get_prev_free(next_free_block) == get_next_free(prev_free_block));
+		assert(next_free_block == reinterpret_cast<uintptr_t*>(get_next_free(this_free_block)));
+		assert(prev_free_block == reinterpret_cast<uintptr_t*>(get_prev_free(this_free_block)));
+;
+		m_current = reinterpret_cast<byte*>(this_free_block);
+	}
+	void defragment() {
+		// start at m_current
+		if (!m_current) return; // cannot defragment if we are full
+		// find the first free block
+		uintptr_t* this_free_block = reinterpret_cast<uintptr_t*>(m_current);
+		uintptr_t* prev_free_block;
+		uintptr_t* next_free_block;
+		while (prev_free_block = reinterpret_cast<uintptr_t*>(get_prev_free(this_free_block))) { // loop backwards until the previous block pointer is a nullptr (reached start of freechain)
+			this_free_block = prev_free_block; // update this free_block to be the previous
+		}
+		// this_free_block now contains the first block in the free chain
+		int64_t this_free_size = -get_free_size(this_free_block); // this_free_size must be positive here
+		prev_free_block = reinterpret_cast<uintptr_t*>(get_prev_free(this_free_block)); // unnecessary because it's set in the loop
+		next_free_block = reinterpret_cast<uintptr_t*>(get_next_free(this_free_block));
+		assert(prev_free_block == nullptr);
+		
+		uintptr_t* next_block = this_free_block + (this_free_size / 8);
+		while (next_block < m_end) { // the next block is a valid region of memory
+			size_t next_block_size = get_free_size(next_block);
+			Handle next_block_handle = get_handle_of(next_block);
+			assert(this_free_size > 0);
+			assert(next_block_size > 0);
+			assert(next_block_handle >= 0 && next_block_handle < m_handle_table_size); // the handle stored must be a valid entry in the handle table
+			// use memcpy if we can, and memmove if we must. if next block is larger than the free block we must use memmove
+			if (get_free_size(next_block) > this_free_size) {
+				memmove(this_free_block, next_block, next_block_size); // next block is larger than the freeblock so we must use memmove
+			}
+			else { 
+				memcpy(this_free_block, next_block, next_block_size);
+			}
+			// update the handle entry in the handle table
+			m_handle_table[next_block_handle] = reinterpret_cast<void*>(reinterpret_cast<byte*>(m_handle_table[next_block_handle]) - this_free_size);
+			// create the new freeblock. next_block holds the pointer to what needs to become a free block
+			this_free_block = next_block;
+			set_free_size(this_free_block, -this_free_size);
+			set_prev_free(this_free_block, reinterpret_cast<uintptr_t>(prev_free_block));
+			set_next_free(this_free_block, reinterpret_cast<uintptr_t>(next_free_block));
+			// coalesce this newly created freeblock
+			this_free_block = coalesce(this_free_block);
+			this_free_size = -get_free_size(this_free_block);  // need to update our copies of the info about the free block because of coalesce's side effects
+			prev_free_block = reinterpret_cast<uintptr_t*>(get_prev_free(this_free_block));
+			next_free_block = reinterpret_cast<uintptr_t*>(get_next_free(this_free_block));
+			// get the next_block to shift
+			next_block = this_free_block + (this_free_size / 8);
+		}
+		m_current = reinterpret_cast<byte*>(this_free_block);
+		assert(reinterpret_cast<uintptr_t*>(get_prev_free(this_free_block)) == nullptr);
+		assert(reinterpret_cast<uintptr_t*>(get_next_free(this_free_block)) == nullptr);
+	}
+private:
+	Handle get_free_handle() {
+		size_t index;
+		for (index = 0; index != m_handle_table_size; ++index, ++m_last_handle) { // loop until the handle table entry is a null pointer
+			if (m_handle_table[m_last_handle % m_handle_table_size] == nullptr) break;
+		}
+		if (index == m_handle_table_size) assert(false); // traversed entire handle table without finding a free handle;
+		return m_last_handle; // return the free handle we found
+	}
+	Handle get_handle_of(uintptr_t* allocated_block) {
+		return static_cast<Handle>(get_prev_free(allocated_block));
+	}
+	uintptr_t* coalesce(uintptr_t* this_free_block) {
+		int64_t this_free_size = -get_free_size(this_free_block); // free blocks have negative size so we need to negate it to get the actual size in bytes
+		uintptr_t* next_free_block = reinterpret_cast<uintptr_t*>(get_next_free(this_free_block));
+		uintptr_t* prev_free_block = reinterpret_cast<uintptr_t*>(get_prev_free(this_free_block));
 		if (next_free_block && next_free_block < m_end && (this_free_block + (this_free_size / 8) == next_free_block)) { // coalesce forwards
 			int64_t next_free_size = -get_free_size(next_free_block);
 			this_free_size += next_free_size;
@@ -202,31 +273,12 @@ public:
 			this_free_block = prev_free_block;
 			prev_free_block = reinterpret_cast<uintptr_t*>(get_prev_free(this_free_block)); // store the prev free block of the prev_free_block
 		}
-
 		// we have coalesced everything we can. need to update our next pointer, and the prev pointer of the next
 		// previous pointer stays the same because it was already being stored in the freeblock we coalesced
 		set_next_free(this_free_block, reinterpret_cast<uintptr_t>(next_free_block));
 		if (next_free_block) set_prev_free(next_free_block, reinterpret_cast<uintptr_t>(this_free_block));
-
-		// asserts to catch any corruption of the free_list when it happens
-		if (next_free_block) assert(this_free_block == reinterpret_cast<uintptr_t*>(get_prev_free(next_free_block)));
-		if (prev_free_block) assert(this_free_block == reinterpret_cast<uintptr_t*>(get_next_free(prev_free_block)));
-		if (next_free_block && prev_free_block) assert(get_prev_free(next_free_block) == get_next_free(prev_free_block));
-		assert(next_free_block == reinterpret_cast<uintptr_t*>(get_next_free(this_free_block)));
-		assert(prev_free_block == reinterpret_cast<uintptr_t*>(get_prev_free(this_free_block)));
-;
-		m_current = reinterpret_cast<byte*>(this_free_block);
+		return this_free_block;
 	}
-private:
-	Handle get_free_handle() {
-		size_t index;
-		for (index = 0; index != m_handle_table_size; ++index, ++m_last_handle) { // loop until the handle table entry is a null pointer
-			if (m_handle_table[m_last_handle % m_handle_table_size] == nullptr) break;
-		}
-		if (index == m_handle_table_size) assert(false); // traversed entire handle table without finding a free handle;
-		return m_last_handle; // return the free handle we found
-	}
-	
 	void set_prev_free(uintptr_t* free_block, uintptr_t prev_free) {
 		free_block += 1;
 		*free_block = prev_free;
