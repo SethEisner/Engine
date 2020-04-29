@@ -35,9 +35,6 @@ public:
 		set_free_size(reinterpret_cast<uintptr_t*>(m_current), -size); // freeblocks have negative size
 		set_prev_free(reinterpret_cast<uintptr_t*>(m_current), reinterpret_cast<uintptr_t>(nullptr));
 		set_next_free(reinterpret_cast<uintptr_t*>(m_current), reinterpret_cast<uintptr_t>(nullptr));
-		// size_t _size = get_free_size(reinterpret_cast<uintptr_t*>(m_current));
-		// uintptr_t prev = get_prev_free(reinterpret_cast<uintptr_t*>(m_current));
-		// uintptr_t next = get_next_free(reinterpret_cast<uintptr_t*>(m_current));
 	}
 	~GeneralAllocator() {
 		delete m_begin;
@@ -61,21 +58,15 @@ public:
 			//requred_size = 8 + sum; (if the sum is 24 or greater than we can overwrite the pointers)
 		}
 	
-		 // manipulate free_block pointer to find a suitable free blocks
+		 // manipulate free_block pointer to find a suitable free block
 		uintptr_t* free_block = reinterpret_cast<uintptr_t*>(m_current);
 		int64_t free_size = -get_free_size(free_block);
 		assert(free_size > 0); //m_current should always be set to a free block so we should always start out search from a free block
-		// bool block_is_free = false;
-		// if (free_size < 0) {
-		// 	block_is_free = true;
-		// 	free_size = -free_size; // negative means the block is free
-		// }
-		// free_size needs to be 32 bytes larger than what we need, unless it fills it up exactly (optimization to add later)
 		uintptr_t* prev_free_block = reinterpret_cast<uintptr_t*>(get_prev_free(free_block));
 		uintptr_t* next_free_block = reinterpret_cast<uintptr_t*>(get_next_free(free_block));
 
 		if (!(required_size == free_size || free_size >= required_size + 32)) { // the block we are looking at is too small so we need to find a free block big enough
-			while (prev_free_block) {
+			while (prev_free_block) { // seach backwards
 				free_size = -get_free_size(prev_free_block);
 				assert(free_size > 0); // make sure free blocks are only connected to other freeblocks
 				if (required_size == free_size || free_size >= required_size + 32) { // this block will fit what we need
@@ -86,7 +77,7 @@ public:
 				}
 				prev_free_block = reinterpret_cast<uintptr_t*>(get_prev_free(prev_free_block));
 			}
-			while(next_free_block){
+			while(next_free_block){ // search forwards
 				free_size = -get_free_size(next_free_block);
 				assert(free_size > 0); // make sure free blocks are only connected to other freeblocks
 				if (required_size == free_size || free_size >= required_size + 32) {
@@ -97,7 +88,7 @@ public:
 				}
 				next_free_block = reinterpret_cast<uintptr_t*>(get_next_free(next_free_block));
 			}
-			// no free block found so return a handle that can't exist
+			// no free block  large enough found so return a handle that can't exist
 			return -1;
 		}
 	found_block: // we found a block in the loop and got all of it's pointers
@@ -106,12 +97,10 @@ public:
 			if (prev_free_block) {
 				set_next_free(prev_free_block, reinterpret_cast<uintptr_t>(next_free_block)); // set the next of the previous to be our next
 				m_current = reinterpret_cast<byte*>(prev_free_block);
-				auto temp = get_next_free(prev_free_block);
 			}
 			if (next_free_block) {
 				set_prev_free(next_free_block, reinterpret_cast<uintptr_t>(prev_free_block)); // set the prev of our next to be our prev
 				m_current = reinterpret_cast<byte*>(next_free_block);
-				auto temp = get_prev_free(next_free_block);
 			}
 			if (!prev_free_block && !next_free_block) {
 				// should only get here if the freeblock we used were the last bits of allocated memory
@@ -130,17 +119,11 @@ public:
 			}
 			set_prev_free(remaining_free_block, reinterpret_cast<uintptr_t>(prev_free_block));
 			set_next_free(remaining_free_block, reinterpret_cast<uintptr_t>(next_free_block));
-
-			auto temp0 = get_free_size(remaining_free_block);
-			auto temp1 = get_prev_free(remaining_free_block);
-			auto temp2 = get_next_free(remaining_free_block);
 			m_current = reinterpret_cast<byte*>(remaining_free_block);
 		}
 		set_free_size(free_block, required_size); // set the first and last 8 bytes to be the size of the allocation
 		set_next_free(free_block, reinterpret_cast<uintptr_t>(nullptr)); // want these to be null because we dont want to rely on the pointers in an allocated block
 		set_prev_free(free_block, reinterpret_cast<uintptr_t>(nullptr));
-		auto temp1 = get_next_free(free_block);
-		auto temp2 = get_prev_free(free_block);
 		byte* user_mem = reinterpret_cast<byte*>(free_block) + 24;
 		void* p_aligned = align(user_mem, alignment); // add 24 so we skip over the first 3 8 byte values
 		handle = get_free_handle();
@@ -203,10 +186,6 @@ public:
 		set_next_free(this_free_block, reinterpret_cast<uintptr_t>(next_free_block)); // set my next to the found next
 		set_prev_free(this_free_block, reinterpret_cast<uintptr_t>(prev_free_block)); // set my prev to the found prev
 
-		auto temp1 = get_next_free(this_free_block);
-		auto temp2 = get_prev_free(this_free_block);
-		auto temp3 = get_free_size(this_free_block);
-
 		//	COALESCE (use if statements because there will be at most one free block next to us (guaranteed because we coalesce on every free)
 		if (next_free_block && next_free_block < m_end && (this_free_block + (this_free_size / 8) == next_free_block)) { // coalesce forwards
 			int64_t next_free_size = -get_free_size(next_free_block);
@@ -235,14 +214,7 @@ public:
 		if (next_free_block && prev_free_block) assert(get_prev_free(next_free_block) == get_next_free(prev_free_block));
 		assert(next_free_block == reinterpret_cast<uintptr_t*>(get_next_free(this_free_block)));
 		assert(prev_free_block == reinterpret_cast<uintptr_t*>(get_prev_free(this_free_block)));
-		
-		auto final_size = get_free_size(this_free_block);
-		auto prev = get_prev_free(this_free_block);
-		auto next = get_next_free(this_free_block);
-		uintptr_t* previouss_next = nullptr;
-		uintptr_t* nexts_prev = nullptr;
-		if (prev) previouss_next = reinterpret_cast<uintptr_t*>(get_next_free(reinterpret_cast<uintptr_t*>(prev)));
-		if (next) nexts_prev = reinterpret_cast<uintptr_t*>(get_prev_free(reinterpret_cast<uintptr_t*>(next)));
+;
 		m_current = reinterpret_cast<byte*>(this_free_block);
 	}
 private:
@@ -275,7 +247,6 @@ private:
 	void set_free_size(uintptr_t* free_block, int64_t size) {
 		*free_block = size;
 		size_t trailing = (abs(size)/8) - 1;
-		auto addr = free_block + trailing;
 		*(free_block + trailing) = size;
 	}
 	int64_t get_free_size(uintptr_t* free_block) {
