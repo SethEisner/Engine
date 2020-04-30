@@ -86,10 +86,11 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 
 	//GeneralAllocator allocator(1024);
 	int* my_int = NEW(int, memory_manager->get_general_allocator()) (8);
-	int handle = memory_manager->get_general_allocator()->register_allocated_mem(my_int);
-	int* temp = reinterpret_cast<int*>(memory_manager->get_general_allocator()->get_mem(handle));
-	memory_manager->get_general_allocator()->free(handle);
-	memory_manager->get_general_allocator()->defragment();
+	Handle handle = memory_manager->get_general_allocator()->register_allocated_mem(my_int);
+	int* temp = reinterpret_cast<int*>(memory_manager->get_general_allocator()->get_pointer(handle));
+	*temp = 10;
+	memory_manager->free(handle);
+	memory_manager->defragment();
 	//int  h = allocator.allocate(32, 8);
 	//int  i = allocator.allocate(32, 8);
 	//int  j = allocator.allocate(32, 8);

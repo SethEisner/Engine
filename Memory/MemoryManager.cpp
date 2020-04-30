@@ -56,6 +56,13 @@ PoolAllocator* MemoryManager::get_pool_allocator(size_t size) {
 GeneralAllocator* MemoryManager::get_general_allocator() {
 	return m_general;
 }
+void MemoryManager::free(Handle handle) {
+	m_general->free(handle);
+}
+
+void MemoryManager::defragment() {
+	m_general->defragment();
+}
 
 
 void* operator new (size_t bytes, size_t alignment, LinearAllocator* allocator) {
@@ -75,6 +82,9 @@ void* operator new (size_t bytes, size_t count, size_t alignment, LinearAllocato
 	return allocator->allocate(bytes * count, alignment);
 }
 void* operator new (size_t bytes, size_t count, size_t alignment, StackAllocator* allocator) {
+	return allocator->allocate(bytes * count, alignment);
+}
+void* operator new (size_t bytes, size_t count, size_t alignment, GeneralAllocator* allocator) {
 	return allocator->allocate(bytes * count, alignment);
 }
 
