@@ -11,8 +11,10 @@ MemoryManager::MemoryManager() :
 	m_pool32(new PoolAllocator(32, 1024)),
 	m_pool64(new PoolAllocator(64, 1024)),
 	m_pool128(new PoolAllocator(128, 1024)),
-	m_pool256(new PoolAllocator(256, 1024)) {};
+	m_pool256(new PoolAllocator(256, 1024)),
+	m_general(new GeneralAllocator(1024*1024)) {};
 MemoryManager::~MemoryManager() {
+	delete m_general;
 	delete m_pool256;
 	delete m_pool128;
 	delete m_pool64;
@@ -51,6 +53,10 @@ PoolAllocator* MemoryManager::get_pool_allocator(size_t size) {
 		return nullptr;
 	}
 }
+GeneralAllocator* MemoryManager::get_general_allocator() {
+	return m_general;
+}
+
 
 void* operator new (size_t bytes, size_t alignment, LinearAllocator* allocator) {
 	return allocator->allocate(bytes, alignment);
@@ -60,6 +66,9 @@ void* operator new (size_t bytes, size_t alignment, StackAllocator* allocator) {
 }
 void* operator new(size_t bytes, size_t alignment, PoolAllocator* _pool_allocator) {
 	return _pool_allocator->allocate();
+}
+void* operator new (size_t bytes, size_t alignment, GeneralAllocator* allocator){
+	return allocator->allocate(bytes, alignment);
 }
 // allocate count number of contiguous objects aligned to the given alignment 
 void* operator new (size_t bytes, size_t count, size_t alignment, LinearAllocator* allocator) {

@@ -84,18 +84,12 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	
 	JobSystem::startup(thread_count);
 
-	GeneralAllocator allocator(1024);
-	// int h = allocator.allocate(32, 8);
-	// int i = allocator.allocate(4, 4);
-	// allocator.free(h);
-	// int j = allocator.allocate(4, 4);
-	// int k = allocator.allocate(4, 4);
-	int  a = allocator.allocate(32, 8);
-	int  b = allocator.allocate(32, 8);
-	int  c = allocator.allocate(32, 8);
-	int  d = allocator.allocate(32, 8);
-	allocator.free(b);
-	allocator.defragment();
+	//GeneralAllocator allocator(1024);
+	int* my_int = NEW(int, memory_manager->get_general_allocator()) (8);
+	int handle = memory_manager->get_general_allocator()->register_allocated_mem(my_int);
+	int* temp = reinterpret_cast<int*>(memory_manager->get_general_allocator()->get_mem(handle));
+	memory_manager->get_general_allocator()->free(handle);
+	memory_manager->get_general_allocator()->defragment();
 	//int  h = allocator.allocate(32, 8);
 	//int  i = allocator.allocate(32, 8);
 	//int  j = allocator.allocate(32, 8);

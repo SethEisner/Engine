@@ -43,7 +43,17 @@ public:
 	~GeneralAllocator() {
 		delete m_begin;
 	};
-	Handle allocate(size_t size, size_t alignment) {
+	void* get_pointer(Handle h){
+		assert(m_handle_table[h] != nullptr);
+		return m_handle_table[h];
+	}
+	Handle register_allocated_mem(void* allocated_block) {
+		// maybe add a check that asserts if we try to get a handle for a block that already has one
+		Handle open_handle = get_open_handle();
+		m_handle_table[open_handle] = allocated_block;
+		return open_handle;
+	}
+	void* allocate(size_t size, size_t alignment) {
 		std::lock_guard<std::mutex> lock(m_lock); // can assert and/or return without worry
 		Handle handle;
 		size_t sum = size + alignment;
@@ -83,10 +93,9 @@ public:
 				next_free_block = reinterpret_cast<uintptr_t*>(get_next_free(next_free_block));
 			}
 			// no free block  large enough found so return a handle that can't exist
-			return -1;
+			return nullptr;
 		}
 	found_block: // we found a block in the loop and got all of it's pointers
-		handle = get_free_handle(); // get the handle we will use to access this free block
 		if (free_size == required_size) { // the freeblock exactly fits what we need, dont need to create a new freeblock at the end, but do need to update the free-block chain
 			// update the pointers to remove this block from the freechain
 			if (prev_free_block) {
@@ -120,11 +129,7 @@ public:
 		// store the handle where the prev_free pointer goes so the defragment function can quickly get the handle associated with a block
 		set_prev_free(free_block, static_cast<uintptr_t>(handle));
 		byte* user_mem = reinterpret_cast<byte*>(free_block) + bytes_for_size + bytes_for_handle; // skip over the overhead
-		void* p_aligned = align(user_mem, alignment);
-		
-		m_handle_table[handle] = p_aligned;
-	
-		return handle;
+		return align(user_mem, alignment); // return the aligned pointer
 	}
 	void free(Handle handle) {
 		std::lock_guard<std::mutex> lock(m_lock);
@@ -243,12 +248,13 @@ public:
 		assert(reinterpret_cast<uintptr_t*>(get_next_free(this_free_block)) == nullptr);
 	}
 private:
-	Handle get_free_handle() {
+	Handle get_open_handle() {
 		size_t index;
 		for (index = 0; index != m_handle_table_size; ++index, ++m_last_handle) { // loop until the handle table entry is a null pointer
 			if (m_handle_table[m_last_handle % m_handle_table_size] == nullptr) break;
 		}
-		if (index == m_handle_table_size) assert(false); // traversed entire handle table without finding a free handle;
+		//if (index == m_handle_table_size) assert(false); 
+		assert(index != m_handle_table_size); // traversed entire handle table without finding a free handle;
 		return m_last_handle; // return the free handle we found
 	}
 	Handle get_handle_of(uintptr_t* allocated_block) {
