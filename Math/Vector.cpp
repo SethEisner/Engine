@@ -140,7 +140,7 @@ Vec3 rejection(const Vec3& a, const Vec3& b) { // reject a onto b
 Vec3 homogenize(const Vec3& rhs) { // for 2d version of homogenous coordinates
 	float div;
 	Vec3 result;
-	(rhs.z == 0) ? (div = 1.0f, result.z = 0.f) : (div = 1.0 / rhs.z, result.z = 1.0f);
+	(rhs.z == 0) ? (div = 1.0f, result.z = 0.f) : (div = 1.0f / rhs.z, result.z = 1.0f);
 	result.x = rhs.x * div;
 	result.y = rhs.y * div;
 	return result;
@@ -205,7 +205,7 @@ Vec4 rejection(const Vec4& a, const Vec4& b) { // reject a onto b
 Vec4 homogenize(const Vec4& rhs) {
 	float div;
 	Vec4 result;
-	(rhs.w * rhs.w < EPSILON) ? (div = 1.0f, result.w = 0.f) : (div = 1.0 / rhs.w, result.w = 1.0f); // set's the w here too
+	(rhs.w * rhs.w < EPSILON) ? (div = 1.0f, result.w = 0.f) : (div = 1.0f / rhs.w, result.w = 1.0f); // set's the w here too
 	result.x = rhs.x * div;
 	result.y = rhs.y * div;
 	result.z = rhs.z * div;

@@ -534,29 +534,29 @@ Trans4 inverse(const Trans4& m) {
 				  s.x,   s.y,  s.z, -dot(d, s));
 }
 Trans4 make_rotation_x(float radians) {
-	float c = cos(radians);
-	float s = sin(radians);
+	float c = cosf(radians);
+	float s = sinf(radians);
 	return Trans4(1.0f, 0.0f, 0.0f, 0.0f,
 				  0.0f,    c,   -s, 0.0f,
 				  0.0f,    s,    c, 0.0f);
 }
 Trans4 make_rotation_y(float radians) {
-	float c = cos(radians);
-	float s = sin(radians);
+	float c = cosf(radians);
+	float s = sinf(radians);
 	return Trans4(   c, 0.0f,    s, 0.0f,
 				  0.0f, 1.0f, 0.0f, 0.0f,
 				    -s, 0.0f,    c, 0.0f);
 }
 Trans4 make_rotation_z(float radians) {
-	float c = cos(radians);
-	float s = sin(radians);
+	float c = cosf(radians);
+	float s = sinf(radians);
 	return Trans4(   c,   -s, 0.0f, 0.0f,
 				     s,    c, 0.0f, 0.0f,
 				  0.0f, 0.0f, 1.0f, 0.0f);
 }
 Trans4 make_rotation(float radians, const Vec3& a) { // rotates around vector a by radians radians
-	float c = cos(radians);
-	float s = sin(radians);
+	float c = cosf(radians);
+	float s = sinf(radians);
 	float d = 1.0f - c;
 	
 	float x = a.x * d;

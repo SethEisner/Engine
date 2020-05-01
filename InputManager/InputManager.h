@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "../ThreadSafeContainers/Queue.h"
+#include "../ThreadSafeContainers/HashTable.h"
 #include <unordered_map>
 #include <windows.h>
 #include "../Memory/MemoryManager.h"
@@ -41,11 +42,11 @@ PRESSED  --->  HELD    UNHELD  <--- start
 		RIGHT = 2
 	};
 	// InputManager() : m_key_state(), m_character_pressed(), m_mouse_state(), m_name_to_action(new std::unordered_map<uint32_t, GameAction*>) {}
-	InputManager() : m_key_state(), m_character_pressed(), m_mouse_state() {
+	InputManager() : m_name_to_action(NEW(HashTable<uint32_t COMMA GameAction>, memory_manager->get_linear_allocator())(63)), m_key_state(), m_character_pressed(), m_mouse_state() {
 		// allocate an array of game_objects
 		//m_name_to_action = static_cast<GameAction*>(memory_manager->get_linear_allocator().allocate_aligned(sizeof(GameAction) * m_action_count, alignof(GameAction)));
 		// allocate an array of game_objects using the default constructor
-		m_name_to_action = NEW_ARRAY(GameAction, m_action_count, memory_manager->get_linear_allocator())();
+		//m_name_to_action = NEW_ARRAY(GameAction, m_action_count, memory_manager->get_linear_allocator())();
 	}
 	~InputManager() {
 		//delete m_name_to_action;
@@ -105,8 +106,9 @@ private:
 	};
 	// should use pointer so the input manager can manage the lifetime of the GameAction objects
 	// std::unordered_map<uint32_t, GameAction*>* m_name_to_action; // stores the mapping from the hashed string literal used by the programmer to identify a game action to the actual game action object itself
-	const size_t m_action_count = 64;
-	GameAction* m_name_to_action;
+	// const size_t m_action_count = 64;
+	// GameAction* m_name_to_action;
+	HashTable<uint32_t, GameAction>* m_name_to_action;
 	const uint32_t m_held_delay = 100;	// milliseconds of delay that should be present before switching from PRESSED to HELD (anything shorter seems to convert to held instead of pressed)
 	KeyEntry m_key_state[256];			// array of keystates, used for input to the actual game, array of entries, one for each key, manages the curr, prev, and timestamps for each key.
 	uint8_t m_character_pressed[256];	// used for generic typing into a textbox or the eventual console menu. not used for controlling a character
@@ -122,3 +124,5 @@ private:
 	void process_keyup(const MSG&);
 	void process_keydown(const MSG&); // still need these keys because we need to be able to process non character keys (shift, control,...)
 };
+
+extern InputManager* input_manager;

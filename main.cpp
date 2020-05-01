@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include "Memory/MemoryManager.h"
 #include "Memory/GeneralAllocator.h"
+#include "ThreadSafeContainers/HashTable.h"
 
 const int thread_count = 3; //std::min((unsigned int) 3, std::thread::hardware_concurrency() - 1);
 //LinearAllocator linear_allocator(1024);
@@ -84,13 +85,27 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	
 	JobSystem::startup(thread_count);
 
+	HashTable<int, int> t;
+	t.insert(9, -9);
+	t.insert(9, -9);
+	t.insert(9, -9);
+	t.insert(9, -9);
+	t.insert(9, -9);
+	assert(t.at(9) == -9);
+	t.set(9, 8);
+	assert(t.at(9) == 8);
+	assert(t.contains(9));
+	t.remove(9);
+	assert(!t.contains(9));
+
+
 	//GeneralAllocator allocator(1024);
-	int* my_int = NEW(int, memory_manager->get_general_allocator()) (8);
-	Handle handle = memory_manager->get_general_allocator()->register_allocated_mem(my_int);
-	int* temp = reinterpret_cast<int*>(memory_manager->get_general_allocator()->get_pointer(handle));
-	*temp = 10;
-	memory_manager->free(handle);
-	memory_manager->defragment();
+	// int* my_int = NEW(int, memory_manager->get_general_allocator()) (8);
+	// Handle handle = memory_manager->get_general_allocator()->register_allocated_mem(my_int);
+	// int* temp = reinterpret_cast<int*>(memory_manager->get_general_allocator()->get_pointer(handle));
+	// *temp = 10;
+	// memory_manager->free(handle);
+	// memory_manager->defragment();
 	//int  h = allocator.allocate(32, 8);
 	//int  i = allocator.allocate(32, 8);
 	//int  j = allocator.allocate(32, 8);
@@ -101,7 +116,10 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	//allocator.free(d);
 	//allocator.free(i);
 	//allocator.free(h);
-	/*
+	
+	
+	/*InputManager* input_manager = new InputManager();
+	
 	input_manager->add_action(HASH("shoot"), InputManager::MouseButton::LEFT);
 	input_manager->add_action(HASH("jump"), InputManager::Key(' '));
 	
@@ -138,8 +156,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 		if (input_manager->is_unheld(HASH("shoot"))) {
 			OutputDebugStringA("unheld\n");
 		}
-	}
-	*/
+	}*/
+	
 
 	/*
 	Job* root = JobSystem::create_job(empty_job);

@@ -9,7 +9,7 @@ Quaternion::Quaternion(const Vec3& v, float rads) { // create a quaternion from 
 	x = v.x * sin2;
 	y = v.y * sin2;
 	z = v.z * sin2;
-	w = cosf(rads * 0.5);
+	w = cosf(rads * 0.5f);
 }
 const Vec3& Quaternion::get_vec() const { // returns the imaginary part of the quaternion, NOT the vector the quaternion rotates around
 	return reinterpret_cast<const Vec3&>(x);
@@ -37,14 +37,14 @@ void Quaternion::set_rotation_matrix(const Trans4& m) {
 	float sum = m00 + m11 + m22;
 	if (sum > 0.0f) { // when sum is positive then |w| >= 1/2 so division isn's a problem
 		w = sqrtf(sum + 1.0f) * 0.5f;
-		float f = 0.25 / w;
+		float f = 0.25f / w;
 		x = (m(2, 1) - m(1, 2)) * f;
 		y = (m(0, 2) - m(2, 0)) * f;
 		z = (m(1, 0) - m(0, 1)) * f;
 	}
 	else if ((m00 > m11) && (m00 > m22)) { // if sum < 0 then we look for the largest number on the diagonal and then divide by that 
 		x = sqrtf(m00 - m11 - m22 + 1.0f) * 0.5f;
-		float f = 0.25 / x;
+		float f = 0.25f / x;
 		y = (m(1, 0) - m(0, 1)) * f;
 		z = (m(0, 2) + m(2, 0)) * f;
 		w = (m(2, 1) - m(1, 2)) * f;
@@ -58,10 +58,10 @@ void Quaternion::set_rotation_matrix(const Trans4& m) {
 	}
 	else {
 		z = sqrtf(m22 - m00 - m11 + 1.0f) * 0.5f;
-		float f = 0.25 / z;
-		x = (m(0, 2) + m(2, 0)) * 0.5;
-		y = (m(2, 1) + m(1, 2)) * 0.5;
-		w = (m(1, 0) - m(0, 1)) * 0.5;
+		float f = 0.25f / z;
+		x = (m(0, 2) + m(2, 0)) * 0.5f;
+		y = (m(2, 1) + m(1, 2)) * 0.5f;
+		w = (m(1, 0) - m(0, 1)) * 0.5f;
 	}
 }
 void Quaternion::set_rotation_matrix(const Mat3& m) { // set quaternion to a unit quaternion from a pure rotation matrix

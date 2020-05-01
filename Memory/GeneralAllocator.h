@@ -5,7 +5,6 @@
 #include <math.h>
 #include "memory.h"
 #include <mutex>
-
 /* TODO: */
 
 // based off of dlmalloc: http://gee.cs.oswego.edu/dl/html/malloc.html
@@ -14,11 +13,14 @@ static const int bytes_for_size = 8;
 static const int bytes_for_handle = 8;
 static const int bytes_for_free_block = bytes_for_size + bytes_for_size + bytes_for_handle + 8; // 8 is minimum allocation size
 
+
+typedef size_t Handle;
+
 class GeneralAllocator {
 	typedef uint8_t byte;
-	typedef const size_t Handle;
 public:
 	GeneralAllocator() = delete;
+	// malloc already aligns to 8 bytes so memory isnt awful
 	// malloc already aligns to 8 bytes so memory isnt awful
 	GeneralAllocator(int64_t size) : m_begin(static_cast<uintptr_t*>(malloc(size))), m_last_handle(0) {
 		assert(size > 0);
@@ -59,7 +61,7 @@ public:
 			sum = 8;
 		}
 		int64_t required_size = bytes_for_size + bytes_for_handle + sum + bytes_for_size;
-		 // manipulate free_block pointer to find a suitable free block
+		// manipulate free_block pointer to find a suitable free block
 		uintptr_t* free_block = reinterpret_cast<uintptr_t*>(m_current);
 		int64_t free_size = -get_free_size(free_block);
 		assert(free_size > 0); // m_current should always be set to a free block so we should always start out search from a free block
@@ -78,7 +80,7 @@ public:
 				}
 				prev_free_block = reinterpret_cast<uintptr_t*>(get_prev_free(prev_free_block));
 			}
-			while(next_free_block){ // search forwards
+			while (next_free_block) { // search forwards
 				free_size = -get_free_size(next_free_block);
 				assert(free_size > 0); // make sure free blocks are only connected to other freeblocks
 				if (required_size == free_size || free_size >= required_size + bytes_for_free_block) {
@@ -205,7 +207,7 @@ public:
 		prev_free_block = reinterpret_cast<uintptr_t*>(get_prev_free(this_free_block)); // unnecessary because it's set in the loop
 		next_free_block = reinterpret_cast<uintptr_t*>(get_next_free(this_free_block));
 		assert(prev_free_block == nullptr);
-		
+
 		uintptr_t* next_block = this_free_block + (this_free_size / 8);
 		while (next_block < m_end) { // the next block is a valid region of memory
 			size_t next_block_size = get_free_size(next_block);
@@ -217,7 +219,7 @@ public:
 			if (get_free_size(next_block) > this_free_size) {
 				memmove(this_free_block, next_block, next_block_size); // next block is larger than the freeblock so we must use memmove
 			}
-			else { 
+			else {
 				memcpy(this_free_block, next_block, next_block_size);
 			}
 			// update the handle entry in the handle table
@@ -239,7 +241,7 @@ public:
 		assert(reinterpret_cast<uintptr_t*>(get_prev_free(this_free_block)) == nullptr);
 		assert(reinterpret_cast<uintptr_t*>(get_next_free(this_free_block)) == nullptr);
 	}
-private: // private functions must not grab a lock because they are called by functions that already hold the lock
+	// private functions must not grab a lock because they are called by functions that already hold the lock
 	uintptr_t* get_block_pointer(Handle handle) {
 		void* ptr = m_handle_table[handle];
 		// get the base pointer -> this_free_block
@@ -301,19 +303,19 @@ private: // private functions must not grab a lock because they are called by fu
 		free_block += 2;
 		return *free_block;
 	}
-	
 	void set_free_size(uintptr_t* free_block, int64_t size) {
 		*free_block = size;
-		size_t trailing = (abs(size)/8) - 1;
+		size_t trailing = (abs(size) / 8) - 1;
 		*(free_block + trailing) = size;
 	}
 	int64_t get_free_size(uintptr_t* free_block) {
 		if (!free_block) return 0; // return zero if the free_block is a nullptr
 		return static_cast<int64_t>(*free_block);
 	}
-	int64_t get_adjacent_free_size(uintptr_t* free_block){
+	int64_t get_adjacent_free_size(uintptr_t* free_block) {
 		return static_cast<int64_t>(*(free_block - 1));
 	}
+
 	std::mutex m_lock;
 	static const size_t m_handle_table_size = 128;
 	void* m_handle_table[m_handle_table_size]; // be able to store 128 handles

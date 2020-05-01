@@ -5,7 +5,7 @@
 #include "GeneralAllocator.h"
 
 
-typedef const size_t Handle;
+// typedef size_t Handle; defined in general allocator
 
 class MemoryManager {
 public:
@@ -47,7 +47,7 @@ template <class Allocator>
 void free(void* ptr, Allocator* allocator) {
 	allocator->free(ptr);
 }
-
+#define COMMA , // allows passing templated types to the NEW* macros
 #define NEW(type, allocator) new(static_cast<size_t>(alignof(type)), allocator) type
 #define NEW_ARRAY(type, count, allocator) new(static_cast<size_t>(count), static_cast<size_t>(alignof(type)), allocator) type
 #define FREE(object, allocator) free(object, allocator)
