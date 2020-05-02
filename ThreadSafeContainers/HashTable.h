@@ -23,12 +23,7 @@ public:
 	HashTable(size_t size = 127) : m_table_size(size) { // size is the max number of elements 
 		void* temp_pointer = NEW_ARRAY(Bucket, size, memory_manager->get_general_allocator());
 		m_table_handle = memory_manager->get_general_allocator()->register_allocated_mem(temp_pointer);
-		Bucket* m_table = reinterpret_cast<Bucket*>(temp_pointer);
-		for (int i = 0; i != m_table_size; i++) { // set all the m_keys to be 0 so we know they are not in use
-			for (int j = 0; j != BUCKET_SIZE; j++) {
-				m_table[i].m_entry[j].m_hash = SIZE_MAX;
-			}
-		}
+		this->reset();
 	}
 	~HashTable() {
 		memory_manager->free(m_table_handle); // release our block of memory
@@ -94,6 +89,14 @@ public:
 		}
 		bucket[index].m_entry[entry_index].m_value = _value;
 		m_lock.unlock();
+	}
+	void reset() {
+		Bucket* bucket = reinterpret_cast<Bucket*>(memory_manager->get_general_allocator()->get_pointer(m_table_handle)); // get the up to date pointer from the general allocator
+		for (int i = 0; i != m_table_size; i++) { // set all the m_keys to be SIZE_MAX so we know they are not in use
+			for (int j = 0; j != BUCKET_SIZE; j++) {
+				bucket[i].m_entry[j].m_hash = SIZE_MAX;
+			}
+		}
 	}
 private:
 	size_t bucket_contains(const Bucket& bucket, Hash _hash) { // return the index if the hash is present in the array, otherwise returns bucket_size

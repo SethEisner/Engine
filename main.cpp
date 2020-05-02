@@ -97,6 +97,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	assert(t.contains(9));
 	t.remove(9);
 	assert(!t.contains(9));
+	t.reset();
 
 
 	//GeneralAllocator allocator(1024);
@@ -118,7 +119,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	//allocator.free(h);
 	
 	
-	/*InputManager* input_manager = new InputManager();
+	/* InputManager* input_manager = new InputManager();
 	
 	input_manager->add_action(HASH("shoot"), InputManager::MouseButton::LEFT);
 	input_manager->add_action(HASH("jump"), InputManager::Key(' '));

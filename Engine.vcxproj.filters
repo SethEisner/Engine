@@ -89,5 +89,11 @@
     <ClInclude Include="Memory\GeneralAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ThreadSafeContainers\HashTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceManager\ResourceManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -42,6 +42,8 @@
     <ClInclude Include="Memory\MemoryManager.h" />
     <ClInclude Include="Memory\PoolAllocator.h" />
     <ClInclude Include="Memory\StackAllocator.h" />
+    <ClInclude Include="ResourceManager\ResourceManager.h" />
+    <ClInclude Include="ThreadSafeContainers\HashTable.h" />
     <ClInclude Include="Utilities\Utilities.h" />
     <ClInclude Include="JobSystem\JobSystem.h" />
     <ClInclude Include="ThreadSafeContainers\Queue.h" />
