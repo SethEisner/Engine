@@ -18,6 +18,15 @@
 #include "Memory/GeneralAllocator.h"
 #include "ThreadSafeContainers/HashTable.h"
 
+
+#include "ResourceManager/ResourceManager.h"
+
+
+
+#include <stdio.h>
+#include "zlib.h"
+
+
 const int thread_count = 3; //std::min((unsigned int) 3, std::thread::hardware_concurrency() - 1);
 //LinearAllocator linear_allocator(1024);
 
@@ -61,6 +70,26 @@ size_t size_of(T ptr) {
 }
 
 
+bool get_compressed_file_info(byte* compressed, size_t& compressed_size, size_t& uncompressed_size, size_t& offset, std::string& file_name) {
+	uncompressed_size = 0;
+	compressed_size = 0;
+	static constexpr uint32_t central_director_file_header_signature = 0x02014b50;
+	static constexpr size_t local_file_header_size = 30;
+	if (*reinterpret_cast<uint32_t*>(compressed + offset) != central_director_file_header_signature) { // still have compressed data to uncompress
+		compressed_size = *reinterpret_cast<uint32_t*>(compressed + offset + 18);
+		uncompressed_size = *reinterpret_cast<uint32_t*>(compressed + offset + 22);
+		uint16_t n = *reinterpret_cast<uint16_t*>(compressed + offset + 26);
+		uint16_t m = *reinterpret_cast<uint16_t*>(compressed + offset + 28);
+
+		std::string name(reinterpret_cast<char*>(compressed + offset + 30), n);
+		file_name = name; // copy the name into the reference;
+		offset += local_file_header_size + static_cast<size_t>(n) + static_cast<size_t>(m); // offset returns the start of the compressed data
+		return true;
+	}
+	return false;
+}
+
+
 // int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hprevinstance, LPSTR lpcmdline, int nCmdShow) {
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pCmdLine, _In_ int nCmdShow) {
 	//HINSTANCE hInstance = (HINSTANCE) GetModuleHandle(NULL);
@@ -82,23 +111,103 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	ShowWindow(hwnd, nCmdShow);
 	UpdateWindow(hwnd);
 
+	byte* test = NEW_ARRAY(byte, 380, memory_manager->get_general_allocator());// reinterpret_cast<byte*>(memory_manager->get_general_allocator()->allocate(uncompressed_size, 1));
+	int handle = memory_manager->get_general_allocator()->register_allocated_mem(test);
+	memory_manager->free(handle);
+
+
+	//JobSystem::startup(thread_count);
+
+	ResourceManager rm;
+
+	//HashTable<int, int> t;
+	//t.insert(9, -9);
+	//t.insert(9, -9);
+	//t.insert(9, -9);
+	//t.insert(9, -9);
+	//t.insert(9, -9);
+	//assert(t.at(9) == -9);
+	//t.set(9, 8);
+	//assert(t.at(9) == 8);
+	//assert(t.contains(9));
+	//t.remove(9);
+	//assert(!t.contains(9));
+	//t.reset();
+
+	const size_t CHUNK = 1 << 16;
+
+	int ret = 0;
+
+	// byte* i = NEW(byte, memory_manager->get_general_allocator())(0x78);
+	// int handle = memory_manager->get_general_allocator()->register_allocated_mem(i);
+	// memory_manager->free(handle);
+	// std::string path = "C:\\Users\\Seth Eisner\\source\\repos\\Engine\\Resources\\Miami_Sample.zip";
 	
-	JobSystem::startup(thread_count);
+	
+	rm.load_resource("CyberCity3D_Sample_OBJ.zip");
+	
+	while (true) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	};
+	// std::string path = "C:/Users/Seth Eisner/source/repos/Engine/Resources/s";
+	// FILE* fp = fopen(path.c_str(), "rb");
+	// assert(fp != nullptr);
+	// fseek(fp, 0, SEEK_END);
+	// size_t file_length = ftell(fp);
+	// rewind(fp);
+	// byte* compressed = (byte*)malloc(file_length);// NEW_ARRAY(byte, file_length, m_allocator); // allocate space for the compressed memory from our general allocator
+	// //int h_compressed = m_allocator->register_allocated_mem(compressed);
+	// fread(compressed, file_length, 1, fp); // read the file into memory
+	// fclose(fp);
+	// Bytef* uncompressed = (Bytef*)malloc(22); // i think 22 bytes is the minimum size if it's just a central directory header
+	// AllocConsole();
+	// freopen("CONOUT$", "w", stdout);
+	// size_t compressed_size;
+	// size_t uncompressed_size;
+	// 
+	// while (get_compressed_file_info(compressed, compressed_size, uncompressed_size, offset)) {
+	// 	byte* uncompressed = NEW_ARRAY(byte, uncompressed_size, memory_manager->get_general_allocator());// reinterpret_cast<byte*>(memory_manager->get_general_allocator()->allocate(uncompressed_size, 1));
+	// 	assert(uncompressed != nullptr);
+	// 	//byte* uncompressed = (byte*)malloc(uncompressed_size + 1);
+	// 	int handle = memory_manager->get_general_allocator()->register_allocated_mem(uncompressed);
+	// 	z_stream infstream;
+	// 	infstream.zalloc = Z_NULL;
+	// 	infstream.zfree = Z_NULL;
+	// 	infstream.opaque = Z_NULL;
+	// 	infstream.avail_in = compressed_size;//(uInt)((unsigned char*)defstream.next_out - b); // size of input
+	// 	infstream.next_in = compressed + offset; // input char array
+	// 	infstream.avail_out = uncompressed_size; // size of output
+	// 	infstream.next_out = uncompressed; // output char array
+	// 	inflateInit2(&infstream, -15); // inflateInit2 skips the headers and looks for a raw stream 
+	// 	ret = inflate(&infstream, Z_NO_FLUSH);
+	// 	inflateEnd(&infstream);
+	// 	//OutputDebugStringA(reinterpret_cast<LPCSTR>(uncompressed));
+	// 	//uncompressed[uncompressed_size] = '\0';
+	// 	for (int i = 0; i < uncompressed_size; i += (1 << 12)) {
+	// 		OutputDebugStringA(reinterpret_cast<LPCSTR>(uncompressed + i));
+	// 	}
+	// 	OutputDebugStringA("\n");
+	// 	memory_manager->get_general_allocator()->free(handle); // the free function throws the exception, i dont think the sizes are causing the headers to be set properly in allocate function
+	// 	offset += compressed_size;
+	// }
 
-	HashTable<int, int> t;
-	t.insert(9, -9);
-	t.insert(9, -9);
-	t.insert(9, -9);
-	t.insert(9, -9);
-	t.insert(9, -9);
-	assert(t.at(9) == -9);
-	t.set(9, 8);
-	assert(t.at(9) == 8);
-	assert(t.contains(9));
-	t.remove(9);
-	assert(!t.contains(9));
-	t.reset();
 
+	
+
+	// the actual DE-compression work.
+	
+	//ret = uncompress(uncompressed, &size, compressed, compressed_size);
+	//ret = inflate(&strm, Z_SYNC_FLUSH);
+	//ret = uncompress(uncompressed, &length, compressed, file_length);
+	assert(ret >= 0);
+	// for (int i = 0; i != uncompressed_size; i++) {
+	// 	putchar(uncompressed[i]);
+	// }
+	// fp = nullptr;
+
+	// for (int i = 0; i != length; i++) {
+	// 	OutputDebugStringA(reinterpret_cast<LPCSTR>(uncompressed + i));
+	// }
 
 	//GeneralAllocator allocator(1024);
 	// int* my_int = NEW(int, memory_manager->get_general_allocator()) (8);

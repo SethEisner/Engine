@@ -12,7 +12,7 @@ MemoryManager::MemoryManager() :
 	m_pool64(new PoolAllocator(64, 1024)),
 	m_pool128(new PoolAllocator(128, 1024)),
 	m_pool256(new PoolAllocator(256, 1024)),
-	m_general(new GeneralAllocator(1024*1024)) {};
+	m_general(new GeneralAllocator(1024*1024*1024)) {};
 MemoryManager::~MemoryManager() {
 	delete m_general;
 	delete m_pool256;

@@ -55,7 +55,7 @@ public:
 		}
 		m_lock.unlock();
 	}
-	const Value& at(const Key& _key) { // get the value associated with the key, return a constant reference so it cant be modified
+	Value* at(const Key& _key) { // get the value associated with the key, return a constant reference so it cant be modified
 		Hash hash = static_cast<Hash>(std::hash<Key>{}(_key));
 		assert(hash != SIZE_MAX);
 		size_t index = hash % m_table_size;
@@ -64,7 +64,7 @@ public:
 		size_t entry_index = bucket_contains(bucket[index], hash);
 		assert(entry_index != BUCKET_SIZE); // assert that the key exists, could throw an exception
 		m_lock.unlock_shared();
-		return bucket[index].m_entry[entry_index].m_value;
+		return &bucket[index].m_entry[entry_index].m_value;
 	}
 	bool contains(const Key& _key) { // see if something with this key is already in the hashtable
 		Hash hash = static_cast<Hash>(std::hash<Key>{}(_key));

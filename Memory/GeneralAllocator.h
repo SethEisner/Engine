@@ -13,6 +13,8 @@ static const int bytes_for_size = 8;
 static const int bytes_for_handle = 8;
 static const int bytes_for_free_block = bytes_for_size + bytes_for_size + bytes_for_handle + 8; // 8 is minimum allocation size
 
+// ERROR STATES
+static constexpr bool GENERAL_ALLOCATOR_OUT_OF_MEMORY = false;
 
 typedef size_t Handle;
 
@@ -60,7 +62,12 @@ public:
 			alignment = 4; // set the alignment to half way inbetween the last byte, will make the aligned pointer function use 8 bytes
 			sum = 8;
 		}
+		else if (alignment < 8) { // if we are larger than 1 byte and our alignment is less than 8, we need to set our size to be a multiple of 8
+			alignment = 8;
+			sum = size - (size % 8) + 8 + alignment; // get the smallest multiple of 8 that is larger than us
+		}
 		int64_t required_size = bytes_for_size + bytes_for_handle + sum + bytes_for_size;
+		assert(required_size % 8 == 0); //required size must be a multiple of 8
 		// manipulate free_block pointer to find a suitable free block
 		uintptr_t* free_block = reinterpret_cast<uintptr_t*>(m_current);
 		int64_t free_size = -get_free_size(free_block);
@@ -92,6 +99,7 @@ public:
 				next_free_block = reinterpret_cast<uintptr_t*>(get_next_free(next_free_block));
 			}
 			// no free block large enough found so return a handle that can't exist
+			assert(GENERAL_ALLOCATOR_OUT_OF_MEMORY);
 			return nullptr;
 		}
 	found_block: // we found a block in the loop and got all of it's pointers
@@ -241,6 +249,7 @@ public:
 		assert(reinterpret_cast<uintptr_t*>(get_prev_free(this_free_block)) == nullptr);
 		assert(reinterpret_cast<uintptr_t*>(get_next_free(this_free_block)) == nullptr);
 	}
+private:
 	// private functions must not grab a lock because they are called by functions that already hold the lock
 	uintptr_t* get_block_pointer(Handle handle) {
 		void* ptr = m_handle_table[handle];

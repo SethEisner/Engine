@@ -4,6 +4,7 @@
 #include <string>
 #include <thread>
 #include "../ThreadSafeContainers/HashTable.h"
+#include "../ThreadSafeContainers/Queue.h"
 /*
 	add a resource
 	check if a resource is in the registry
@@ -58,14 +59,34 @@ Handle post load initialization later when I have a better idea about how the me
 */
 
 const size_t REFERENCE_ARRAY_SIZE = 16;
+static constexpr char resource_path[52] = "C:/Users/Seth Eisner/source/repos/Engine/Resources/";
+//void start_resource_thread(void);
 class ResourceManager {
 	typedef size_t GUID;
+	typedef uint8_t byte;
+	enum class FileType { ZIP, OBJ, MTL };
 	struct RegistryEntry {
 		Handle m_handle; // the handle to the general allocator's pointer
 		int64_t m_ref_count; // the reference count of the resource
+		size_t m_size; // size of the memory block 
 		GUID m_internal_references[REFERENCE_ARRAY_SIZE]; // the GUIDs of internal references - 
 		GUID m_external_references[REFERENCE_ARRAY_SIZE]; // the GUIDs of all external references 
+		FileType m_file_type;
 		bool m_ready;
+		RegistryEntry(Handle _handle, size_t _size, int64_t _ref_count, bool _ready, FileType _file_type) : 
+			m_size(_size), 
+			m_handle(_handle),  
+			m_ref_count(_ref_count), 
+			m_internal_references(), 
+			m_external_references(), 
+			m_ready(_ready),
+			m_file_type(_file_type) {
+			for (int i = 0; i != REFERENCE_ARRAY_SIZE; ++i) {
+				m_internal_references[i] = SIZE_MAX; // size_max is our indicator that the GUID does not exist
+				m_external_references[i] = SIZE_MAX;
+			}
+		}
+		RegistryEntry() = default; // default initializer
 	}; 
 	template <typename T>
 	struct QueueEntry {
@@ -73,55 +94,39 @@ class ResourceManager {
 		T type; // the type of the object we loaded in. used to call the constructor
 		void (*function)(char*); // function to call after loading, is given the loaded data
 	};
-
 public:
-	ResourceManager() : m_allocator(new GeneralAllocator(1024)), m_thread() {
-		// spawns the thread
-	}
+	ResourceManager() : 
+		m_registry(new HashTable<GUID, RegistryEntry>()),
+		m_dependencies_traversed_set(new HashTable<GUID,bool>()),
+		m_ref_count_traversed_set(new HashTable<GUID, bool>()),
+		m_allocator(new GeneralAllocator(1024*1024*1024)), 
+		m_thread(new std::thread(&ResourceManager::start_resource_thread, this)), 
+		m_resource_queue(new Queue<std::string>(16)) {}
 	~ResourceManager() {
+		delete m_registry;
+		delete m_dependencies_traversed_set;
+		delete m_ref_count_traversed_set;
 		delete m_allocator;
 		delete m_thread;
+		delete m_resource_queue;
 	}
-	void add_resource(const std::string& filepath, void(*function)(char*) = nullptr) {
-		// assert that the filepath is a zip file
-		// get the GUID of the resource
-		// check if the resource is in the registry
-		// if it isn't, create a queue_entry item 
-		// if the resource is already in the queue increment the reference count of self and all the references
-	}
-	bool resource_loaded(const std::string& filepath) {
-		// get the GUID of the resource
-		// return true if the GUID is in the registry and false otherwise
-		return false;
-	}
-	void remove_resource(const std::string& filepath) {
-		// get the GUID of the resource
-		// decrement the reference count in the registry
-		// how to handle circular references // keep a set of already traversed lists so we dont traverse the same list twice
-		// decrement the reference counts of the internal references, internal references should have an empty internal reference array though as they contain the actual data(?)
-			// if we neewd to de4crement internal references do so, but dont recurse further?
-		// reset m_traversed_set
-			// decrement our reference count
-			// go to the list of external dependencies
-			// if the external dependencies list is not in the set, add a pointer to this list to a set
-			// traverse the external dependencies list and go to each entry in the registry
-			// once in the registry entry, subtract 1 from its reference count
-				// if the pointer to the external dependencies array is not in the set, add it and traverse it 
-				// otherwise we backstrack
-		// if the reference count is zero, free it's memory from the general allocator and remove its registry entry
-	}
+	void load_resource(const std::string&, void(*function)(char*) = nullptr);
+	bool resource_loaded(const std::string&);
+	void remove_resource(const std::string&);
 private:
-	void load_resource(const std::string& filepath) { // occurs in the other thread
-		// use miniz to read the zip file into memory
-		// run the function provided
-		// construct the object if we can using the general allocator
-		// add a new entry to the registry 
-	}
-	void start_thread() { // run a loop that tries to pop a filepath from the Queue, and then read the data into memory
-
-	}
-	HashTable<void*, bool> m_traversed_set; // use the hashtable as a set 
-	GeneralAllocator* m_allocator;
+	void increment_reference_count(GUID);
+	void get_external_dependencies(GUID);
+	void traverse_dependency_graph(GUID, void (ResourceManager::*func_p)(GUID));
+	void unzip_resource(const std::string&);
+	//std::string get_file_name(byte* compressed, size_t& offset);
+	bool get_compressed_file_info(byte* compressed, size_t& compressed_size, size_t& uncompressed_size, size_t& offset, std::string& file_name);
+	void start_resource_thread(void);
+	void add_external_dependency(GUID, GUID);
+	FileType get_file_type(const std::string&);
+	HashTable<GUID, RegistryEntry>* m_registry; // registry to keep track of what has been loaded
+	HashTable<GUID, bool>* m_dependencies_traversed_set; // used to read in dependencies
+	HashTable<GUID, bool>* m_ref_count_traversed_set; // used to update reference counts
+	GeneralAllocator* m_allocator; // use own general allocator
 	std::thread* m_thread;
-	// queue of filenames
+	Queue<std::string>* m_resource_queue; // queue of names of zip files to load
 };

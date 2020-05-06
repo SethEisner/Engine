@@ -52,7 +52,7 @@ void InputManager::get_input() {
 
 bool InputManager::is_pressed(uint32_t hashed_action_name) const {
 	//const GameAction* action = &(this->m_name_to_action[hashed_action_name % m_action_count]); // return a const gameaction pointer so we dont modify the object here
-	const GameAction* action = &this->m_name_to_action->at(hashed_action_name);
+	const GameAction* action = this->m_name_to_action->at(hashed_action_name);
 	if (action->m_type == GameAction::GameAction_t::MOUSEBUTTON) { // find which array we need to index into (super low overhead because this type rarely changes)
 		return m_mouse_state.m_buttons[static_cast<uint32_t>(action->m_value.m_button)].m_curr_state == State::PRESSED;
 	}
@@ -60,7 +60,7 @@ bool InputManager::is_pressed(uint32_t hashed_action_name) const {
 }
 bool InputManager::is_released(uint32_t hashed_action_name) const {
 	//const GameAction* action = &(this->m_name_to_action[hashed_action_name % m_action_count]);
-	const GameAction* action = &this->m_name_to_action->at(hashed_action_name);
+	const GameAction* action = this->m_name_to_action->at(hashed_action_name);
 	if (action->m_type == GameAction::GameAction_t::MOUSEBUTTON) {
 		return m_mouse_state.m_buttons[static_cast<uint32_t>(action->m_value.m_button)].m_curr_state == State::RELEASED;
 	}
@@ -68,7 +68,7 @@ bool InputManager::is_released(uint32_t hashed_action_name) const {
 }
 bool InputManager::is_held(uint32_t hashed_action_name) const {
 	//const GameAction* action = &(m_name_to_action[hashed_action_name % m_action_count]);
-	const GameAction* action = &this->m_name_to_action->at(hashed_action_name);
+	const GameAction* action = this->m_name_to_action->at(hashed_action_name);
 	if (action->m_type == GameAction::GameAction_t::MOUSEBUTTON) {
 		return m_mouse_state.m_buttons[static_cast<uint32_t>(action->m_value.m_button)].m_curr_state == State::HELD;
 	}
@@ -76,7 +76,7 @@ bool InputManager::is_held(uint32_t hashed_action_name) const {
 }
 bool InputManager::is_unheld(uint32_t hashed_action_name) const {
 	//const GameAction* action = &(this->m_name_to_action[hashed_action_name % m_action_count]);
-	const GameAction* action = &this->m_name_to_action->at(hashed_action_name);
+	const GameAction* action = this->m_name_to_action->at(hashed_action_name);
 	if (action->m_type == GameAction::GameAction_t::MOUSEBUTTON) {
 		return m_mouse_state.m_buttons[static_cast<uint32_t>(action->m_value.m_button)].m_curr_state == State::UNHELD;
 	}
