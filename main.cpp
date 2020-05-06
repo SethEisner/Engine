@@ -143,12 +143,14 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	// memory_manager->free(handle);
 	// std::string path = "C:\\Users\\Seth Eisner\\source\\repos\\Engine\\Resources\\Miami_Sample.zip";
 	
+	std::string path = "Miami_Sample_obj.zip";
+	rm.load_resource(path);
 	
-	rm.load_resource("CyberCity3D_Sample_OBJ.zip");
-	
-	while (true) {
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-	};
+	while (!rm.resource_loaded(path)) {};
+
+	OutputDebugStringA("\n\n\nloaded the zip and its dependencies\n\n\n");
+
+	while (true) {}
 	// std::string path = "C:/Users/Seth Eisner/source/repos/Engine/Resources/s";
 	// FILE* fp = fopen(path.c_str(), "rb");
 	// assert(fp != nullptr);
@@ -199,7 +201,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	//ret = uncompress(uncompressed, &size, compressed, compressed_size);
 	//ret = inflate(&strm, Z_SYNC_FLUSH);
 	//ret = uncompress(uncompressed, &length, compressed, file_length);
-	assert(ret >= 0);
+	// assert(ret >= 0);
 	// for (int i = 0; i != uncompressed_size; i++) {
 	// 	putchar(uncompressed[i]);
 	// }
@@ -320,7 +322,9 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	// std::cout << time_span.count() * 1000 << " milliseconds.\n";
 	// std::string time(std::to_string(time_span.count() * 1000) + '\n');
 	// OutputDebugStringA(time.c_str());
-	JobSystem::shutdown();
+	
+	
+	//JobSystem::shutdown();
 
 	return 0;
 }

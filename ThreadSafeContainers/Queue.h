@@ -16,8 +16,8 @@ public:
 	std::atomic<size_t> m_push_pos;
 	
 public:
-	Queue(size_t size) : m_buffer(NEW_ARRAY(cell_t, size, memory_manager->get_linear_allocator())()), m_buffer_mask(size - 1) {
-	//Queue(size_t size) : m_buffer(new cell_t[size]), m_buffer_mask(size - 1) {
+	//Queue(size_t size) : /*m_buffer(NEW_ARRAY(cell_t, size, memory_manager->get_linear_allocator())()),*/ m_buffer_mask(size - 1) {
+	Queue(size_t size) : m_buffer(new cell_t[size]), m_buffer_mask(size - 1) {
 		assert((size >= 2) && ((size & (m_buffer_mask)) == 0)); // provided size must be a power of two
 		m_push_pos.store(0, std::memory_order_relaxed);
 		m_pop_pos.store(0, std::memory_order_relaxed);

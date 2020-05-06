@@ -20,7 +20,7 @@ class HashTable {
 	};
 	
 public:
-	HashTable(size_t size = 127) : m_table_size(size) { // size is the max number of elements 
+	HashTable(size_t size = 127) : m_item_count(0), m_table_size(size) { // size is the max number of elements 
 		void* temp_pointer = NEW_ARRAY(Bucket, size, memory_manager->get_general_allocator());
 		m_table_handle = memory_manager->get_general_allocator()->register_allocated_mem(temp_pointer);
 		this->reset();
@@ -39,6 +39,7 @@ public:
 			assert(entry_index != BUCKET_SIZE);
 			bucket[index].m_entry[entry_index].m_hash = hash;
 			bucket[index].m_entry[entry_index].m_value = _value;
+			m_item_count++;
 		}
 		m_lock.unlock();
 	}
@@ -52,6 +53,7 @@ public:
 		if ((entry_index = bucket_contains(bucket[index], hash)) != BUCKET_SIZE) { // if the key value pair is in the bucket remove it
 			assert(entry_index != BUCKET_SIZE);
 			bucket[index].m_entry[entry_index].m_hash = SIZE_MAX;
+			m_item_count--;
 		}
 		m_lock.unlock();
 	}
@@ -91,12 +93,20 @@ public:
 		m_lock.unlock();
 	}
 	void reset() {
+		m_lock.lock();
 		Bucket* bucket = reinterpret_cast<Bucket*>(memory_manager->get_general_allocator()->get_pointer(m_table_handle)); // get the up to date pointer from the general allocator
 		for (int i = 0; i != m_table_size; i++) { // set all the m_keys to be SIZE_MAX so we know they are not in use
 			for (int j = 0; j != BUCKET_SIZE; j++) {
 				bucket[i].m_entry[j].m_hash = SIZE_MAX;
 			}
 		}
+		m_lock.unlock();
+	}
+	size_t size() {
+		m_lock.lock_shared();
+		size_t count = m_item_count;
+		m_lock.unlock_shared();
+		return count;
 	}
 private:
 	size_t bucket_contains(const Bucket& bucket, Hash _hash) { // return the index if the hash is present in the array, otherwise returns bucket_size
@@ -109,7 +119,7 @@ private:
 		for (; i != BUCKET_SIZE && bucket.m_entry[i].m_hash != SIZE_MAX; ++i) {} // loop until we find an open bucket slot
 		return i; // if an empty bucket wasn't found then i is equal to BUCKET_SIZE
 	}
-
+	size_t m_item_count;
 	std::shared_mutex m_lock;
 	size_t m_table_size;
 	Handle m_table_handle; // handle to our memory, cannot store the pointer because of defragmentation

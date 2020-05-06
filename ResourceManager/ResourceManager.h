@@ -5,10 +5,15 @@
 #include <thread>
 #include "../ThreadSafeContainers/HashTable.h"
 #include "../ThreadSafeContainers/Queue.h"
+#include <list>
+#include <shared_mutex>
+#include <set>
+#include <stack>
 /*
-	add a resource
-	check if a resource is in the registry
-	free a resource
+	put locks around the dependency arrays
+	change increment resource count to take a number to add to the reference count instead of only incrementing it
+	rename increment_resource_count to modify_resource_count
+	implement resource freeing
 */
 
 // need to get my hands on some big boy data to see how reference counting should work
@@ -97,36 +102,58 @@ class ResourceManager {
 public:
 	ResourceManager() : 
 		m_registry(new HashTable<GUID, RegistryEntry>()),
-		m_dependencies_traversed_set(new HashTable<GUID,bool>()),
+		m_dependency_map(new HashTable<GUID,size_t>()),
+		// m_dependencies_traversed_set(new HashTable<GUID,bool>()),
+		m_dependencies_traversed_set(new std::set<GUID>()),
 		m_ref_count_traversed_set(new HashTable<GUID, bool>()),
 		m_allocator(new GeneralAllocator(1024*1024*1024)), 
 		m_thread(new std::thread(&ResourceManager::start_resource_thread, this)), 
-		m_resource_queue(new Queue<std::string>(16)) {}
+		m_resource_queue(new Queue<std::string>(16)),
+		m_potentially_ready(new std::list<GUID>()),
+		m_lock(new std::shared_mutex()),
+		// m_traversed_sets_stack (new std::stack<HashTable<GUID, bool>*>())
+		m_traversed_sets_stack(new std::stack<std::set<GUID>*>()) {}
 	~ResourceManager() {
+		run_flag = false; // set the run_flag to false to stop the thread from looping
+		m_thread->join(); // 
 		delete m_registry;
-		delete m_dependencies_traversed_set;
+		delete m_dependency_map;
+		delete &m_dependencies_traversed_set;
 		delete m_ref_count_traversed_set;
 		delete m_allocator;
 		delete m_thread;
 		delete m_resource_queue;
+		delete m_potentially_ready;
+		delete m_traversed_sets_stack;
 	}
 	void load_resource(const std::string&, void(*function)(char*) = nullptr);
 	bool resource_loaded(const std::string&);
 	void remove_resource(const std::string&);
 private:
 	void increment_reference_count(GUID);
-	void get_external_dependencies(GUID);
-	void traverse_dependency_graph(GUID, void (ResourceManager::*func_p)(GUID));
+	void get_external_dependencies(GUID, const std::string&);
+	void traverse_dependency_graph(GUID, const std::string&, void (ResourceManager::*func_p)(GUID, const std::string&));
 	void unzip_resource(const std::string&);
 	//std::string get_file_name(byte* compressed, size_t& offset);
 	bool get_compressed_file_info(byte* compressed, size_t& compressed_size, size_t& uncompressed_size, size_t& offset, std::string& file_name);
+	void ready_resources(void);
 	void start_resource_thread(void);
 	void add_external_dependency(GUID, GUID);
+	bool all_dependencies_ready(GUID);
+	void set_resource_ready(GUID);
+	bool empty_external_depencies(GUID);
 	FileType get_file_type(const std::string&);
 	HashTable<GUID, RegistryEntry>* m_registry; // registry to keep track of what has been loaded
-	HashTable<GUID, bool>* m_dependencies_traversed_set; // used to read in dependencies
+	HashTable<GUID, size_t>* m_dependency_map; // used to mark dependencies of unloaded stuff, 
+	// HashTable<GUID, bool>* m_dependencies_traversed_set;
+	std::set<GUID>* m_dependencies_traversed_set; // used to read in dependencies
 	HashTable<GUID, bool>* m_ref_count_traversed_set; // used to update reference counts
 	GeneralAllocator* m_allocator; // use own general allocator
 	std::thread* m_thread;
 	Queue<std::string>* m_resource_queue; // queue of names of zip files to load
+	std::list<GUID>* m_potentially_ready;
+	std::shared_mutex* m_lock;
+	std::stack<std::set<GUID>*>* m_traversed_sets_stack;
+	// std::stack<HashTable<GUID, bool>*>* m_traversed_sets_stack;
+	bool run_flag = true;
 };
