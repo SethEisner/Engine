@@ -58,6 +58,7 @@ public:
 		m_lock.unlock();
 	}
 	Value* at(const Key& _key) { // get the value associated with the key, return a constant reference so it cant be modified
+	//Value& at(const Key& _key) {
 		Hash hash = static_cast<Hash>(std::hash<Key>{}(_key));
 		assert(hash != SIZE_MAX);
 		size_t index = hash % m_table_size;

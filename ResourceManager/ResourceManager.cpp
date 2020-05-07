@@ -5,7 +5,7 @@
 //#include <stack>
 
 /* TODO:
-
+	change the HashTables to use the set function to modify the maps os it becomes threadsafe
 */
 
 static constexpr bool RESOURCE_QUEUE_FULL = false;
@@ -19,20 +19,14 @@ void ResourceManager::load_resource(const std::string& resource_name, void(*func
 	// check if the resource is in the registry
 	if (!m_registry->contains(resource_guid)) {
 	// assert here because the push must return true, if it returns false then the queue is full and we need to make it larger
-		if (m_dependency_map->contains(resource_guid)) { // increment the dependency count of the zip file in the dependency map
-			size_t* count = m_dependency_map->at(resource_guid);
-			++count;
-		}
-		else {
-			m_dependency_map->insert(resource_guid, 1);
-		}
+		increment_dependency_count(resource_guid);
 		if (!m_resource_queue->push(resource_name)) assert(RESOURCE_QUEUE_FULL);
 	}
 	else {
-		m_ref_count_traversed_set->reset(); // reset function is thread safe
-		m_lock->lock();
-		increment_reference_count(resource_guid); // another thing loaded it so we need to increment it's rerference count and the reference count of what it references
-		m_lock->unlock();
+		reset_ref_count_traversed_set(); // reset function is thread safe
+		// m_lock->lock(); // traverses the external dependencies 
+		change_reference_count_by(resource_guid, 1); // another thing loaded it so we need to increment it's rerference count and the reference count of what it references
+		// m_lock->unlock();
 	}
 	// if it isn't, create a queue_entry item 
 	// if the resource is already in the queue increment the reference count of self and all the references
@@ -44,55 +38,72 @@ bool ResourceManager::resource_loaded(const std::string& filepath) {
 	return (m_registry->contains(resource_guid) && m_registry->at(resource_guid)->m_ready); // m_registry (HashTable) is threadsafe
 }
 void ResourceManager::remove_resource(const std::string& filepath) {
-	// get the GUID of the resource
-	// decrement the reference count in the registry
-	// how to handle circular references // keep a set of already traversed lists so we dont traverse the same list twice
-	// decrement the reference counts of the internal references, internal references should have an empty internal reference array though as they contain the actual data(?)
-		// if we neewd to decrement internal references do so, but dont recurse further?
-	// reset m_traversed_set
-		// decrement our reference count
-		// go to the list of external dependencies
-		// if the external dependencies list is not in the set, add a pointer to this list to a set
-		// traverse the external dependencies list and go to each entry in the registry
-		// once in the registry entry, subtract 1 from its reference count
-			// if the pointer to the external dependencies array is not in the set, add it and traverse it 
-			// otherwise we backstrack
-	// if the reference count is zero, free it's memory from the general allocator and remove its registry entry
+	GUID resource_guid = std::hash<std::string>{}(filepath);
+	m_registry_lock->lock();
+	change_reference_count_by(resource_guid, -1);
+	m_registry_lock->unlock();
+
 }
 // private functions
-void ResourceManager::increment_reference_count(GUID registry_entry) {
+void ResourceManager::increment_dependency_count(GUID resource_guid) {
+	m_dependency_count_lock->lock();
+	if (m_dependency_count->contains(resource_guid)) { // increment the dependency count of the zip file in the dependency map
+			//size_t* count = m_dependency_count->at(resource_guid);
+			//++count;
+		size_t count = *m_dependency_count->at(resource_guid);
+		m_dependency_count->set(resource_guid, count + 1);
+	}
+	else {
+		m_dependency_count->insert(resource_guid, 1);
+	}
+	m_dependency_count_lock->unlock();
+}
+void ResourceManager::remove_dependency_count(GUID resource_guid) {
+	m_dependency_count_lock->lock();
+	m_dependency_count->set(resource_guid, 0);
+	m_dependency_count_lock->unlock();
+}
+size_t ResourceManager::get_dependency_count(GUID resource_guid) {
+	size_t count = 0;
+	m_dependency_count_lock->lock();
+	if (m_dependency_count->contains(resource_guid)) count = *m_dependency_count->at(resource_guid);
+	m_dependency_count_lock->unlock();
+	return count;
+}
+void  ResourceManager::reset_ref_count_traversed_set() {
+	m_ref_count_traversed_set_lock->lock();
+	m_ref_count_traversed_set->reset();
+	m_ref_count_traversed_set_lock->unlock();
+}
+void ResourceManager::change_reference_count_by(GUID registry_entry, int delta) {
 	//RegistryEntry* entry = &m_registry->at(registry_entry);
-	RegistryEntry* entry = m_registry->at(registry_entry);
-	entry->m_ref_count += 1;
-	for (int i = 0; i != REFERENCE_ARRAY_SIZE && entry->m_external_references[i] != SIZE_MAX && !(m_ref_count_traversed_set->contains(entry->m_external_references[i])) ; i++) {
-		m_ref_count_traversed_set->insert(entry->m_external_references[i], true); // mark the node as visited before we visit it
-		//traverse_dependency_graph(entry->m_external_references[i], node_function); // visit the node to traverse it
-		increment_reference_count(entry->m_external_references[i]);
+	if (m_registry->contains(registry_entry)) {
+		// m_registry_entry_locks->at(registry_entry)->lock();
+		RegistryEntry* entry = m_registry->at(registry_entry);
+		entry->m_ref_count += delta;
+		// m_registry_entry_locks->at(registry_entry)->unlock();
+		// m_registry_entry_locks->at(registry_entry)->lock_shared();
+		m_ref_count_traversed_set_lock->lock(); // is a recursive lock so this is okay
+		for (int i = 0; i != REFERENCE_ARRAY_SIZE && entry->m_external_references[i] != SIZE_MAX && !(m_ref_count_traversed_set->contains(entry->m_external_references[i])); i++) {
+			m_ref_count_traversed_set->insert(entry->m_external_references[i], true); // mark the node as visited before we visit it
+			//traverse_dependency_graph(entry->m_external_references[i], node_function); // visit the node to traverse it
+			change_reference_count_by(entry->m_external_references[i], delta);
+		}
+		m_ref_count_traversed_set_lock->unlock();
+		// m_registry_entry_locks->at(registry_entry)->unlock_shared();
 	}
 	// foreach GUID in the external references, increment their reference count too (recursive)
 }
-void ResourceManager::unzip_resource(const std::string& zip_file) { // occurs in the other thread
-	z_stream infstream;
-	infstream.zalloc = Z_NULL;
-	infstream.zfree = Z_NULL;
-	infstream.opaque = Z_NULL;
-	std::string path;
-	std::string file_name;
-	size_t compressed_size = 0;
-	size_t uncompressed_size = 0;
-	size_t offset = 0;
-	size_t zip_hash;
-	RegistryEntry* zip_entry;
+int ResourceManager::read_resource_into_memory(const std::string& zip_file) {
+	GUID zip_hash = std::hash<std::string>{}(zip_file);;
 	GUID resource_guid;
-	zip_hash = std::hash<std::string>{}(zip_file);
-	if (m_registry->contains(zip_hash)) {
-		m_ref_count_traversed_set->reset();
-		increment_reference_count(zip_hash); // increment it's count because we need to keep track of all load calls
-		return;
+	if (m_registry->contains(zip_hash)) { // if the zip is already in the registry, update it's reference count
+		size_t zip_dependency_count = get_dependency_count(zip_hash);
+		reset_ref_count_traversed_set();
+		change_reference_count_by(zip_hash, zip_dependency_count); // increment it's count because we need to keep track of all load calls
+		return -1;
 	}
-
-	// load the compressed data into memory
-	path = resource_path + zip_file;
+	std::string path = resource_path + zip_file;
 	FILE* fp = fopen(path.c_str(), "rb");
 	assert(fp != nullptr);
 	fseek(fp, 0, SEEK_END);
@@ -102,14 +113,27 @@ void ResourceManager::unzip_resource(const std::string& zip_file) { // occurs in
 	int h_compressed = m_allocator->register_allocated_mem(compressed);
 	fread(compressed, file_length, 1, fp); // read the file into memory
 	fclose(fp);
-	// make the registry entry for the zip file
-	// read the dependency count of the zip from the dependency map
-	size_t zip_dependency_count = 0;
-	if (m_dependency_map->contains(zip_hash)) {
-		zip_dependency_count = *m_dependency_map->at(zip_hash);
-	}
-	m_registry->insert((zip_hash), RegistryEntry(0, 0, zip_dependency_count, false, FileType::ZIP));
-	zip_entry = m_registry->at(zip_hash);
+	return h_compressed;
+}
+void ResourceManager::unzip_resource(const std::string& zip_file, Handle h_compressed) { // occurs in the other thread
+	z_stream infstream;
+	infstream.zalloc = Z_NULL;
+	infstream.zfree = Z_NULL;
+	infstream.opaque = Z_NULL;
+	std::string path;
+	std::string file_name;
+	size_t compressed_size = 0;
+	size_t uncompressed_size = 0;
+	size_t offset = 0;
+	GUID zip_hash = std::hash<std::string>{}(zip_file);;
+	GUID resource_guid;
+	byte* compressed = reinterpret_cast<byte*>(m_allocator->get_pointer(h_compressed));
+	size_t zip_dependency_count = get_dependency_count(zip_hash);
+	// make handle be negative becuase zips dont have ny memory associated with them
+	m_registry->insert((zip_hash), RegistryEntry(-1, 0, zip_dependency_count, false, FileType::ZIP));
+	//m_registry_entry_locks->insert(zip_hash, new std::shared_mutex());
+	m_zip_files->push_back(zip_hash);
+	//zip_entry = m_registry->at(zip_hash);
 	// decompress each file in the zip into its own registry entry
 	size_t external_resource_index = 0;
 	while (get_compressed_file_info(compressed, compressed_size, uncompressed_size, offset, file_name)) { // there is still a file that needs decompressing
@@ -125,33 +149,28 @@ void ResourceManager::unzip_resource(const std::string& zip_file) { // occurs in
 		int ret = inflate(&infstream, Z_NO_FLUSH);
 		assert(ret >= 0); // inflate must have succeeded
 		inflateEnd(&infstream);
-		uncompressed[uncompressed_size] = '\0';
+		//uncompressed[uncompressed_size] = '\0';
 		offset += compressed_size;
 		// make the registry entry for this newly uncompressed file inside the zip file
 		std::string full_name = zip_file + '/' + file_name;
 		FileType file_type = get_file_type(file_name);
 		resource_guid = std::hash<std::string>{}(zip_file + '/' + file_name);
 		// look at the dependency map to see if anything depends on this file
-		size_t count = 0;
-if (m_dependency_map->contains(resource_guid)) {
-	count = *m_dependency_map->at(resource_guid);
-	m_dependency_map->remove(resource_guid); // remove it because we have read the count and don't need it anymore
-}
-// add 1 to the count because a resource file always is depended on by the zip it is contained within
-// add the dependency counnt of the zip file to the count
-m_registry->insert(resource_guid, RegistryEntry(h_uncompressed, uncompressed_size, count + zip_dependency_count, false, file_type)); // moves the registry entry into the hash table
-//entry = m_registry->at(resource_guid);
-// entry = m_registry->at(resource_guid);
-// add every file we decompress to the external dependencies list of the zip file
-assert(external_resource_index < 16);
-m_lock->lock(); // need to lock access to the external references array
-zip_entry->m_external_references[external_resource_index++] = resource_guid;
-m_lock->unlock();
-m_potentially_ready->push_back(resource_guid);
+		size_t count = get_dependency_count(resource_guid);
+		remove_dependency_count(resource_guid);
+		// add 1 to the count because a resource file always is depended on by the zip it is contained within
+		// add the dependency counnt of the zip file to the count
+		m_registry->insert(resource_guid, RegistryEntry(h_uncompressed, uncompressed_size, count + zip_dependency_count, false, file_type)); // moves the registry entry into the hash table
+		//m_registry_entry_locks->insert(resource_guid, new std::shared_mutex());
+		//entry = m_registry->at(resource_guid);
+		// entry = m_registry->at(resource_guid);
+		// add every file we decompress to the external dependencies list of the zip file
+		add_external_dependency(zip_hash, resource_guid);
+		//RegistryEntry* zip_entry = m_registry->at(zip_hash);
+		m_potentially_ready->push_back(resource_guid);
 	}
-	zip_entry = m_registry->at(zip_hash);
 	m_allocator->free(h_compressed); // free the compressed buffer
-
+	//RegistryEntry* zip_entry = m_registry->at(zip_hash);
 	// get the external dependencies in the zip files
 	// m_dependencies_traversed_set->reset();
 	m_dependencies_traversed_set->clear();
@@ -159,11 +178,15 @@ m_potentially_ready->push_back(resource_guid);
 	traverse_dependency_graph(zip_hash, zip_file, &ResourceManager::get_external_dependencies);
 	// add this zip to an unready list
 	m_potentially_ready->push_back(zip_hash);
+	//zip_entry = m_registry->at(zip_hash);
 	auto temp = m_potentially_ready->size();
 }
 void ResourceManager::get_external_dependencies(GUID resource, const std::string& zip_file) {
 	// zip_file can be treated as the base directory
 	if (!m_registry->contains(resource)) return; // if the resource is not in the registry then cant do anything here
+	/* NOTE:
+		should not need to put a lock on entry here because we only modify the entry in a function that locks it itself
+	*/
 	RegistryEntry* entry = m_registry->at(resource);
 	char* p_mem = reinterpret_cast<char*>(m_allocator->get_pointer(entry->m_handle));
 	switch (entry->m_file_type) {
@@ -189,29 +212,27 @@ void ResourceManager::get_external_dependencies(GUID resource, const std::string
 			// add the file to our dependency list
 			std::string full_path = zip_file + '/' + reference;
 			GUID dependency_hash = std::hash<std::string>{}(full_path);
-			if (m_registry->contains(dependency_hash)) {
-				m_ref_count_traversed_set->reset();
-				increment_reference_count(dependency_hash);
+			if (m_registry->contains(dependency_hash)) { // reference is already in the registry so increment its reference count
+				reset_ref_count_traversed_set();
+				change_reference_count_by(dependency_hash, 1);
 			}
 			else { // if our zip file + the reference file name is not in the dictionary, then we are referencing a file that's in another zip file
 				dependency_hash = std::hash<std::string>{}(reference);
-				if (!m_dependency_map->contains(dependency_hash)) { // add the dependency to the dependency map if it's not in the map
-					m_dependency_map->insert(dependency_hash, 1);
-				}
-				else { // if it's in the map, increment the dependency
-					size_t* dependency_count = m_dependency_map->at(dependency_hash);
-					dependency_count += 1;
-				}
+				increment_dependency_count(dependency_hash);
 				// get the zip part of the reference (up until the first /)
 				size_t index = reference.find('/', 0); // get first occurance of /
 				// assert that the zip is not in the registry
-				std::string zip(reference, 0, index);
+				std::string dependent_zip(reference, 0, index);
 				// add the zip to the queue
 				//m_traversed_sets_stack->push(m_dependencies_traversed_set);
 				size_t old_size = m_dependencies_traversed_set->size();
 				//m_traversed_sets_stack->push(m_dependencies_traversed_set); // store our traversed set to the stack because unzip resources clears the set and searches for more dependencies
 				m_traversed_sets_stack->emplace(m_dependencies_traversed_set);
-				unzip_resource(zip.c_str()); // dont call load_resource because that is the user's function as adds to the dependency map
+				// reading a resource into memory does not edit the registry and this we can release our locks because this will take awhile
+				m_registry_lock->unlock();
+				int handle = read_resource_into_memory(dependent_zip);
+				m_registry_lock->lock();
+				if (handle != -1)  unzip_resource(dependent_zip, handle); // dont call load_resource because that is the user's function as adds to the dependency map
 				m_dependencies_traversed_set = m_traversed_sets_stack->top();
 				size_t new_size = m_dependencies_traversed_set->size();
 				m_traversed_sets_stack->pop();
@@ -235,17 +256,22 @@ void ResourceManager::traverse_dependency_graph(GUID resource, const std::string
 	// depth first search
 	RegistryEntry* entry;
 	if (m_registry->contains(resource)) {
+		//m_registry_entry_locks->at(resource)->lock_shared(); // we are only reading the entry for now
 		entry = m_registry->at(resource); // ge tthe entry if it's in the registry
 		//if (m_dependencies_traversed_set->find(entry->m_external_references[0]) == m_dependencies_traversed_set->end()) {
 		//	entry = m_registry->at(resource);
 		//}	
-		for (int i = 0; i != REFERENCE_ARRAY_SIZE && entry->m_external_references[i] != SIZE_MAX && (m_dependencies_traversed_set->find(entry->m_external_references[i]) == m_dependencies_traversed_set->end()); i++) {
+		// for (int i = 0; i != REFERENCE_ARRAY_SIZE && entry.m_external_references[i] != SIZE_MAX && (m_dependencies_traversed_set->find(entry.m_external_references[i]) == m_dependencies_traversed_set->end()); i++) {
 		// for (int i = 0; i != REFERENCE_ARRAY_SIZE && entry->m_external_references[i] != SIZE_MAX && !(m_dependencies_traversed_set->contains(entry->m_external_references[i])); i++) {
-			//m_dependencies_traversed_set->insert(entry->m_external_references[i], true);// , true); // mark the node as visited before we visit it
-			m_dependencies_traversed_set->insert(entry->m_external_references[i]);// , true); // mark the node as visited before we visit it
-			(this->*node_function)(entry->m_external_references[i], zip_file); // call the function on the node
-			traverse_dependency_graph(entry->m_external_references[i], zip_file, node_function); // visit the node to traverse it
+		for (int i = 0; i != REFERENCE_ARRAY_SIZE && (m_dependencies_traversed_set->find(entry->m_external_references[i]) == m_dependencies_traversed_set->end()); i++) {
+			if (entry->m_external_references[i] != SIZE_MAX) {
+				//m_dependencies_traversed_set->insert(entry->m_external_references[i], true);// , true); // mark the node as visited before we visit it
+				m_dependencies_traversed_set->insert(entry->m_external_references[i]);// , true); // mark the node as visited before we visit it
+				(this->*node_function)(entry->m_external_references[i], zip_file); // call the function on the node
+				traverse_dependency_graph(entry->m_external_references[i], zip_file, node_function); // visit the node to traverse it
+			}
 		}
+		// m_registry_entry_locks->at(resource)->unlock_shared();
 	}
 }
 bool ResourceManager::get_compressed_file_info(byte* compressed, size_t& compressed_size, size_t& uncompressed_size, size_t& offset, std::string& file_name) {
@@ -272,12 +298,14 @@ bool ResourceManager::get_compressed_file_info(byte* compressed, size_t& compres
 	return false;
 }
 void ResourceManager::ready_resources() {
+	// a resource is ready if all of it's external dependencies are in the registry, and all of its dependencies' resources are in the registry
 	// for each resource
 	std::list<GUID> ready;
 	std::list<GUID>::iterator begin;
 	for (begin = m_potentially_ready->begin(); begin != m_potentially_ready->end(); begin++) { // iterate over the potentially ready list (contains zips)
 		// if there are no external dependencies or 
 		// if all of our external depdencies are ready then we are ready
+		RegistryEntry* temp = m_registry->at(*begin);
 		if (empty_external_depencies(*begin) || all_dependencies_ready(*begin)) {
 			set_resource_ready(*begin);
 			ready.push_back(*begin);//  m_potentially_ready->remove(*begin);
@@ -292,47 +320,151 @@ void ResourceManager::ready_resources() {
 	// if there's stuff in the external list, add to stack in order
 
 }
+int64_t ResourceManager::get_dependency_sum(GUID resource) {
+	int64_t sum = 0;
+	if (m_registry->contains(resource)) {
+		//m_registry_entry_locks->at(resource)->lock_shared();
+		RegistryEntry* entry = m_registry->at(resource);
+		assert(entry->m_ref_count >= 0); // the reference count should always be positive and if it's not then something bad happened with freeing too ma
+		sum = entry->m_ref_count;
+		for (int i = 0; i != REFERENCE_ARRAY_SIZE && (m_dependencies_traversed_set->find(entry->m_external_references[i]) == m_dependencies_traversed_set->end()); i++) {
+			if (entry->m_external_references[i] != SIZE_MAX) {
+				sum += get_dependency_sum(entry->m_external_references[i]);
+			}
+		}
+		//m_registry_entry_locks->at(resource)->unlock_shared();
+	}
+	else { // the entry was not in the registry, however we only got here because something depended on us so we must consider the reference count to be something positive
+		sum = 1lu << 31;
+	}
+	return sum;
+
+}
+void ResourceManager::free_resource_graph(GUID resource) {
+	if (m_registry->contains(resource)) {
+		//m_registry_entry_locks->at(resource)->lock_shared();
+		RegistryEntry* entry = m_registry->at(resource);
+		for (int i = 0; i != REFERENCE_ARRAY_SIZE; i++) {
+			free_resource_graph(entry->m_external_references[i]);
+			if (all_dependencies_free(resource)) { // the array is empty so we can free ourself, remove ourself from the registry, and return
+				if (entry->m_handle >= 0) {
+					m_allocator->free(entry->m_handle); // free the memory associated with us if we have any
+				}
+				m_registry->remove(resource); // remove ourself from the registry
+				return;
+			}
+		}
+		//m_registry_entry_locks->at(resource)->unlock_shared();
+	}
+}
+void ResourceManager::free_resources() {
+	// assert that no reference counts are negative
+	// can only free ready resources so we dont mess up the registry while building 
+	// for each zip file entry that has a reference count of zero, (start at zip because that is always the root of a tree structure
+	//		traverse its dependency graph and sum up all of the reference counts within.
+	//		also, if a resource is not ready then we cannot trust i
+	//		if that sum is zero, then we can free the resource and all of it's dependencies
+	// maintain a list of zip file entries to iterate over
+	std::list<GUID> free_list;
+	std::list<GUID>::iterator begin;
+	int64_t sum = 0;
+	for (begin = m_zip_files->begin(); begin != m_zip_files->end(); begin++) {
+		RegistryEntry* entry = m_registry->at(*begin);
+		if (entry->m_ready) { // only free ready resources
+			m_registry_lock->lock_shared();
+			m_dependencies_traversed_set->clear();
+			sum = get_dependency_sum(*begin);
+			m_registry_lock->unlock_shared();
+			if (sum == 0) {
+				free_list.push_back(*begin); // race condition here if its reference count gets incremented before 
+			}
+		}
+	}
+	while (!free_list.empty()) {
+		for (begin = free_list.begin(); begin != free_list.end(); begin++) {
+			m_registry_lock->lock(); // lock on each iteration because we dont care if this lock gets stolen from us or if this loop is slow because of it
+			free_resource_graph(*begin);
+			m_registry_lock->unlock();
+		}
+	}
+}
 void ResourceManager::start_resource_thread(void) { // run a loop that tries to pop a filepath from the Queue, and then read the data into memory
 	std::string zip_file;
 	while (run_flag) {
 		// if pop returned true then resource name has the name of the resource we need to unzip
 		if (m_resource_queue->pop(zip_file)) {
-			unzip_resource(zip_file);
+			int handle = read_resource_into_memory(zip_file);
+			if (handle != -1) {
+				m_registry_lock->lock(); // lock the registry so we can edit it as we see fit
+				unzip_resource(zip_file, handle);
+				m_registry_lock->unlock();
+			}
 		}
 		auto temp = m_potentially_ready->size();
 		if (temp > 0) {
+			m_registry_lock->lock();
 			ready_resources();
+			m_registry_lock->unlock();
 		}
-		// ready the resources
-		// a resource is ready if all of it's external dependencies are in the registry, and all of its dependencies' resources are in the registry
-		
+		if (m_zip_files->size() > 0) { // there are some zip files we could potentially free
+			free_resources();
+		}
+
+		// free the resource that are no longer needed
+		// free_unused_resources();
 	}
 }
-void ResourceManager::set_resource_ready(GUID resource) {
-	RegistryEntry* entry = m_registry->at(resource);
-	entry->m_ready = true;
+void ResourceManager::set_resource_ready(GUID resource) { // changes the registry entry so needs to lock
+	//m_registry_entry_locks->at(resource)->lock();
+	m_registry->at(resource)->m_ready = true;
+	//m_registry_entry_locks->at(resource)->unlock();
 }
-bool ResourceManager::all_dependencies_ready(GUID resource) {
-	int i = 0;
+bool ResourceManager::all_dependencies_ready(GUID resource) { // a readonly function
+	size_t i = 0;
+	bool ret = true;
+	//m_registry_entry_locks->at(resource)->lock_shared();
 	RegistryEntry* entry = m_registry->at(resource);
-	for (; i != REFERENCE_ARRAY_SIZE && entry->m_external_references[i] != SIZE_MAX; ++i) {
-		if (!m_registry->contains(entry->m_external_references[i])) return false; // the dependency isnt in the registry so we are not ready
-		if (!m_registry->at(entry->m_external_references[i])->m_ready) return false; // the dependency is not ready so we are not ready
+	for (; i != REFERENCE_ARRAY_SIZE; ++i) { // need to search the entire array because freeing will put holes in the array
+		if (entry->m_external_references[i] != SIZE_MAX) { // we have something at this index
+			if ((!m_registry->contains(entry->m_external_references[i])) || // the dependency is not in the registry
+				(!m_registry->at(entry->m_external_references[i])->m_ready)) { // 
+				ret = false; // the dependency isnt in the registry so we are not ready
+				break;
+			}
+		}
 	}
-	return true;
+	//m_registry_entry_locks->at(resource)->unlock_shared();
+	return ret;
 }
-bool ResourceManager::empty_external_depencies(GUID resource) {
+bool ResourceManager::all_dependencies_free(GUID resource) {
 	int i = 0;
+	//m_registry_entry_locks->at(resource)->lock_shared();
 	RegistryEntry* entry = m_registry->at(resource);
-	for (; i != REFERENCE_ARRAY_SIZE && entry->m_external_references[i] == SIZE_MAX; ++i) {}
+	for (; i != REFERENCE_ARRAY_SIZE && (entry->m_external_references[i] == SIZE_MAX || !(m_registry->contains(entry->m_external_references[i]))); ++i) {
+		;
+	}
+	//m_registry_entry_locks->at(resource)->unlock_shared();
 	return (i == REFERENCE_ARRAY_SIZE); // if we reached the end of the array then every reference is size_max so we are entirely empty
 }
-void ResourceManager::add_external_dependency(GUID resource, GUID dependency) {
-	RegistryEntry* entry = m_registry->at(resource);
+bool ResourceManager::empty_external_depencies(GUID resource) { // a readonly function
 	int i = 0;
-	for (; i != REFERENCE_ARRAY_SIZE && entry->m_external_references[i] != SIZE_MAX; ++i) {}
-	assert(i != REFERENCE_ARRAY_SIZE);
-	entry->m_external_references[i] = dependency;
+	//m_registry_entry_locks->at(resource)->lock_shared();
+	RegistryEntry* entry = m_registry->at(resource);
+	for (; i != REFERENCE_ARRAY_SIZE && entry->m_external_references[i] == SIZE_MAX; ++i) {}
+	//m_registry_entry_locks->at(resource)->unlock_shared();
+	return (i == REFERENCE_ARRAY_SIZE); // if we reached the end of the array then every reference is size_max so we are entirely empty
+}
+void ResourceManager::add_external_dependency(GUID resource, GUID dependency) { // modifies the dependency array so we need it to lock it
+	int i = 0;
+	//m_registry_entry_locks->at(resource)->lock();
+	RegistryEntry* entry = m_registry->at(resource); // get the resoure
+	for (; i != REFERENCE_ARRAY_SIZE && entry->m_external_references[i] != SIZE_MAX; ++i) {
+	
+	} // find an empty slot
+	assert(i != REFERENCE_ARRAY_SIZE); // assert that an empty slot was found
+	entry->m_external_references[i] = dependency; // modify the dependency array
+	// m_registry->at(resource).m_external_references[i] = dependency;
+	// m_registry_entry_locks->at(resource)->unlock();
 }
 ResourceManager::FileType ResourceManager::get_file_type(const std::string& file_name) {
 	size_t index = 0;

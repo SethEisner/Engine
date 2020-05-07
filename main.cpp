@@ -150,6 +150,12 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 
 	OutputDebugStringA("\n\n\nloaded the zip and its dependencies\n\n\n");
 
+	rm.remove_resource(path);
+
+	while (rm.resource_loaded(path)) {};
+
+	OutputDebugStringA("unloaded the zip and its dependencies\n\n\n");
+
 	while (true) {}
 	// std::string path = "C:/Users/Seth Eisner/source/repos/Engine/Resources/s";
 	// FILE* fp = fopen(path.c_str(), "rb");
