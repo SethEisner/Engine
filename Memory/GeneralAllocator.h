@@ -16,7 +16,7 @@ static const int bytes_for_free_block = bytes_for_size + bytes_for_size + bytes_
 // ERROR STATES
 static constexpr bool GENERAL_ALLOCATOR_OUT_OF_MEMORY = false;
 
-typedef size_t Handle;
+typedef int64_t Handle;
 
 class GeneralAllocator {
 	typedef uint8_t byte;

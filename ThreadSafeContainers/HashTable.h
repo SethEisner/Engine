@@ -2,6 +2,7 @@
 #include <assert.h>
 #include "../Memory/MemoryManager.h"
 #include <shared_mutex>
+#include <stdexcept>
 
 // use linear allocator, probably want to use general allocator to allow the hash table to be freed
 // use quadratic hashing
@@ -14,6 +15,7 @@ class HashTable {
 	struct Entry {
 		Hash m_hash;
 		Value m_value;
+		Entry() = default;
 	};
 	struct Bucket { // each bucket hold 4 entries, which should be more than enough
 		Entry m_entry[BUCKET_SIZE];
@@ -66,6 +68,7 @@ public:
 		m_lock.lock_shared(); // lock the mutex for shared ownership
 		size_t entry_index = bucket_contains(bucket[index], hash);
 		assert(entry_index != BUCKET_SIZE); // assert that the key exists, could throw an exception
+		// if (entry_index == BUCKET_SIZE) throw std::out_of_range("not in HashTable");
 		m_lock.unlock_shared();
 		return &bucket[index].m_entry[entry_index].m_value;
 	}
@@ -86,9 +89,10 @@ public:
 		Bucket* bucket = reinterpret_cast<Bucket*>(memory_manager->get_general_allocator()->get_pointer(m_table_handle)); // get the up to date pointer from the general allocator
 		m_lock.lock(); // lock the mutex for exclusive ownership
 		size_t entry_index;
-		if (entry_index = bucket_contains(bucket[index], hash) == BUCKET_SIZE) {
+		if (entry_index = bucket_contains(bucket[index], hash) == BUCKET_SIZE) { // the key is not in the table
 			entry_index = get_open_entry(bucket[index]);
 			assert(entry_index != BUCKET_SIZE); // assert that the bucket has a spot for us to insert the value
+			bucket[index].m_entry[entry_index].m_hash = hash;
 		}
 		bucket[index].m_entry[entry_index].m_value = _value;
 		m_lock.unlock();

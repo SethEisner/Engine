@@ -112,7 +112,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	UpdateWindow(hwnd);
 
 	byte* test = NEW_ARRAY(byte, 380, memory_manager->get_general_allocator());// reinterpret_cast<byte*>(memory_manager->get_general_allocator()->allocate(uncompressed_size, 1));
-	int handle = memory_manager->get_general_allocator()->register_allocated_mem(test);
+	Handle handle = memory_manager->get_general_allocator()->register_allocated_mem(test);
 	memory_manager->free(handle);
 
 
@@ -134,9 +134,9 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	//assert(!t.contains(9));
 	//t.reset();
 
-	const size_t CHUNK = 1 << 16;
+	// const size_t CHUNK = 1 << 16;
 
-	int ret = 0;
+	// int ret = 0;
 
 	// byte* i = NEW(byte, memory_manager->get_general_allocator())(0x78);
 	// int handle = memory_manager->get_general_allocator()->register_allocated_mem(i);
@@ -144,19 +144,26 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	// std::string path = "C:\\Users\\Seth Eisner\\source\\repos\\Engine\\Resources\\Miami_Sample.zip";
 	
 	std::string path = "Miami_Sample_obj.zip";
+	//std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 	rm.load_resource(path);
-	
+	//std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+	//std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+	//std::string time(std::to_string(time_span.count() * 1000000.0) + '\n');
+	//OutputDebugStringA(time.c_str());
+
 	while (!rm.resource_loaded(path)) {};
 
-	OutputDebugStringA("\n\n\nloaded the zip and its dependencies\n\n\n");
+	OutputDebugStringA("loaded the zip and its dependencies\n");
 
 	rm.remove_resource(path);
 
-	while (rm.resource_loaded(path)) {};
+	while (rm.resource_loaded(path)) {}; // (fixed?) seems super error prone to wait on a resource to be removed
 
-	OutputDebugStringA("unloaded the zip and its dependencies\n\n\n");
+	OutputDebugStringA("unloaded the zip and its dependencies\n\n");
 
-	while (true) {}
+	// while (true) {}
+
+
 	// std::string path = "C:/Users/Seth Eisner/source/repos/Engine/Resources/s";
 	// FILE* fp = fopen(path.c_str(), "rb");
 	// assert(fp != nullptr);

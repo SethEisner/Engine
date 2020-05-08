@@ -44,3 +44,4 @@ Resources/text.txt.zip
 Resources/text.txt/text.txt
 test.zip
 *.zip
+x64/Release/Engine.vcxproj.FileListAbsolute.txt
