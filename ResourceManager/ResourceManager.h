@@ -14,7 +14,6 @@
 	implement a get resource function that returns the handle, might need a map from a GUID to a handle, i dont think reading the m_registry without a lock is safe...
 		the entry could be removed between when we check if it's still in the registry and when we go to get its handle
 	wont need to grab a lock because the handle is never changed and the resource wont be freed out from under us
-	replace std::set with our own hashtable
 */
 
 // need to get my hands on some big boy data to see how reference counting should work
@@ -133,22 +132,18 @@ class ResourceManager {
 		void (*function)(char*); // function to call after loading, is given the loaded data
 	};
 public:
-	ResourceManager() : 
+	ResourceManager() :
 		m_registry(new HashTable<GUID, RegistryEntry>()),
-		m_ready_map (new HashTable<GUID, bool>()),
-		m_ready_map_lock (new std::shared_mutex()),
-		m_dependency_count (new HashTable<GUID,size_t>()),
-		m_dependency_count_lock (new std::mutex()),
-		// m_dependencies_traversed_set(new HashTable<GUID,bool>()),
-		m_dependencies_traversed_set (new std::set<GUID>()),
-		m_allocator (new GeneralAllocator(1024*1024*1024)), 
-		m_thread (new std::thread(&ResourceManager::start_resource_thread, this)), 
-		m_resource_queue (new Queue<std::string>(16)),
-		m_ref_count_queue (new Queue<ReferenceCountEntry>(16)),
-		m_potentially_ready (new std::list<GUID>()),
-		m_zip_files (new std::list<GUID>()),
-		// m_traversed_sets_stack (new std::stack<HashTable<GUID, bool>*>())
-		m_traversed_sets_stack(new std::stack<std::set<GUID>*>()) {}
+		m_ready_map(new HashTable<GUID, bool>()),
+		m_ready_map_lock(new std::shared_mutex()),
+		m_dependency_count(new HashTable<GUID, size_t>()),
+		m_dependency_count_lock(new std::mutex()),
+		m_allocator(new GeneralAllocator(1024 * 1024 * 1024)),
+		m_thread(new std::thread(&ResourceManager::start_resource_thread, this)),
+		m_resource_queue(new Queue<std::string>(16)),
+		m_ref_count_queue(new Queue<ReferenceCountEntry>(16)),
+		m_potentially_ready(new std::list<GUID>()),
+		m_zip_files(new std::list<GUID>()) {}
 	~ResourceManager() {
 		run_flag = false; // set the run_flag to false to stop the thread from looping
 		m_thread->join(); // 
@@ -157,14 +152,12 @@ public:
 		delete m_ready_map_lock;
 		delete m_dependency_count;
 		delete m_dependency_count_lock;
-		delete m_dependencies_traversed_set;
 		delete m_allocator;
 		delete m_thread;
 		delete m_resource_queue;
 		delete m_ref_count_queue;
 		delete m_potentially_ready;
 		delete m_zip_files;
-		delete m_traversed_sets_stack;
 	}
 	void load_resource(const std::string&, void(*function)(char*) = nullptr);
 	bool resource_loaded(const std::string&);
@@ -175,14 +168,12 @@ private:
 	bool get_ready_map(GUID);
 	void increment_dependency_count(GUID);
 	void remove_dependency_count(GUID);
-	size_t get_dependency_count(GUID); 
-	void reset_ref_count_traversed_set();
+	size_t get_dependency_count(GUID);
 	void change_reference_count_by(GUID, int);
 	void get_external_dependencies(GUID, const std::string&);
 	void traverse_dependency_graph(GUID, const std::string&, void (ResourceManager::*func_p)(GUID, const std::string&));
 	Handle read_resource_into_memory(const std::string& zip_file);
 	void unzip_resource(const std::string&, Handle);
-	//std::string get_file_name(byte* compressed, size_t& offset);
 	bool get_compressed_file_info(byte* compressed, size_t& compressed_size, size_t& uncompressed_size, size_t& offset, std::string& file_name);
 	void ready_resources(void);
 	int64_t get_dependency_sum(GUID);
@@ -201,37 +192,25 @@ private:
 	std::shared_mutex* m_ready_map_lock;
 	HashTable<GUID, size_t>* m_dependency_count; // used to mark dependencies of unloaded stuff, 
 	std::mutex* m_dependency_count_lock;
-	// HashTable<GUID, bool>* m_dependencies_traversed_set;
-	std::set<GUID>* m_dependencies_traversed_set; // used to read in dependencies
-	 // used to update reference counts
 	GeneralAllocator* m_allocator; // use own general allocator
 	std::thread* m_thread;
 	Queue<std::string>* m_resource_queue; // queue of names of zip files to load
 	Queue<ReferenceCountEntry>* m_ref_count_queue;
 	std::list<GUID>* m_potentially_ready;
 	std::list<GUID>* m_zip_files;
-	std::stack<std::set<GUID>*>* m_traversed_sets_stack; // 
 	bool run_flag = true; // dont need synchronization on this because only 1 thread writes to it and the other reads
-	// std::shared_mutex* m_lock; // need to implement locking in a better way because we have two threads internal to this class
-	/* remove m_ref_count_traversed_set_lock */
-	// std::recursive_mutex* m_ref_count_traversed_set_lock;
-	/* remove m_registry_lock */
-	// std::shared_mutex* m_registry_lock; // shouldnt need the lock because only one thread modifies the registry, and we put an atomic around the member that is shared
-	// HashTable<GUID, std::shared_mutex*>* m_registry_entry_locks;
-	// std::stack<HashTable<GUID, bool>*>* m_traversed_sets_stack;
-	
 	/* SHARED objects:
 		m_ready_map, needs an actual lock
 		m_dependency_map, this needs an actual lock
-		m_resource_queue (threadsafe queue so we dont need to worry about it)
+		m_resource_queue, (threadsafe queue so we dont need to worry about it)
+		m_ref_count_queue
 	*/
 	/* RESOURCE THREAD objects: (objects used exclusively by the resource thread so no synchronization is required)
 		m_registry,
-		m_dependencies_traversed_set,
-		m_ref_count_traversed_set,
 		m_potentially_ready,
 		m_traversed_sets_stack,
-		m_allocator
+		m_allocator,
+		m_zip_files
 	*/
 	/* OTHER THREAD objects:
 		m_thread
