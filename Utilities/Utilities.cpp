@@ -1,4 +1,5 @@
 #include "Utilities.h"
+#include <assert.h>
 
 float fast_invsqrt(float x) {
 	long i;
@@ -20,4 +21,8 @@ float degrees(float rads) { // convert radians to degrees;
 }
 float radians(float degrees) { // convert degrees to radians;
 	return degrees * rad_per_deg;
+}
+
+inline void assert_if_failed(HRESULT hr) {
+	assert(!FAILED(hr));
 }

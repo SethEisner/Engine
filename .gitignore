@@ -46,3 +46,4 @@ Resources/text.txt.zip
 Resources/text.txt/text.txt
 test.zip
 x64/Release/Engine.vcxproj.FileListAbsolute.txt
+d3dx12.h
