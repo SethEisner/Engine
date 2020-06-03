@@ -65,29 +65,12 @@ size_t size_of(T ptr) {
 
 // int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hprevinstance, LPSTR lpcmdline, int nCmdShow) {
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pCmdLine, _In_ int nCmdShow) {
-	//HINSTANCE hInstance = (HINSTANCE) GetModuleHandle(NULL);
-	// const wchar_t CLASS_NAME[] = L"Sample Window Class";
-	// WNDCLASS wc = { };
-	// wc.lpfnWndProc = WindowProc;
-	// wc.hInstance = hInstance;
-	// wc.lpszClassName = CLASS_NAME;
-	// RegisterClass(&wc);
-	// HWND hwnd = CreateWindowEx(0, CLASS_NAME, L"Engine", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-	// 	NULL,       // Parent window    
-	// 	NULL,       // Menu
-	// 	hInstance,  // Instance handle
-	// 	NULL        // Additional application data
-	// );
-	// if (hwnd == NULL) {
-	// 	return 99999;
-	// }
-	// ShowWindow(hwnd, nCmdShow);
-	// UpdateWindow(hwnd);
-	Engine* engine = new Engine(hInstance, nCmdShow);
+	
+	Engine* engine = new Engine(hInstance);
 	std::this_thread::sleep_for(std::chrono::seconds(2));
 	JobSystem::startup(thread_count);
 
-	assert(engine->init());
+	engine->init();
 	engine->run();
 	engine->shutdown();
 

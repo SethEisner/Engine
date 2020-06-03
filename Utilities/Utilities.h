@@ -2,6 +2,11 @@
 #include <string.h>
 #include <stdint.h>
 #include <Windows.h>
+#include <assert.h>
+#include <string>
+#include <comdef.h>
+#include<string>
+//#include <stringutils.h>
 /*TODO: 
 add random number generator
 add faster trigonometric functions (may not be necessary with /fp:fast)
@@ -22,4 +27,41 @@ float radians(float degrees); // convert degrees to radians;
 #define H256(s,i,x) H64(s,i,H64(s,i+64,H64(s,i+128,H64(s,i+192,x))))
 #define HASH(s)    ((uint32_t)(H256(s,0,0)^(H256(s,0,0)>>16)))
 
-inline void assert_if_failed(HRESULT);
+// void assert_if_failed(HRESULT);
+inline void assert_if_failed(HRESULT hr) {
+// #if defined(_DEBUG)
+// 	assert(!FAILED(hr));
+// #endif
+	if (FAILED(hr)) {
+		_com_error err(hr);
+		const std::wstring msg = err.ErrorMessage();
+		const std::wstring outputMsg = L" error: " + msg; 
+		MessageBox(0, outputMsg.c_str(), 0, 0);
+		assert(false);
+	}
+}
+inline std::wstring AnsiToWString(const std::string& str)
+{
+	WCHAR buffer[512];
+	MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, buffer, 512);
+	return std::wstring(buffer);
+}
+class DxException {
+public:
+	DxException() = default;
+	DxException(HRESULT hr, const std::wstring& function_name, const std::wstring& filename, int line_number);
+	std::wstring ToString() const;
+	HRESULT error_code = S_OK;
+	std::wstring function_name;
+	std::wstring filename;
+	int line_number = -1;
+};
+
+#ifndef ThrowIfFailed
+#define ThrowIfFailed(x)                                              \
+{                                                                     \
+    HRESULT hr__ = (x);                                               \
+    std::wstring wfn = AnsiToWString(__FILE__);          \
+    if(FAILED(hr__)) { throw DxException(hr__, L#x, wfn, __LINE__); } \
+}
+#endif

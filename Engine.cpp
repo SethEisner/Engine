@@ -3,13 +3,20 @@
 
 //Engine* engine = new Engine();
 
-Engine::Engine(HINSTANCE hInstance, int nCmdShow) :
-	m_window(new Window(hInstance, L"class name", L"Window name", nCmdShow)),
-	m_renderer(new Renderer()) {}
+Engine::Engine(HINSTANCE hInstance) :
+	// m_window(new Window(hInstance, L"class name", L"Window name")),
+	m_renderer(new Renderer(hInstance)) {}
 bool Engine::init() {
 	// call init functions for all members in the correct order
-	return m_renderer->init();
-	//return true;
+	try {
+		m_renderer->init();
+	}
+	catch (DxException& e) {
+		MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
+		exit(e.error_code);
+	}
+	m_renderer->on_resize();
+	return true;
 }
 void Engine::run() {
 	bool run_flag = true;
@@ -20,7 +27,4 @@ void Engine::run() {
 }
 void Engine::shutdown() {
 
-}
-Window* Engine::get_window() {
-	return m_window;
 }

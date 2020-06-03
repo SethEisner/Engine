@@ -2,20 +2,26 @@
 #include <stdint.h>
 #include <wrl/client.h>
 #include <dxgi1_4.h>
+#include <dxgi.h>
 #include <d3d12.h>
 #include "../d3dx12.h"
-#include "../Engine.h"
+#include "Window.h"
+#include "../Utilities/Utilities.h"
+#include <windows.h>
+
 // contains a command queue, heaps, vector of render items that's in the potentially visible set
 // eventually contains a struct that details the graphics options sin use and a way to change them
 //
-#pragma comment(lib,"d3dcompiler.lib")
-#pragma comment(lib, "D3D12.lib")
-#pragma comment(lib, "dxgi.lib")
+// #pragma comment(lib,"d3dcompiler.lib")
+// #pragma comment(lib, "D3D12.lib")
+// #pragma comment(lib, "dxgi.lib")
 
 class Renderer {
 public:
-	Renderer();
+	Renderer() = delete;
+	explicit Renderer(HINSTANCE hInstance);
 	~Renderer();
+	bool init_window();
 	bool init();
 	void update();
 	void draw();
@@ -33,11 +39,15 @@ private:
 	uint32_t m_4xMSAA_quality = 0;
 	// dxgi is directx graphics infrastructure
 	Microsoft::WRL::ComPtr<IDXGIFactory4> m_dxgi_factory; // factory is for generating dxgi objects
-	Microsoft::WRL::ComPtr<IDXGISwapChain> m_swap_chain;
+	//IDXGIFactory* m_dxgi_factory;
+	Microsoft::WRL::ComPtr<IDXGISwapChain1> m_swap_chain;
+	//Microsoft::WRL::ComPtr<IDXGISwapChain1> m_swap_chain1;
+	//IDXGISwapChain* m_swap_chain;
 	Microsoft::WRL::ComPtr<ID3D12Device> m_d3d_device;
 	Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
 	size_t m_current_fence = 0;
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_command_queue;
+	//ID3D12CommandQueue* m_command_queue;
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_command_list_allocator;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_command_list;
 	static const size_t SWAP_CHAIN_BUFFER_COUNT = 2;
@@ -54,6 +64,5 @@ private:
 	D3D_DRIVER_TYPE m_d3d_driver_type = D3D_DRIVER_TYPE_HARDWARE; 
 	DXGI_FORMAT m_back_buffer_format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	DXGI_FORMAT	m_depth_stencil_format = DXGI_FORMAT_D24_UNORM_S8_UINT; // 24 bit depth, 8 bit stencil
-	size_t m_client_width = 1920;
-	size_t m_client_height = 1080;
+	Window* m_window;
 };

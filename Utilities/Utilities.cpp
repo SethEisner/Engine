@@ -23,6 +23,21 @@ float radians(float degrees) { // convert degrees to radians;
 	return degrees * rad_per_deg;
 }
 
-inline void assert_if_failed(HRESULT hr) {
-	assert(!FAILED(hr));
+// inline void assert_if_failed(HRESULT hr) {
+// 	assert(!FAILED(hr));
+// }
+DxException::DxException(HRESULT hr, const std::wstring& function_name, const std::wstring& filename, int line_number) :
+	error_code(hr),
+	function_name(function_name),
+	filename(filename),
+	line_number(line_number)
+{
+}
+std::wstring DxException::ToString()const
+{
+	// Get the string description of the error code.
+	_com_error err(error_code);
+	std::wstring msg = err.ErrorMessage();
+
+	return function_name + L" failed in " + filename + L"; line " + std::to_wstring(line_number) + L"; error: " + msg;
 }
