@@ -1,11 +1,15 @@
 #pragma once
 #include <string.h>
 #include <stdint.h>
-#include <Windows.h>
 #include <assert.h>
 #include <string>
 #include <comdef.h>
-#include<string>
+#include <string>
+#include <D3Dcommon.h>
+#include <Windows.h>
+#include <wrl/client.h>
+#include <D3DCompiler.h>
+#include <d3d12.h>
 //#include <stringutils.h>
 /*TODO: 
 add random number generator
@@ -65,3 +69,6 @@ public:
     if(FAILED(hr__)) { throw DxException(hr__, L#x, wfn, __LINE__); } \
 }
 #endif
+
+Microsoft::WRL::ComPtr<ID3DBlob> compile_shader(const std::wstring&, const D3D_SHADER_MACRO*, const std::string&, const std::string&);
+Microsoft::WRL::ComPtr<ID3D12Resource> create_default_buffer(ID3D12Device*, ID3D12GraphicsCommandList*, const void*, uint64_t, Microsoft::WRL::ComPtr<ID3D12Resource>&);

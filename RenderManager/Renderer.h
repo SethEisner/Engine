@@ -8,6 +8,10 @@
 #include "Window.h"
 #include "../Utilities/Utilities.h"
 #include <windows.h>
+#include "RenderTypes.h"
+#include <vector>
+#include <array>
+#include "Mesh.h"
 
 // contains a command queue, heaps, vector of render items that's in the potentially visible set
 // eventually contains a struct that details the graphics options sin use and a way to change them
@@ -19,14 +23,15 @@
 class Renderer {
 public:
 	Renderer() = delete;
-	explicit Renderer(HINSTANCE hInstance);
+	explicit Renderer(Window* window);
 	~Renderer();
-	bool init_window();
+	//bool init_window();
 	bool init();
 	void update();
 	void draw();
 	void shutdown();
 	void on_resize();
+	Window* get_window() const;
 private:
 	void create_command_objects();
 	void create_swap_chain();
@@ -35,19 +40,21 @@ private:
 	ID3D12Resource* current_back_buffer() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE current_back_buffer_view() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE depth_stencil_view() const;
+	void build_descriptor_heaps();
+	void build_constant_buffers();
+	void build_root_signature();
+	void build_shaders_and_input_layout();
+	void build_box_geometry();
+	void build_pso();
 	bool m_4xMSAA = true;
 	uint32_t m_4xMSAA_quality = 0;
 	// dxgi is directx graphics infrastructure
 	Microsoft::WRL::ComPtr<IDXGIFactory4> m_dxgi_factory; // factory is for generating dxgi objects
-	//IDXGIFactory* m_dxgi_factory;
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> m_swap_chain;
-	//Microsoft::WRL::ComPtr<IDXGISwapChain1> m_swap_chain1;
-	//IDXGISwapChain* m_swap_chain;
 	Microsoft::WRL::ComPtr<ID3D12Device> m_d3d_device;
 	Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
 	size_t m_current_fence = 0;
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_command_queue;
-	//ID3D12CommandQueue* m_command_queue;
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_command_list_allocator;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_command_list;
 	static const size_t SWAP_CHAIN_BUFFER_COUNT = 2;
@@ -65,4 +72,21 @@ private:
 	DXGI_FORMAT m_back_buffer_format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	DXGI_FORMAT	m_depth_stencil_format = DXGI_FORMAT_D24_UNORM_S8_UINT; // 24 bit depth, 8 bit stencil
 	Window* m_window;
+
+	//Chapter 6 specific items
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_root_signature = nullptr;;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_cbv_heap = nullptr;
+	UploadBuffer<ObjectConstants>* m_object_cb = nullptr;
+	Mesh* m_box_geo = nullptr;
+	Microsoft::WRL::ComPtr<ID3DBlob> m_vs_bytecode = nullptr; // compiled shader code for the vertex shader
+	Microsoft::WRL::ComPtr<ID3DBlob> m_ps_bytecode = nullptr; // compiled shader code for the pixel shader
+	std::vector<D3D12_INPUT_ELEMENT_DESC> m_input_layout;
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pso = nullptr;
+	DirectX::XMFLOAT4X4 m_world = identity_4x4();
+	DirectX::XMFLOAT4X4 m_view = identity_4x4();
+	DirectX::XMFLOAT4X4 m_proj = identity_4x4();
+	float m_theta = 1.5f * DirectX::XM_PI;
+	float m_phi = DirectX::XM_PIDIV4;
+	float m_radius = 5.0f;
+	POINT m_last_mouse_pos;
 };

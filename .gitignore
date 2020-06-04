@@ -78,3 +78,10 @@ packages/directxtk12_desktop_2015.2019.12.17.1/lib/Win32/Debug/DirectXTK12.lib
 packages/directxtk12_desktop_2015.2019.12.17.1/lib/Win32/Release/DirectXTK12.lib
 packages/directxtk12_desktop_2015.2019.12.17.1/lib/x64/Debug/DirectXTK12.lib
 packages/directxtk12_desktop_2015.2019.12.17.1/lib/x64/Release/DirectXTK12.lib
+packages/rapidxml.1.13/build/configurations.autopkg
+packages/rapidxml.1.13/build/native/default-propertiesui.xml
+packages/rapidxml.1.13/build/native/include/rapidxml/rapidxml.hpp
+packages/rapidxml.1.13/build/native/include/rapidxml/rapidxml_iterators.hpp
+packages/rapidxml.1.13/build/native/include/rapidxml/rapidxml_print.hpp
+packages/rapidxml.1.13/build/native/include/rapidxml/rapidxml_utils.hpp
+packages/rapidxml.1.13/build/publisher-info.txt
