@@ -52,7 +52,7 @@ PRESSED  --->  HELD    UNHELD  <--- start
 		//delete m_name_to_action;
 		FREE(m_name_to_action, memory_manager->get_linear_allocator());
 	}
-	void get_input();
+	void get_input(const MSG&);
 	// get state of a game action using a hashed string literal (e.g. HASH("shoot"))
 	bool is_pressed(uint32_t) const;
 	bool is_released(uint32_t) const;

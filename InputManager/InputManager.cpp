@@ -2,13 +2,13 @@
 #include <windows.h>
 #include <windowsx.h>  // for GET_X/Y_PARAM
 
-void InputManager::get_input() {
+void InputManager::get_input(const MSG& message) {
 	update_key_states(); // update the states of the relative buttons before we read in more input
 
-	MSG message = { 0 };
-	while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE) != 0) { // there's a message in the queue
-		TranslateMessage(&message); // translate the message into 
-		DispatchMessageA(&message); // dispatch the messages we dont handle to the window procedure so we dont need to worry about the nitty gritty
+	//MSG message = { 0 };
+	//while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE) > 0) { // there's a message in the queue
+		// TranslateMessage(&message); // translate the message into 
+		// DispatchMessageA(&message); // dispatch the messages we dont handle to the window procedure so we dont need to worry about the nitty gritty
 		uint32_t index = -1;
 		switch (message.message) {
 		case WM_MOUSEMOVE:
@@ -47,7 +47,7 @@ void InputManager::get_input() {
 		case WM_DEADCHAR: // eventually use for i18n
 			break;
 		}
-	}
+	//}
 }
 
 bool InputManager::is_pressed(uint32_t hashed_action_name) const {

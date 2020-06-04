@@ -12,7 +12,11 @@ static constexpr bool RESOURCE_QUEUE_FULL = false;
 static constexpr bool REFERENCE_QUEUE_FULL = false;
 //typedef size_t GUID;
 // static HashTable<size_t, bool> ref_count_traversed_set;
+<<<<<<< HEAD
 /* IMPORTANT: 
+=======
+/* IMPORTANT:
+>>>>>>> renderer
 	the user thread(s) should never access the registry directly
 	if a user thread wants to modify the registry, it needs to give the changes it wants to make to the resource thread
 */
@@ -39,7 +43,11 @@ void ResourceManager::remove_resource(const std::string& filepath) {
 	assert(resource_loaded(filepath)); // make sure remove_resource is only ever called on loaded resources
 	// push the reference count changes we would like happen onto the queue so the other thread deals with it
 	// because it needs to update the registry and I dont want the user thread to grab the registry lock
+<<<<<<< HEAD
 	if(!m_ref_count_queue->push(ReferenceCountEntry(resource_guid, -1))) assert(REFERENCE_QUEUE_FULL);
+=======
+	if (!m_ref_count_queue->push(ReferenceCountEntry(resource_guid, -1))) assert(REFERENCE_QUEUE_FULL);
+>>>>>>> renderer
 }
 // private functions
 void ResourceManager::remove_from_ready_map(GUID resource) {
@@ -184,7 +192,11 @@ void ResourceManager::get_external_dependencies(GUID resource, const std::string
 	case FileType::MTL: // mtls are self contained
 		break;
 	case FileType::OBJ:
+<<<<<<< HEAD
 		char needle[] = { 'm', 't', 'l', 'l', 'i', 'b', ' '};
+=======
+		char needle[] = { 'm', 't', 'l', 'l', 'i', 'b', ' ' };
+>>>>>>> renderer
 		auto p_reference = std::search(p_mem, p_mem + entry->m_size, std::begin(needle), std::end(needle)) + sizeof(needle);
 		while (p_reference < p_mem + entry->m_size) { // search entire file for external references
 			std::string reference;
@@ -326,7 +338,11 @@ void ResourceManager::free_resources() {
 	int64_t sum = 0;
 	for (begin = m_zip_files->begin(); begin != m_zip_files->end(); begin++) {
 		RegistryEntry* entry = m_registry->at(*begin);
+<<<<<<< HEAD
 		if(entry->m_ready) {
+=======
+		if (entry->m_ready) {
+>>>>>>> renderer
 			//m_dependencies_traversed_set->clear();
 			sum = get_dependency_sum(*begin);
 			if (sum == 0) free_list.push_back(*begin); // race condition?
@@ -391,7 +407,11 @@ void ResourceManager::add_external_dependency(GUID resource, GUID dependency) { 
 	int i = 0;
 	RegistryEntry* entry = m_registry->at(resource); // get the resoure
 	for (; i != REFERENCE_ARRAY_SIZE && entry->m_external_references[i] != SIZE_MAX; ++i) {
+<<<<<<< HEAD
 	
+=======
+
+>>>>>>> renderer
 	} // find an empty slot
 	assert(i != REFERENCE_ARRAY_SIZE); // assert that an empty slot was found
 	entry->m_external_references[i] = dependency; // modify the dependency array

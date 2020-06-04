@@ -23,10 +23,17 @@
 /* Implementation Notes:
 	user can only load or free packaged resources (zip files)
 	create a registry entry for each zip file
+<<<<<<< HEAD
 	registry entries have internal and external dependencies. 
 		internal means the required data is within the same resource file (not zip but actual obj file for instance that the registry entry is for)
 		external means the required data is within an entirely separate file, that could be within the same packaged resource or within another packaged resource
 	manage the lifetimes through referenmce counting. 
+=======
+	registry entries have internal and external dependencies.
+		internal means the required data is within the same resource file (not zip but actual obj file for instance that the registry entry is for)
+		external means the required data is within an entirely separate file, that could be within the same packaged resource or within another packaged resource
+	manage the lifetimes through referenmce counting.
+>>>>>>> renderer
 	internal dependencies do not update the reference count at all because they are already within the loaded file that is being tracked (track the registry entry of the first load)
 	external dependencies do update the reference count
 	loading a packaged resouce creates a registry entry for that packaged resource if it does not exist, or increments the reference count if it does exist.
@@ -49,7 +56,11 @@ Support for external references in other packaged resources: (must handle loadin
 	what happens if we read a packaged resource into memory that has a reference to another unloaded packaged resource
 		add the dependency to the external dependency list of the registry entry (probably want to add the GUID to the whole filepath)
 		add that packaged resource to the queue (what if the resource is already in the queue)
+<<<<<<< HEAD
 			when we get a package filepath from the queue, check if it is already in the registry first before reading the contents (to fix double adds) 
+=======
+			when we get a package filepath from the queue, check if it is already in the registry first before reading the contents (to fix double adds)
+>>>>>>> renderer
 				then update the reference count and traverse the dependency graph
 		when we load that packaged resource in from memory: (assume it is self contained for now so we dont need to load more stuff)
 			traverse external dependencies graph and increment reference count
@@ -98,12 +109,21 @@ class ResourceManager {
 		GUID m_external_references[REFERENCE_ARRAY_SIZE]; // the GUIDs of all external references 
 		FileType m_file_type;
 		bool m_ready;
+<<<<<<< HEAD
 		RegistryEntry(Handle _handle, size_t _size, int64_t _ref_count, bool _ready, FileType _file_type) : 
 			m_size(_size), 
 			m_handle(_handle),  
 			m_ref_count(_ref_count), 
 			m_internal_references(), 
 			m_external_references(), 
+=======
+		RegistryEntry(Handle _handle, size_t _size, int64_t _ref_count, bool _ready, FileType _file_type) :
+			m_size(_size),
+			m_handle(_handle),
+			m_ref_count(_ref_count),
+			m_internal_references(),
+			m_external_references(),
+>>>>>>> renderer
 			m_ready(_ready),
 			m_file_type(_file_type) {
 			for (int i = 0; i != REFERENCE_ARRAY_SIZE; ++i) {
@@ -124,7 +144,11 @@ class ResourceManager {
 			}
 			return *this;
 		}
+<<<<<<< HEAD
 	}; 
+=======
+	};
+>>>>>>> renderer
 	template <typename T>
 	struct QueueEntry {
 		char* m_filepath; // use strcpy
@@ -171,7 +195,11 @@ private:
 	size_t get_dependency_count(GUID);
 	void change_reference_count_by(GUID, int);
 	void get_external_dependencies(GUID, const std::string&);
+<<<<<<< HEAD
 	void traverse_dependency_graph(GUID, const std::string&, void (ResourceManager::*func_p)(GUID, const std::string&));
+=======
+	void traverse_dependency_graph(GUID, const std::string&, void (ResourceManager::* func_p)(GUID, const std::string&));
+>>>>>>> renderer
 	Handle read_resource_into_memory(const std::string& zip_file);
 	void unzip_resource(const std::string&, Handle);
 	bool get_compressed_file_info(byte* compressed, size_t& compressed_size, size_t& uncompressed_size, size_t& offset, std::string& file_name);
