@@ -26,8 +26,10 @@
     <ClCompile Include="InputManager\InputManager.cpp" />
     <ClCompile Include="Memory\GeneralAllocator.cpp" />
     <ClCompile Include="Memory\MemoryManager.cpp" />
+    <ClCompile Include="RenderManager\Mesh.cpp" />
     <ClCompile Include="RenderManager\Renderer.cpp" />
     <ClCompile Include="RenderManager\Window.cpp" />
+    <ClCompile Include="ResourceManager\ResourceManager.cpp" />
     <ClCompile Include="Utilities\Utilities.cpp" />
     <ClCompile Include="JobSystem\JobSystem.cpp" />
     <ClCompile Include="main.cpp" />
@@ -47,8 +49,12 @@
     <ClInclude Include="Memory\MemoryManager.h" />
     <ClInclude Include="Memory\PoolAllocator.h" />
     <ClInclude Include="Memory\StackAllocator.h" />
+    <ClInclude Include="RenderManager\Mesh.h" />
     <ClInclude Include="RenderManager\Renderer.h" />
+    <ClInclude Include="RenderManager\RenderTypes.h" />
+    <ClInclude Include="RenderManager\UploadBuffer.h" />
     <ClInclude Include="RenderManager\Window.h" />
+    <ClInclude Include="ResourceManager\ResourceManager.h" />
     <ClInclude Include="Utilities\Utilities.h" />
     <ClInclude Include="JobSystem\JobSystem.h" />
     <ClInclude Include="ThreadSafeContainers\Queue.h" />

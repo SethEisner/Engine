@@ -13,102 +13,168 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\RenderManager">
+      <UniqueIdentifier>{202cbeca-5ba7-4ecb-b320-e6dca7fe13d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\RenderManager">
+      <UniqueIdentifier>{e3166113-77a4-43f1-982d-026cc2beccd8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ThreadSafeContainers">
+      <UniqueIdentifier>{619b78a0-ef1b-4c09-99e4-611463f888f0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\ThreadSafeContainers">
+      <UniqueIdentifier>{2bc86108-ab56-4cd4-9262-b0675b1b23e1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Memory">
+      <UniqueIdentifier>{618bda40-e764-4bb9-82af-bc31fd5f82fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Memory">
+      <UniqueIdentifier>{09faca3f-c83c-412a-a1f3-cca0ed26b3b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Math">
+      <UniqueIdentifier>{4d46ee2e-5836-4e33-9df0-d0a0e5054a96}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Math">
+      <UniqueIdentifier>{7619da4b-0dfd-40fc-9809-2962ccc72336}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\InputManager">
+      <UniqueIdentifier>{b0aada3c-dfe2-4385-9bdb-c282f84f3c65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\InputManager">
+      <UniqueIdentifier>{5e04cf1d-e8ad-4b24-8cc6-901240d03f96}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\JobSystem">
+      <UniqueIdentifier>{5057c607-0e02-4688-b9ee-4082dd699fc2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\JobSystem">
+      <UniqueIdentifier>{ac179cdf-e36e-49ed-9caf-02e3fa368324}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Utilities">
+      <UniqueIdentifier>{c6d85ed8-f30f-4639-bce7-54b1ddd4012a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Utilities">
+      <UniqueIdentifier>{573097dc-adaa-4de1-950b-3482f0f952c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ResourceManager">
+      <UniqueIdentifier>{de31502d-8229-4fde-a574-b4c625d8aefa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\ResourceManager">
+      <UniqueIdentifier>{4556b226-88cb-403f-9b0b-fa6bdb23581a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="JobSystem\JobSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="InputManager\InputManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Math\Vector.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Utilities\Utilities.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Math\Matrix.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Math\Quaternion.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Memory\MemoryManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Memory\GeneralAllocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="RenderManager\Window.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="RenderManager\Mesh.cpp">
+      <Filter>Source Files\RenderManager</Filter>
     </ClCompile>
     <ClCompile Include="RenderManager\Renderer.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\RenderManager</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderManager\Window.cpp">
+      <Filter>Source Files\RenderManager</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory\GeneralAllocator.cpp">
+      <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory\MemoryManager.cpp">
+      <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\Matrix.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\Quaternion.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\Vector.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="InputManager\InputManager.cpp">
+      <Filter>Source Files\InputManager</Filter>
+    </ClCompile>
+    <ClCompile Include="JobSystem\JobSystem.cpp">
+      <Filter>Source Files\JobSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\Utilities.cpp">
+      <Filter>Source Files\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="ResourceManager\ResourceManager.cpp">
+      <Filter>Source Files\ResourceManager</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="JobSystem\JobSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="InputManager\InputManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Math\Vector.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Utilities\Utilities.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ThreadSafeContainers\Queue.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Math\Matrix.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Math\Quaternion.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Math\Line.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Math\Plane.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Memory\LinearAllocator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Memory\PoolAllocator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Memory\StackAllocator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Memory\memory.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Memory\MemoryManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Memory\GeneralAllocator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Engine.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderManager\Renderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderManager\Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="d3dx12.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderManager\Renderer.h">
+      <Filter>Header Files\RenderManager</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderManager\Mesh.h">
+      <Filter>Header Files\RenderManager</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderManager\Window.h">
+      <Filter>Header Files\RenderManager</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderManager\UploadBuffer.h">
+      <Filter>Header Files\RenderManager</Filter>
+    </ClInclude>
+    <ClInclude Include="ThreadSafeContainers\Queue.h">
+      <Filter>Header Files\ThreadSafeContainers</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderManager\RenderTypes.h">
+      <Filter>Header Files\RenderManager</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\PoolAllocator.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\MemoryManager.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\GeneralAllocator.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\LinearAllocator.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\StackAllocator.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Line.h">
+      <Filter>Header Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Matrix.h">
+      <Filter>Header Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\memory.h">
+      <Filter>Header Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Plane.h">
+      <Filter>Header Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Quaternion.h">
+      <Filter>Header Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Vector.h">
+      <Filter>Header Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="InputManager\InputManager.h">
+      <Filter>Header Files\InputManager</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\Utilities.h">
+      <Filter>Header Files\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="JobSystem\JobSystem.h">
+      <Filter>Header Files\JobSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceManager\ResourceManager.h">
+      <Filter>Header Files\ResourceManager</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
