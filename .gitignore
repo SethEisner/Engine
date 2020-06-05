@@ -85,3 +85,6 @@ packages/rapidxml.1.13/build/native/include/rapidxml/rapidxml_iterators.hpp
 packages/rapidxml.1.13/build/native/include/rapidxml/rapidxml_print.hpp
 packages/rapidxml.1.13/build/native/include/rapidxml/rapidxml_utils.hpp
 packages/rapidxml.1.13/build/publisher-info.txt
+*.dll
+Resources/cat.dae
+Resources/cat.zip

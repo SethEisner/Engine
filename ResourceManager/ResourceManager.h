@@ -10,6 +10,10 @@
 #include <set>
 #include <stack>
 #include <mutex>
+// assimp headers
+#include <assimp/Importer.hpp> // c++ importer interface
+#include <assimp/scene.h> // output data structure
+#include <assimp/postprocess.h> // for post processing flags
 /* TODO:
 	implement a get resource function that returns the handle, might need a map from a GUID to a handle, i dont think reading the m_registry without a lock is safe...
 		the entry could be removed between when we check if it's still in the registry and when we go to get its handle
@@ -69,7 +73,7 @@ static constexpr char resource_path[52] = "C:/Users/Seth Eisner/source/repos/Eng
 class ResourceManager {
 	typedef size_t GUID;
 	typedef uint8_t byte;
-	enum class FileType { ZIP, OBJ, MTL, INVALID };
+	enum class FileType { ZIP, OBJ, MTL, DAE, INVALID };
 	struct ReferenceCountEntry {
 		GUID m_resource; // the resource to update the reference count of
 		int m_delta; // the number to change the reference count by
@@ -92,14 +96,16 @@ class ResourceManager {
 	};
 	struct RegistryEntry {
 		int64_t m_handle; // the handle to the general allocator's pointer
+		aiScene* m_scene_data; // ownership of this pointer is controlled by the assimp importer
 		int64_t m_ref_count; // the reference count of the resource
 		size_t m_size; // size of the memory block 
 		GUID m_internal_references[REFERENCE_ARRAY_SIZE]; // the GUIDs of internal references - 
 		GUID m_external_references[REFERENCE_ARRAY_SIZE]; // the GUIDs of all external references 
 		FileType m_file_type;
 		bool m_ready;
-		RegistryEntry(Handle _handle, size_t _size, int64_t _ref_count, bool _ready, FileType _file_type) :
+		RegistryEntry(Handle _handle, aiScene* scene_ptr, size_t _size, int64_t _ref_count, bool _ready, FileType _file_type) :
 			m_size(_size),
+			m_scene_data(scene_ptr), // set to nullptr because we must read later after creating the registry entry. assign later
 			m_handle(_handle),
 			m_ref_count(_ref_count),
 			m_internal_references(),
@@ -114,9 +120,10 @@ class ResourceManager {
 		RegistryEntry() = default; // default initialize
 		RegistryEntry& operator=(const RegistryEntry& rhs) { // need move constructor because atomics
 			if (this != &rhs) {
-				this->m_size = rhs.m_size;
 				this->m_handle = rhs.m_handle;
+				this->m_scene_data = this->m_scene_data;
 				this->m_ref_count = rhs.m_ref_count;
+				this->m_size = rhs.m_size;
 				std::copy(rhs.m_internal_references, rhs.m_internal_references + REFERENCE_ARRAY_SIZE, this->m_internal_references);
 				std::copy(rhs.m_external_references, rhs.m_external_references + REFERENCE_ARRAY_SIZE, this->m_external_references);
 				this->m_ready = rhs.m_ready;
@@ -143,7 +150,8 @@ public:
 		m_resource_queue(new Queue<std::string>(16)),
 		m_ref_count_queue(new Queue<ReferenceCountEntry>(16)),
 		m_potentially_ready(new std::list<GUID>()),
-		m_zip_files(new std::list<GUID>()) {}
+		m_zip_files(new std::list<GUID>()),
+		m_importer(new Assimp::Importer()) {} // assimp importer to read files from memory and construct the object
 	~ResourceManager() {
 		run_flag = false; // set the run_flag to false to stop the thread from looping
 		m_thread->join(); // 
@@ -158,6 +166,7 @@ public:
 		delete m_ref_count_queue;
 		delete m_potentially_ready;
 		delete m_zip_files;
+		delete m_importer;
 	}
 	void load_resource(const std::string&, void(*function)(char*) = nullptr);
 	bool resource_loaded(const std::string&);
@@ -198,6 +207,9 @@ private:
 	Queue<ReferenceCountEntry>* m_ref_count_queue;
 	std::list<GUID>* m_potentially_ready;
 	std::list<GUID>* m_zip_files;
+	// assimp stuff (shouldnt need to be threadsafe because it's all on one thread)
+	Assimp::Importer* m_importer;
+
 	bool run_flag = true; // dont need synchronization on this because only 1 thread writes to it and the other reads
 	/* SHARED objects:
 		m_ready_map, needs an actual lock

@@ -8,6 +8,7 @@
 #include "JobSystem/JobSystem.h"
 #include "InputManager/InputManager.h"
 #include "Utilities/Utilities.h"
+//#define NOMINMAX
 #include <windows.h>
 #include "Math/Matrix.h"
 #include "Math/Line.h"
@@ -18,8 +19,7 @@
 #include "Memory/GeneralAllocator.h"
 #include "ThreadSafeContainers/HashTable.h"
 #include "Engine.h"
-
-
+#include "ResourceManager/ResourceManager.h"
 
 
 const int thread_count = 3; //std::min((unsigned int) 3, std::thread::hardware_concurrency() - 1);
@@ -78,18 +78,35 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	engine->shutdown();
 
 
-	HashTable<int, int> t;
-	t.insert(9, -9);
-	t.insert(9, -9);
-	t.insert(9, -9);
-	t.insert(9, -9);
-	t.insert(9, -9);
-	assert(t.at(9) == -9);
-	t.set(9, 8);
-	assert(t.at(9) == 8);
-	assert(t.contains(9));
-	t.remove(9);
-	assert(!t.contains(9));
+	// HashTable<int, int> t;
+	// t.insert(9, -9);
+	// t.insert(9, -9);
+	// t.insert(9, -9);
+	// t.insert(9, -9);
+	// t.insert(9, -9);
+	// assert(t.at(9) == -9);
+	// t.set(9, 8);
+	// assert(t.at(9) == 8);
+	// assert(t.contains(9));
+	// t.remove(9);
+	// assert(!t.contains(9));
+
+
+	ResourceManager rm;
+	std::string path = "cat.zip";
+	rm.load_resource(path);
+	while (!rm.resource_loaded(path)) {};
+
+	OutputDebugStringA("loaded the zip and its dependencies\n");
+
+	rm.remove_resource(path);
+
+	while (rm.resource_loaded(path)) {}; // (fixed?) seems super error prone to wait on a resource to be removed
+
+	OutputDebugStringA("unloaded the zip and its dependencies\n\n");
+
+	// while (true) {}
+
 
 
 	//GeneralAllocator allocator(1024);

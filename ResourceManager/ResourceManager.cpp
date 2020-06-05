@@ -2,6 +2,7 @@
 #include "ResourceManager.h"
 #include <stdio.h>
 #include "zlib.h"
+#include <windows.h>
 //#include <windows.h>
 //#include <stack>
 
@@ -20,7 +21,7 @@ static constexpr bool REFERENCE_QUEUE_FULL = false;
 void ResourceManager::load_resource(const std::string& resource_name, void(*function)(char*)) {
 	// resource name is the name of the zip file in the resources folder (set by resource_path) that we need to check if it's loaded
 	// assert that the filepath is a zip file
-	assert(resource_name.substr(resource_name.length() - 3, 3) == "zip");
+	//assert(resource_name.substr(resource_name.length() - 3, 3) == "zip");
 	size_t resource_guid = std::hash<std::string>{}(resource_name);
 	// increment it's dependency count because we need to keep track of how the zip was requested
 	increment_dependency_count(resource_guid); // function uses a spin lock so we never block, spinlock should be okay because the resource thread will never be never be waiting on a user thread
@@ -127,7 +128,7 @@ void ResourceManager::unzip_resource(const std::string& zip_file, Handle h_compr
 	byte* compressed = reinterpret_cast<byte*>(m_allocator->get_pointer(h_compressed));
 	size_t zip_dependency_count = get_dependency_count(zip_hash);
 	// make handle be negative becuase zips dont have ny memory associated with them
-	m_registry->insert((zip_hash), RegistryEntry(-1, 0, zip_dependency_count, false, FileType::ZIP));
+	m_registry->insert((zip_hash), RegistryEntry(-1, nullptr, 0, zip_dependency_count, false, FileType::ZIP));
 	set_ready_map(zip_hash, false);
 	m_zip_files->push_back(zip_hash);
 	// decompress each file in the zip into its own registry entry
@@ -156,7 +157,7 @@ void ResourceManager::unzip_resource(const std::string& zip_file, Handle h_compr
 		remove_dependency_count(resource_guid);
 		// add 1 to the count because a resource file always is depended on by the zip it is contained within
 		// add the dependency counnt of the zip file to the count
-		m_registry->insert(resource_guid, RegistryEntry(h_uncompressed, uncompressed_size, count + zip_dependency_count, false, file_type)); // moves the registry entry into the hash table
+		m_registry->insert(resource_guid, RegistryEntry(h_uncompressed, nullptr, uncompressed_size, count + zip_dependency_count, false, file_type)); // moves the registry entry into the hash table
 		set_ready_map(resource_guid, false);
 		// add every file we decompress to the external dependencies list of the zip file
 		add_external_dependency(zip_hash, resource_guid);
@@ -178,10 +179,21 @@ void ResourceManager::get_external_dependencies(GUID resource, const std::string
 	*/
 	RegistryEntry* entry = m_registry->at(resource);
 	char* p_mem = reinterpret_cast<char*>(m_allocator->get_pointer(entry->m_handle));
+	uint32_t flags = 0;
+	aiScene* scene_ptr = nullptr;
 	switch (entry->m_file_type) {
 	case FileType::ZIP:
 		assert(false); // we should never get here
 	case FileType::MTL: // mtls are self contained
+		break;
+	case FileType::DAE: // zip file contains an dae file
+		flags = 0;
+		scene_ptr = std::remove_const<aiScene*>::type (m_importer->ReadFileFromMemory(p_mem, entry->m_size, flags, "dae"));
+		if (!scene_ptr) {
+			OutputDebugStringA(m_importer->GetErrorString());
+			break;
+		}
+		entry->m_scene_data = scene_ptr;
 		break;
 	case FileType::OBJ:
 		char needle[] = { 'm', 't', 'l', 'l', 'i', 'b', ' ' };
@@ -404,6 +416,11 @@ ResourceManager::FileType ResourceManager::get_file_type(const std::string& file
 	if (extension == ".zip") return FileType::ZIP;
 	if (extension == ".obj") return FileType::OBJ;
 	if (extension == ".mtl") return FileType::MTL;
+	if (extension == ".dae") return FileType::DAE;
 	assert(false); // the file extension is one we dont know how to handle
 	return FileType::INVALID;
 }
+
+// Ogex* parse_ogex(const char* begin, const char* end) {
+// 	Ogex* ogex = new Ogex();
+// }
