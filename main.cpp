@@ -73,9 +73,9 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 	//JobSystem::startup(thread_count);
 
 
-	engine->init();
-	engine->run();
-	engine->shutdown();
+	// engine->init();
+	// engine->run();
+	// engine->shutdown();
 
 
 	// HashTable<int, int> t;

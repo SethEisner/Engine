@@ -179,16 +179,15 @@ void ResourceManager::get_external_dependencies(GUID resource, const std::string
 	*/
 	RegistryEntry* entry = m_registry->at(resource);
 	char* p_mem = reinterpret_cast<char*>(m_allocator->get_pointer(entry->m_handle));
-	uint32_t flags = 0;
+	uint32_t flags = 0; // flags for Assimp, 0 does nothing special
 	aiScene* scene_ptr = nullptr;
 	switch (entry->m_file_type) {
 	case FileType::ZIP:
 		assert(false); // we should never get here
 	case FileType::MTL: // mtls are self contained
 		break;
-	case FileType::DAE: // zip file contains an dae file
-		flags = 0;
-		scene_ptr = std::remove_const<aiScene*>::type (m_importer->ReadFileFromMemory(p_mem, entry->m_size, flags, "dae"));
+	case FileType::DAE: // zip file contains a dae file
+		scene_ptr = std::remove_const<aiScene*>::type (m_importer->ReadFileFromMemory(p_mem, entry->m_size, flags));
 		if (!scene_ptr) {
 			OutputDebugStringA(m_importer->GetErrorString());
 			break;

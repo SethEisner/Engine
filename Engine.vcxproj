@@ -25,7 +25,10 @@
     <ClCompile Include="Math\Vector.cpp" />
     <ClCompile Include="InputManager\InputManager.cpp" />
     <ClCompile Include="Memory\MemoryManager.cpp" />
-    <ClCompile Include="RenderManager\Mesh.cpp" />
+    <ClCompile Include="RenderManager\Camera.cpp" />
+    <ClCompile Include="RenderManager\d3dUtil.cpp" />
+    <ClCompile Include="RenderManager\FrameResources.cpp" />
+    <ClCompile Include="RenderManager\MathHelper.cpp" />
     <ClCompile Include="RenderManager\Renderer.cpp" />
     <ClCompile Include="RenderManager\Window.cpp" />
     <ClCompile Include="ResourceManager\ResourceManager.cpp" />
@@ -48,9 +51,11 @@
     <ClInclude Include="Memory\MemoryManager.h" />
     <ClInclude Include="Memory\PoolAllocator.h" />
     <ClInclude Include="Memory\StackAllocator.h" />
-    <ClInclude Include="RenderManager\Mesh.h" />
+    <ClInclude Include="RenderManager\Camera.h" />
+    <ClInclude Include="RenderManager\d3dUtil.h" />
+    <ClInclude Include="RenderManager\FrameResources.h" />
+    <ClInclude Include="RenderManager\MathHelper.h" />
     <ClInclude Include="RenderManager\Renderer.h" />
-    <ClInclude Include="RenderManager\RenderTypes.h" />
     <ClInclude Include="RenderManager\UploadBuffer.h" />
     <ClInclude Include="RenderManager\Window.h" />
     <ClInclude Include="ResourceManager\ResourceManager.h" />

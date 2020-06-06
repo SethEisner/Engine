@@ -4,7 +4,7 @@
 #include <dxgi1_4.h>
 #include <dxgi.h>
 #include <d3d12.h>
-#include "../d3dx12.h"
+#include "d3dx12.h"
 #include "Window.h"
 #include "../Utilities/Utilities.h"
 #include <windows.h>
@@ -12,6 +12,8 @@
 #include <vector>
 #include <array>
 #include "Mesh.h"
+#include "MathHelper.h"
+#include "UploadBuffer.h"
 
 // contains a command queue, heaps, vector of render items that's in the potentially visible set
 // eventually contains a struct that details the graphics options sin use and a way to change them
