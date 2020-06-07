@@ -8,13 +8,19 @@
 #include "Window.h"
 #include "../Utilities/Utilities.h"
 #include <windows.h>
-#include "RenderTypes.h"
+//#include "RenderTypes.h"
 #include <vector>
 #include <array>
-#include "Mesh.h"
+//#include "Mesh.h"
 #include "MathHelper.h"
 #include "UploadBuffer.h"
+#include "d3dUtil.h"
+#include "FrameResources.h"
+#include "Camera.h"
+#include "Timer.h"
+#include "RenderItem.h"
 
+class Engine;
 // contains a command queue, heaps, vector of render items that's in the potentially visible set
 // eventually contains a struct that details the graphics options sin use and a way to change them
 //
@@ -24,16 +30,17 @@
 
 class Renderer {
 public:
-	Renderer() = delete;
-	explicit Renderer(Window* window);
-	~Renderer();
+	// Renderer() = delete;
+	// explicit Renderer(Window* window);
+	Renderer() = default;
+	~Renderer() = default;
 	//bool init_window();
 	bool init();
 	void update();
 	void draw();
 	void shutdown();
 	void on_resize();
-	Window* get_window() const;
+	//Window* get_window() const;
 private:
 	void create_command_objects();
 	void create_swap_chain();
@@ -46,8 +53,19 @@ private:
 	void build_constant_buffers();
 	void build_root_signature();
 	void build_shaders_and_input_layout();
-	void build_box_geometry();
+	void build_shape_geometry(); // change to use resource manager
 	void build_pso();
+	void build_frame_resources();
+	void build_materials();
+	void build_render_items();
+	void draw_render_itens(ID3D12GraphicsCommandList*, const std::vector<RenderItem*>&);
+	void animate_materials(const Timer&);
+	void update_object_cbs(const Timer&);
+	void update_material_buffer(const Timer&);
+	void update_main_pass_cb(const Timer&);
+
+	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> get_static_samplers();
+
 	bool m_4xMSAA = true;
 	uint32_t m_4xMSAA_quality = 0;
 	// dxgi is directx graphics infrastructure
@@ -73,7 +91,7 @@ private:
 	D3D_DRIVER_TYPE m_d3d_driver_type = D3D_DRIVER_TYPE_HARDWARE; 
 	DXGI_FORMAT m_back_buffer_format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	DXGI_FORMAT	m_depth_stencil_format = DXGI_FORMAT_D24_UNORM_S8_UINT; // 24 bit depth, 8 bit stencil
-	Window* m_window;
+	//Window* m_window;
 
 	//Chapter 6 specific items
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_root_signature = nullptr;;
@@ -84,11 +102,27 @@ private:
 	Microsoft::WRL::ComPtr<ID3DBlob> m_ps_bytecode = nullptr; // compiled shader code for the pixel shader
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_input_layout;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pso = nullptr;
-	DirectX::XMFLOAT4X4 m_world = identity_4x4();
-	DirectX::XMFLOAT4X4 m_view = identity_4x4();
-	DirectX::XMFLOAT4X4 m_proj = identity_4x4();
+	DirectX::XMFLOAT4X4 m_world = MathHelper::identity_4x4();
+	DirectX::XMFLOAT4X4 m_view = MathHelper::identity_4x4();
+	DirectX::XMFLOAT4X4 m_proj = MathHelper::identity_4x4();
 	float m_theta = 1.5f * DirectX::XM_PI;
 	float m_phi = DirectX::XM_PIDIV4;
 	float m_radius = 5.0f;
 	POINT m_last_mouse_pos;
+
+	// chapter 15 specific items
+	std::vector<FrameResources*> m_frame_resources; // the frame resources ring buffer
+	FrameResources* m_curr_frame_resource = nullptr; // the frame resoures structure for the current frame
+	size_t m_curr_frame_resources_index = 0;
+	uint32_t m_cbv_srv_descriptor_size = 0;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_descriptor_heap = nullptr;
+	std::unordered_map<std::string, Mesh*> m_geometries;
+	std::unordered_map<std::string, Material*> m_materials;
+	std::unordered_map<std::string, Texture*> m_tesxtures;
+	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>> m_shaders;
+	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> m_psos;
+	std::vector<RenderItem*> m_render_items; // all render items for the frame
+	std::vector<RenderItem*> m_opaque_render_items; // render items for a pso
+	PassConstants m_main_pass_cb;
+	Camera m_camera; // move to engine?
 };

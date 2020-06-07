@@ -1,11 +1,11 @@
 #include "Window.h"
-#include "../engine.h"
+#include "../Engine.h"
 
 static bool window_initialized = false;
 
 static LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	auto window = engine->get_window();
+	auto window = engine->window;
 	if (window) return window->WindowProc(hwnd, uMsg, wParam, lParam);
 }
 

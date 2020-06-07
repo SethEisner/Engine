@@ -1,30 +1,39 @@
 #pragma once
-#include "RenderManager/Renderer.h"
-#include "InputManager/InputManager.h"
-#include "Memory/MemoryManager.h"
-#include "RenderManager/Window.h"
+#include <Windows.h>
+#include "RenderManager/d3dUtil.h"
+// #include "RenderManager/Renderer.h"
+// #include "InputManager/InputManager.h"
+// #include "Memory/MemoryManager.h"
+// #include "RenderManager/Window.h"
+// #include "RenderManager/Timer.h"
 
-//class Renderer;
+class Renderer;
+class Window;
+class InputManager;
+class Timer;
 
+//namespace Engine {
 class Engine {
 public:
-	Engine() = delete;
-	explicit Engine(HINSTANCE hInstance);
+	// bool init(HINSTANCE hInstance);
+	// void run();
+	// void update();
+	// void shutdown();
+	Engine() = default;
 	~Engine() = default;
-	bool init();
-	void run(); // calls the main game loop
-	void shutdown(); // called before the destructor
+	bool init(HINSTANCE hInstance);
+	void run();
+	void shutdown();
 	void update();
-	Renderer* get_renderer() const;
-	Window* get_window() const;
-	//void on_resize(); // function that gets called when the window is resized. calls the on_resize function for the Window and Renderer objects
-private:
-	Window* m_window;
-	// maybe turn into static globals like we currently have for the render manager
-	Renderer* m_renderer;
-	// InputManager* m_input_manager;
-	// jobsystem has no object, just a namespace
-	// MemoryManager* m_memory_manager;
+
+	Window* window;
+	InputManager* input_manager;
+	Renderer* renderer;
+	Timer* global_timer;
 };
 
 extern Engine* engine;
+// Window* Engine::window;
+// InputManager* Engine::input_manager;
+// Renderer* Engine::renderer;
+// Timer* Engine::global_timer;

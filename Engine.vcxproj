@@ -30,6 +30,7 @@
     <ClCompile Include="RenderManager\FrameResources.cpp" />
     <ClCompile Include="RenderManager\MathHelper.cpp" />
     <ClCompile Include="RenderManager\Renderer.cpp" />
+    <ClCompile Include="RenderManager\Timer.cpp" />
     <ClCompile Include="RenderManager\Window.cpp" />
     <ClCompile Include="ResourceManager\ResourceManager.cpp" />
     <ClCompile Include="Utilities\Utilities.cpp" />
@@ -56,6 +57,8 @@
     <ClInclude Include="RenderManager\FrameResources.h" />
     <ClInclude Include="RenderManager\MathHelper.h" />
     <ClInclude Include="RenderManager\Renderer.h" />
+    <ClInclude Include="RenderManager\RenderItem.h" />
+    <ClInclude Include="RenderManager\Timer.h" />
     <ClInclude Include="RenderManager\UploadBuffer.h" />
     <ClInclude Include="RenderManager\Window.h" />
     <ClInclude Include="ResourceManager\ResourceManager.h" />

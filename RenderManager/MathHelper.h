@@ -27,7 +27,7 @@ public:
 		return a > b ? a : b;
 	}
 	template <typename T>
-	static T lerp(const T& a, const T& b) {
+	static T lerp(const T& a, const T& b, float t) {
 		return a + (b - a) * t;
 	}
 	template <typename T>

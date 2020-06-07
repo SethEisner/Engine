@@ -1,46 +1,51 @@
 #include "Engine.h"
+#include "RenderManager/Renderer.h"
+#include "InputManager/InputManager.h"
+#include "Memory/MemoryManager.h"
+#include "RenderManager/Window.h"
+#include "RenderManager/Timer.h"
 
+Engine* engine = new Engine();
 
-//Engine* engine = new Engine();
+bool Engine::init(HINSTANCE hInstance) {
+	window = new Window(hInstance, L"class name", L"Window name");
+	global_timer = new Timer();
+	input_manager = new InputManager();
+	renderer = new Renderer();
 
-Engine::Engine(HINSTANCE hInstance) :
-	m_window(new Window(hInstance, L"class name", L"Window name")),
-	m_renderer(new Renderer(m_window)) {}
-bool Engine::init() {
-	// call init functions for all members in the correct order
-	if (!m_window->init()) return false;
+	if (!window->init()) return false;
 	try {
-		m_renderer->init();
+		renderer->init();
 	}
 	catch (DxException& e) {
 		MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
 		exit(e.error_code);
 	}
-	m_renderer->on_resize();
+	renderer->on_resize();
 	return true;
 }
 void Engine::run() {
 	MSG msg = { 0 };
-	while (msg.message != WM_QUIT) {
-		// if there are window messages then process them
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) >= 0) {
+	while (true) {
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0) {
+			if (msg.message == WM_QUIT) return;
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
-			//m_input_manager->get_input(msg); // call input manager with the message
+			input_manager->get_input(msg); // call input manager with the message so it can process it
 		}
-		m_renderer->update();
-		m_renderer->draw();
+		update();
+		renderer->draw();
 	}
 }
 void Engine::shutdown() {
-
+	delete renderer;
+	delete input_manager;
+	delete global_timer;
+	delete window;
+	delete engine;
 }
 void Engine::update() {
-	m_renderer->update();
+	global_timer->tick();
+	renderer->update();
 }
-Renderer* Engine::get_renderer() const {
-	return m_renderer;
-}
-Window* Engine::get_window() const {
-	if(this) return m_window;
-}
+

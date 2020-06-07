@@ -6,7 +6,7 @@
 #include <chrono>
 #include <string>
 #include "JobSystem/JobSystem.h"
-#include "InputManager/InputManager.h"
+//#include "InputManager/InputManager.h"
 #include "Utilities/Utilities.h"
 //#define NOMINMAX
 #include <windows.h>
@@ -20,6 +20,7 @@
 #include "ThreadSafeContainers/HashTable.h"
 #include "Engine.h"
 #include "ResourceManager/ResourceManager.h"
+#include "Engine.h"
 
 
 const int thread_count = 3; //std::min((unsigned int) 3, std::thread::hardware_concurrency() - 1);
@@ -63,19 +64,19 @@ size_t size_of(T ptr) {
 	return sizeof(*ptr);
 }
 
-Engine* engine;
+//Engine* engine;
 
 // int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hprevinstance, LPSTR lpcmdline, int nCmdShow) {
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pCmdLine, _In_ int nCmdShow) {
-	Engine* engine = new Engine(hInstance);
+	//Engine* engine = new Engine();
 	
 	//std::this_thread::sleep_for(std::chrono::seconds(2));
 	//JobSystem::startup(thread_count);
 
 
-	// engine->init();
-	// engine->run();
-	// engine->shutdown();
+	if (!engine->init(hInstance)) return -1;
+	engine->run();
+	engine->shutdown();
 
 
 	// HashTable<int, int> t;

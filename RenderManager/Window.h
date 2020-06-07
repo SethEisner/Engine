@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <windows.h>
 
-
+class Engine;
 
 class Window {
 public:
@@ -12,9 +12,9 @@ public:
 	//void on_resize(); //function that gets called when the window is resized
 	float get_aspect_ratio();
 	LRESULT WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	// HWND get_handle();
-	// size_t get_width();
-	// size_t get_height();
+	//HWND get_handle();
+	//size_t get_width();
+	//size_t get_height();
 	WNDCLASS m_window_class;
 	HWND m_handle;
 	size_t m_width;

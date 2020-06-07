@@ -9,45 +9,44 @@ void InputManager::get_input(const MSG& message) {
 	//while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE) > 0) { // there's a message in the queue
 		// TranslateMessage(&message); // translate the message into 
 		// DispatchMessageA(&message); // dispatch the messages we dont handle to the window procedure so we dont need to worry about the nitty gritty
-		uint32_t index = -1;
-		switch (message.message) {
-		case WM_MOUSEMOVE:
-			process_mousemove(message);
-			break;
-		case WM_LBUTTONDOWN:
-			process_mousedown(message, static_cast<uint32_t>(MouseButton::LEFT));
-			break;
-		case WM_MBUTTONDOWN:
-			process_mousedown(message, static_cast<uint32_t>(MouseButton::MIDDLE));
-			break;
-		case WM_RBUTTONDOWN:
-			process_mousedown(message, static_cast<uint32_t>(MouseButton::RIGHT));
-			break;
-		case WM_LBUTTONUP:
-			process_mouseup(message, static_cast<uint32_t>(MouseButton::LEFT));
-			break;
-		case WM_MBUTTONUP:
-			process_mouseup(message, static_cast<uint32_t>(MouseButton::MIDDLE));
-			break;
-		case WM_RBUTTONUP:
-			process_mouseup(message, static_cast<uint32_t>(MouseButton::RIGHT));
-			break;
-		//case WM_MOUSEWHEEL: 
-		//	process_mousewheel(message);
-		//	break;
-		case WM_KEYDOWN:
-			process_keydown(message);
-			break;
-		case WM_KEYUP:
-			process_keyup(message);
-			break;
-		case WM_CHAR: // used for generic typing, not for game input that we check the state of
-			process_char(message);
-			break;
-		case WM_DEADCHAR: // eventually use for i18n
-			break;
-		}
-	//}
+	uint32_t index = -1;
+	switch (message.message) {
+	case WM_MOUSEMOVE:
+		process_mousemove(message);
+		break;
+	case WM_LBUTTONDOWN:
+		process_mousedown(message, static_cast<uint32_t>(MouseButton::LEFT));
+		break;
+	case WM_MBUTTONDOWN:
+		process_mousedown(message, static_cast<uint32_t>(MouseButton::MIDDLE));
+		break;
+	case WM_RBUTTONDOWN:
+		process_mousedown(message, static_cast<uint32_t>(MouseButton::RIGHT));
+		break;
+	case WM_LBUTTONUP:
+		process_mouseup(message, static_cast<uint32_t>(MouseButton::LEFT));
+		break;
+	case WM_MBUTTONUP:
+		process_mouseup(message, static_cast<uint32_t>(MouseButton::MIDDLE));
+		break;
+	case WM_RBUTTONUP:
+		process_mouseup(message, static_cast<uint32_t>(MouseButton::RIGHT));
+		break;
+	//case WM_MOUSEWHEEL: 
+	//	process_mousewheel(message);
+	//	break;
+	case WM_KEYDOWN:
+		process_keydown(message);
+		break;
+	case WM_KEYUP:
+		process_keyup(message);
+		break;
+	case WM_CHAR: // used for generic typing, not for game input that we check the state of
+		process_char(message);
+		break;
+	case WM_DEADCHAR: // eventually use for i18n
+		break;
+	}
 }
 
 bool InputManager::is_pressed(uint32_t hashed_action_name) const {
