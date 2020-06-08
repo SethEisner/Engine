@@ -96,16 +96,16 @@ class ResourceManager {
 	};
 	struct RegistryEntry {
 		int64_t m_handle; // the handle to the general allocator's pointer
-		aiScene* m_scene_data; // ownership of this pointer is controlled by the assimp importer
+		//aiScene* m_scene_data; // ownership of this pointer is controlled by the assimp importer
 		int64_t m_ref_count; // the reference count of the resource
 		size_t m_size; // size of the memory block 
 		GUID m_internal_references[REFERENCE_ARRAY_SIZE]; // the GUIDs of internal references - 
 		GUID m_external_references[REFERENCE_ARRAY_SIZE]; // the GUIDs of all external references 
 		FileType m_file_type;
 		bool m_ready;
-		RegistryEntry(Handle _handle, aiScene* scene_ptr, size_t _size, int64_t _ref_count, bool _ready, FileType _file_type) :
+		RegistryEntry(Handle _handle, size_t _size, int64_t _ref_count, bool _ready, FileType _file_type) :
 			m_size(_size),
-			m_scene_data(scene_ptr), // set to nullptr because we must read later after creating the registry entry. assign later
+			//m_scene_data(scene_ptr), // set to nullptr because we must read later after creating the registry entry. assign later
 			m_handle(_handle),
 			m_ref_count(_ref_count),
 			m_internal_references(),
@@ -121,7 +121,7 @@ class ResourceManager {
 		RegistryEntry& operator=(const RegistryEntry& rhs) { // need move constructor because atomics
 			if (this != &rhs) {
 				this->m_handle = rhs.m_handle;
-				this->m_scene_data = this->m_scene_data;
+				//this->m_scene_data = this->m_scene_data;
 				this->m_ref_count = rhs.m_ref_count;
 				this->m_size = rhs.m_size;
 				std::copy(rhs.m_internal_references, rhs.m_internal_references + REFERENCE_ARRAY_SIZE, this->m_internal_references);
@@ -143,6 +143,7 @@ public:
 		m_registry(new HashTable<GUID, RegistryEntry>()),
 		m_ready_map(new HashTable<GUID, bool>()),
 		m_ready_map_lock(new std::shared_mutex()),
+		m_scene_map(new HashTable<GUID, const aiScene*>()),
 		m_dependency_count(new HashTable<GUID, size_t>()),
 		m_dependency_count_lock(new std::mutex()),
 		m_allocator(new GeneralAllocator(1024 * 1024 * 1024)),
@@ -157,6 +158,7 @@ public:
 		m_thread->join(); // 
 		delete m_registry;
 		delete m_ready_map;
+		delete m_scene_map;
 		delete m_ready_map_lock;
 		delete m_dependency_count;
 		delete m_dependency_count_lock;
@@ -171,6 +173,8 @@ public:
 	void load_resource(const std::string&, void(*function)(char*) = nullptr);
 	bool resource_loaded(const std::string&);
 	void remove_resource(const std::string&);
+	// reads a shared data structure and returns the ppointer to an aiScene object when given the filename
+	const aiScene* get_scene_pointer(const std::string&) const;
 private:
 	void remove_from_ready_map(GUID);
 	void set_ready_map(GUID, bool);
@@ -198,6 +202,7 @@ private:
 	// m_registry is shared across threads
 	HashTable<GUID, RegistryEntry>* m_registry; // registry to keep track of what has been loaded
 	HashTable<GUID, bool>* m_ready_map; // map from GUIDs to bools to we dont need to read the registry, only the resource thread should have access to the registry
+	HashTable<GUID, const aiScene*>* m_scene_map; // map from GUIDs to scene pointers so we can build the scene after it is loaded by assimp
 	std::shared_mutex* m_ready_map_lock;
 	HashTable<GUID, size_t>* m_dependency_count; // used to mark dependencies of unloaded stuff, 
 	std::mutex* m_dependency_count_lock;

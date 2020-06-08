@@ -1,5 +1,7 @@
 #include "d3dUtil.h"
 
+const int g_num_frame_resources = 3;
+
 DxException::DxException(HRESULT hr, const std::wstring& function_name, const std::wstring& filename, int line_number) :
 	error_code(hr),
 	function_name(function_name),

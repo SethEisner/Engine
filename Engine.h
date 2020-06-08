@@ -8,9 +8,12 @@
 // #include "RenderManager/Timer.h"
 
 class Renderer;
+class ResourceManager;
 class Window;
 class InputManager;
 class Timer;
+class Camera;
+class Scene;
 
 //namespace Engine {
 class Engine {
@@ -28,8 +31,11 @@ public:
 
 	Window* window;
 	InputManager* input_manager;
+	ResourceManager* resource_manager;
 	Renderer* renderer;
 	Timer* global_timer;
+	Camera* camera;
+	Scene* scene;
 };
 
 extern Engine* engine;

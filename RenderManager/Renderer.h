@@ -50,20 +50,20 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE current_back_buffer_view() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE depth_stencil_view() const;
 	void build_descriptor_heaps();
-	void build_constant_buffers();
+	//void build_constant_buffers();
 	void build_root_signature();
 	void build_shaders_and_input_layout();
 	void build_shape_geometry(); // change to use resource manager
-	void build_pso();
+	void build_psos();
 	void build_frame_resources();
 	void build_materials();
 	void build_render_items();
-	void draw_render_itens(ID3D12GraphicsCommandList*, const std::vector<RenderItem*>&);
+	void draw_render_items(ID3D12GraphicsCommandList*, const std::vector<RenderItem*>&);
 	void animate_materials(const Timer&);
 	void update_object_cbs(const Timer&);
 	void update_material_buffer(const Timer&);
 	void update_main_pass_cb(const Timer&);
-
+	void load_textures();
 	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> get_static_samplers();
 
 	bool m_4xMSAA = true;
@@ -95,7 +95,7 @@ private:
 
 	//Chapter 6 specific items
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_root_signature = nullptr;;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_cbv_heap = nullptr;
+	//Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_cbv_heap = nullptr;
 	UploadBuffer<ObjectConstants>* m_object_cb = nullptr;
 	Mesh* m_box_geo = nullptr;
 	Microsoft::WRL::ComPtr<ID3DBlob> m_vs_bytecode = nullptr; // compiled shader code for the vertex shader
@@ -118,7 +118,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_descriptor_heap = nullptr;
 	std::unordered_map<std::string, Mesh*> m_geometries;
 	std::unordered_map<std::string, Material*> m_materials;
-	std::unordered_map<std::string, Texture*> m_tesxtures;
+	std::unordered_map<std::string, Texture*> m_textures;
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>> m_shaders;
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> m_psos;
 	std::vector<RenderItem*> m_render_items; // all render items for the frame

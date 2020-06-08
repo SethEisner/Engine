@@ -1,19 +1,29 @@
 #include "Engine.h"
 #include "RenderManager/Renderer.h"
+#include "ResourceManager/ResourceManager.h"
 #include "InputManager/InputManager.h"
 #include "Memory/MemoryManager.h"
 #include "RenderManager/Window.h"
 #include "RenderManager/Timer.h"
+#include "RenderManager/Camera.h"
+#include "RenderManager/Scene.h"
 
 Engine* engine = new Engine();
 
 bool Engine::init(HINSTANCE hInstance) {
+	// constructors should be called in the order below. added an extra linebreak where order is dependent
 	window = new Window(hInstance, L"class name", L"Window name");
+	if (!window->init()) return false;
+
+	resource_manager = new ResourceManager();
 	global_timer = new Timer();
 	input_manager = new InputManager();
-	renderer = new Renderer();
+	camera = new Camera();
 
-	if (!window->init()) return false;
+	scene = new Scene();
+	if (!scene->init()) return false;
+
+	renderer = new Renderer();	
 	try {
 		renderer->init();
 	}
@@ -31,6 +41,9 @@ void Engine::run() {
 			if (msg.message == WM_QUIT) return;
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
+			switch (msg.message) {
+				// add size case
+			}
 			input_manager->get_input(msg); // call input manager with the message so it can process it
 		}
 		update();
@@ -39,8 +52,11 @@ void Engine::run() {
 }
 void Engine::shutdown() {
 	delete renderer;
+	delete scene;
+	delete resource_manager;
 	delete input_manager;
 	delete global_timer;
+	delete camera;
 	delete window;
 	delete engine;
 }

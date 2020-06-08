@@ -28,9 +28,9 @@ struct PassConstants {
 	float m_near_z = 0.0f;
 	float m_far_z = 0.0f;
 	float m_total_time = 0.0f;
-	float m_detla_time = 0.0f;
+	float m_delta_time = 0.0f;
 	DirectX::XMFLOAT4 m_ambient_light = { 0.0f, 0.0f, 0.0f, 1.0f };
-	Light Lights[MAXLIGHTS];
+	Light m_lights[MAXLIGHTS];
 };
 
 struct MaterialData {
