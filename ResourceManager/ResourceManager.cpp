@@ -11,6 +11,7 @@
 
 static constexpr bool RESOURCE_QUEUE_FULL = false;
 static constexpr bool REFERENCE_QUEUE_FULL = false;
+static constexpr uint32_t flags = 0;
 //typedef size_t GUID;
 // static HashTable<size_t, bool> ref_count_traversed_set;
 /* IMPORTANT:
@@ -98,13 +99,14 @@ void ResourceManager::change_reference_count_by(GUID registry_entry, int delta) 
 		}
 	}
 }
-Handle ResourceManager::read_resource_into_memory(const std::string& zip_file) {
+byte* ResourceManager::read_resource_into_memory(const std::string& zip_file) {
 	GUID zip_hash = std::hash<std::string>{}(zip_file);
 	if (m_registry->contains(zip_hash)) { // if the zip is already in the registry, update it's reference count
 		size_t zip_dependency_count = get_dependency_count(zip_hash);
 		//reset_ref_count_traversed_set();
 		change_reference_count_by(zip_hash, static_cast<int>(zip_dependency_count)); // increment it's count because we need to keep track of all load calls
-		return -1;
+		//return -1;
+		return nullptr;
 	}
 	std::string path = resource_path + zip_file;
 	FILE* fp = fopen(path.c_str(), "rb");
@@ -112,13 +114,16 @@ Handle ResourceManager::read_resource_into_memory(const std::string& zip_file) {
 	fseek(fp, 0, SEEK_END);
 	size_t file_length = ftell(fp);
 	rewind(fp);
-	byte* compressed = NEW_ARRAY(byte, file_length, m_allocator); // allocate space for the compressed memory from our general allocator
-	Handle h_compressed = m_allocator->register_allocated_mem(compressed);
+	//byte* compressed = NEW_ARRAY(byte, file_length, m_allocator); // allocate space for the compressed memory from our general allocator
+	//Handle h_compressed = m_allocator->register_allocated_mem(compressed);
+	byte* compressed = new byte[file_length];
 	fread(compressed, file_length, 1, fp); // read the file into memory
 	fclose(fp);
-	return h_compressed;
+	//return h_compressed;
+	return compressed;
 }
-void ResourceManager::unzip_resource(const std::string& zip_file, Handle h_compressed) { // occurs in the other thread
+// void ResourceManager::unzip_resource(const std::string& zip_file, Handle h_compressed) { // occurs in the other thread
+void ResourceManager::unzip_resource(const std::string& zip_file, byte* compressed) { // occurs in the other thread
 	z_stream infstream;
 	infstream.zalloc = Z_NULL;
 	infstream.zfree = Z_NULL;
@@ -130,7 +135,7 @@ void ResourceManager::unzip_resource(const std::string& zip_file, Handle h_compr
 	size_t offset = 0;
 	GUID zip_hash = std::hash<std::string>{}(zip_file);;
 	GUID resource_guid;
-	byte* compressed = reinterpret_cast<byte*>(m_allocator->get_pointer(h_compressed));
+	//byte* compressed = reinterpret_cast<byte*>(m_allocator->get_pointer(h_compressed));
 	size_t zip_dependency_count = get_dependency_count(zip_hash);
 	// make handle be negative becuase zips dont have ny memory associated with them
 	m_registry->insert((zip_hash), RegistryEntry(-1, 0, zip_dependency_count, false, FileType::ZIP));
@@ -139,7 +144,7 @@ void ResourceManager::unzip_resource(const std::string& zip_file, Handle h_compr
 	// decompress each file in the zip into its own registry entry
 	size_t external_resource_index = 0;
 	while (get_compressed_file_info(compressed, compressed_size, uncompressed_size, offset, file_name)) { // there is still a file that needs decompressing
-		uncompressed_size++; // add space for the null terminator so we can use strstr later
+		//uncompressed_size++; // add space for the null terminator so we can use strstr later
 		byte* uncompressed = NEW_ARRAY(byte, uncompressed_size, m_allocator); // create space for the uncompressed file
 		assert(uncompressed != nullptr);
 		Handle h_uncompressed = m_allocator->register_allocated_mem(uncompressed);// +1);
@@ -168,7 +173,8 @@ void ResourceManager::unzip_resource(const std::string& zip_file, Handle h_compr
 		add_external_dependency(zip_hash, resource_guid);
 		m_potentially_ready->push_back(resource_guid);
 	}
-	m_allocator->free(h_compressed); // free the compressed buffer
+	//m_allocator->free(h_compressed); // free the compressed buffer
+	delete[] compressed;
 	// get the external dependencies in the zip files
 	//m_dependencies_traversed_set->clear();
 	traverse_dependency_graph(zip_hash, zip_file, &ResourceManager::get_external_dependencies); // actually reads the uncompressed data if it
@@ -183,13 +189,14 @@ void ResourceManager::get_external_dependencies(GUID resource, const std::string
 	*/
 	RegistryEntry entry = m_registry->at(resource);
 	char* p_mem = reinterpret_cast<char*>(m_allocator->get_pointer(entry.m_handle));
-	uint32_t flags = 0; // flags for Assimp, 0 does nothing special
+	//uint32_t flags = 0; // flags for Assimp, 0 does nothing special
 	//aiScene* scene_ptr = nullptr;
 	switch (entry.m_file_type) {
 	case FileType::ZIP:
 		assert(false); // we should never get here
 	case FileType::MTL: // mtls are self contained
 		break;
+	//case FileType::FBX:
 	case FileType::DAE: { // zip file contains a dae file
 		const aiScene* scene_ptr = m_importer->ReadFileFromMemory(p_mem, entry.m_size, flags);
 		if (!scene_ptr) { // will be a nullptr if there was an error
@@ -225,9 +232,11 @@ void ResourceManager::get_external_dependencies(GUID resource, const std::string
 				// get the zip part of the reference (up until the first /)
 				size_t index = reference.find('/', 0); // get first occurance of /
 				std::string dependent_zip(reference, 0, index);
-				Handle handle = read_resource_into_memory(dependent_zip);
+				//Handle handle = read_resource_into_memory(dependent_zip);
+				Byte* handle = read_resource_into_memory(dependent_zip);
 				// dont call load_resource because that is the user's function as adds to the dependency map
-				assert(handle != -1); //if handle is -1 then we couldnt get a free block large enough
+				//assert(handle != -1); //if handle is -1 then we couldnt get a free block large enough
+				assert(handle != nullptr);
 				unzip_resource(dependent_zip, handle);
 			}
 			// add the file to our dependency list
@@ -355,11 +364,12 @@ void ResourceManager::free_resources() {
 void ResourceManager::start_resource_thread(void) { // run a loop that tries to pop a filepath from the Queue, and then read the data into memory
 	std::string zip_file;
 	ReferenceCountEntry entry;
-	Handle handle;
+	byte* handle;
 	while (run_flag) {
 		// if pop returned true then resource name has the name of the resource we need to unzip
 		if (m_resource_queue->pop(zip_file)) {
-			if ((handle = read_resource_into_memory(zip_file)) != -1) {
+			// if ((handle = read_resource_into_memory(zip_file)) != -1) {
+			if ((handle = read_resource_into_memory(zip_file)) != nullptr) {
 				unzip_resource(zip_file, handle);
 			}
 		}
@@ -421,6 +431,7 @@ ResourceManager::FileType ResourceManager::get_file_type(const std::string& file
 	if (extension == ".obj") return FileType::OBJ;
 	if (extension == ".mtl") return FileType::MTL;
 	if (extension == ".dae") return FileType::DAE;
+	//if (extension == ".fbx") return FileType::FBX;
 	assert(false); // the file extension is one we dont know how to handle
 	return FileType::INVALID;
 }

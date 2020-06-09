@@ -1,7 +1,9 @@
 #include "Renderer.h"
 #include <assert.h>
 #include <DirectXColors.h>
+#include <DirectXMath.h>
 #include "FrameResources.h"
+#include "Scene.h"
 #include "../Engine.h"
 
 bool Renderer::init() {
@@ -38,7 +40,7 @@ bool Renderer::init() {
 
 	// chapter 6 specific items
 	ThrowIfFailed(m_command_list->Reset(m_command_list_allocator.Get(), nullptr));
-	engine->camera->set_position(0.0f, 2.0f, -15.0f);
+	engine->camera->set_position(0.0f, 2.0f, -200.0f);
 	load_textures(); // separate loading from the renderer to use the resource manager
 	build_root_signature();
 	build_descriptor_heaps();
@@ -259,6 +261,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE Renderer::depth_stencil_view() const {
 	return m_dsv_heap->GetCPUDescriptorHandleForHeapStart();
 }
 void Renderer::build_descriptor_heaps() {
+	/* no texutres to deal with yet
 	D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc = {};
 	srv_heap_desc.NumDescriptors = 4;
 	srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -296,6 +299,7 @@ void Renderer::build_descriptor_heaps() {
 	srv_desc.Format = crate_tex->GetDesc().Format;
 	srv_desc.Texture2D.MipLevels = crate_tex->GetDesc().MipLevels;
 	m_d3d_device->CreateShaderResourceView(crate_tex.Get(), &srv_desc, h_desc);
+	*/
 }
 // void Renderer::build_constant_buffers() {
 // 	m_object_cb = new UploadBuffer<ObjectConstants>(m_d3d_device.Get(), 1, true);
@@ -340,15 +344,60 @@ void Renderer::build_shaders_and_input_layout() {
 	HRESULT hr = S_OK;
 	// m_vs_bytecode = compile_shader(L"Shaders\\color.hlsl", nullptr, "VS", "vs_5_0");
 	// m_ps_bytecode = compile_shader(L"Shaders\\color.hlsl", nullptr, "PS", "ps_5_0");
-	m_shaders["standard_vs"] = compile_shader(L"Shaders\\default.hlsl", nullptr, "VS", "vs_5_1");
-	m_shaders["opaque_ps"] = compile_shader(L"Shaders\\default.hlsl", nullptr, "PS", "ps_5_1");
+	// m_shaders["standard_vs"] = compile_shader(L"Shaders\\default.hlsl", nullptr, "VS", "vs_5_1");
+	// m_shaders["opaque_ps"] = compile_shader(L"Shaders\\default.hlsl", nullptr, "PS", "ps_5_1");
+
+	m_shaders["standard_vs"] = compile_shader(L"Shaders\\color.hlsl", nullptr, "VS", "vs_5_1");
+	m_shaders["opaque_ps"] = compile_shader(L"Shaders\\color.hlsl", nullptr, "PS", "ps_5_1");
 	m_input_layout = {
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		//{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
 }
 void Renderer::build_shape_geometry() {
+	// MeshData for the scene is in Engine->scene 
+
+	// use the MeshData structure to build the Mesh and Submesh structures
+	uint32_t vertex_offset = 0;
+	uint32_t index_offset = 0;
+
+	SubMesh cat;
+	cat.m_index_count = engine->scene->m_mesh->m_indecis.size();
+	cat.m_start_index = index_offset;
+	cat.m_base_vertex = vertex_offset;
+
+
+	// for each mesh, we copy the data to an vertices and indices buffer. for now we only have one mesh so we only copy one buffer 
+	size_t vertex_count = engine->scene->m_mesh->m_vertices.size();
+	size_t index_count = engine->scene->m_mesh->m_indecis.size();
+	std::vector<Vertex> vertices(vertex_count); // frameresources Vertex type
+	std::vector<uint16_t> indices(index_count);
+	size_t vertices_index = 0;
+	memcpy(vertices.data(), engine->scene->m_mesh->m_vertices.data(), vertex_count);
+	memcpy(indices.data(), engine->scene->m_mesh->m_indecis.data(), index_count);
+
+	const size_t vb_byte_size = vertices.size() * sizeof(Vertex);
+	const size_t ib_byte_size = indices.size() * sizeof(uint16_t);
+
+	// create a Mesh that holds the SubMesh and buffers we just created
+	Mesh* geo = new Mesh();
+	geo->name = "cat_geo";
+	ThrowIfFailed(D3DCreateBlob(vb_byte_size, &geo->m_vertex_buffer_cpu));
+	CopyMemory(geo->m_vertex_buffer_cpu->GetBufferPointer(), vertices.data(), vb_byte_size);
+	ThrowIfFailed(D3DCreateBlob(ib_byte_size, &geo->m_index_buffer_cpu));
+	CopyMemory(geo->m_index_buffer_cpu->GetBufferPointer(), indices.data(), ib_byte_size);
+
+	geo->m_vertex_buffer_gpu = create_default_buffer(m_d3d_device.Get(), m_command_list.Get(), vertices.data(), vb_byte_size, geo->m_vertex_buffer_uploader);
+	geo->m_index_buffer_gpu = create_default_buffer(m_d3d_device.Get(), m_command_list.Get(), indices.data(), ib_byte_size, geo->m_index_buffer_uploader);
+
+	geo->m_vertex_stride = sizeof(Vertex);
+	geo->m_vertex_buffer_size = vb_byte_size;
+	geo->m_index_format = DXGI_FORMAT_R16_UINT;
+	geo->m_index_buffer_size = ib_byte_size;
+
+	geo->m_draw_args["cat"] = cat;
+
 	// read and build from data that should be in ResourceManager
 	// using namespace DirectX;
 	// std::array<Vertex, 8> vertices = {
@@ -437,7 +486,13 @@ void Renderer::build_frame_resources() {
 	}
 }
 void Renderer::build_materials() {}
-void Renderer::build_render_items() {}
+void Renderer::build_render_items() {
+	RenderItem* cat = new RenderItem();
+	XMStoreFloat4x4(&cat->m_world, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f) * DirectX::XMMatrixTranslation(0.0f, 1.0f, 0.0f));
+	XMStoreFloat4x4(&cat->m_tex_transform, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
+	cat->m_obj_cb_index = 0;
+	cat->m_mesh = m_geometries["cat_geo"].ge;
+}
 void Renderer::draw_render_items(ID3D12GraphicsCommandList* cmd_list, const std::vector<RenderItem*>& r_items) { // rename to draw_game_objects
 	size_t obj_cb_size = calc_constant_buffer_size(sizeof(ObjectConstants));
 	auto object_cb = m_curr_frame_resource->m_object_cb->get_resource();

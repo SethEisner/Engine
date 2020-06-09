@@ -5,6 +5,9 @@
 #include "d3dUtil.h"
 #include "MathHelper.h"
 
+// constains structures for data that gets sent to the GPU
+// d3dUtil contains structures that are needed on the CPU side
+
 struct ObjectConstants {
 	DirectX::XMFLOAT4X4 m_world = MathHelper::identity_4x4();
 	DirectX::XMFLOAT4X4 m_tex_transform = MathHelper::identity_4x4();

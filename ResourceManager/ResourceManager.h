@@ -73,7 +73,7 @@ static constexpr char resource_path[52] = "C:/Users/Seth Eisner/source/repos/Eng
 class ResourceManager {
 	typedef size_t GUID;
 	typedef uint8_t byte;
-	enum class FileType { ZIP, OBJ, MTL, DAE, INVALID };
+	enum class FileType { ZIP = 0, OBJ = 1, MTL = 2, DAE = 3, INVALID = 4 };
 	struct ReferenceCountEntry {
 		GUID m_resource; // the resource to update the reference count of
 		int m_delta; // the number to change the reference count by
@@ -185,8 +185,10 @@ private:
 	void change_reference_count_by(GUID, int);
 	void get_external_dependencies(GUID, const std::string&);
 	void traverse_dependency_graph(GUID, const std::string&, void (ResourceManager::* func_p)(GUID, const std::string&));
-	Handle read_resource_into_memory(const std::string& zip_file);
-	void unzip_resource(const std::string&, Handle);
+	// Handle read_resource_into_memory(const std::string& zip_file);
+	byte* read_resource_into_memory(const std::string& zip_file);
+	// void unzip_resource(const std::string&, Handle);
+	void unzip_resource(const std::string&, byte*);
 	bool get_compressed_file_info(byte* compressed, size_t& compressed_size, size_t& uncompressed_size, size_t& offset, std::string& file_name);
 	void ready_resources(void);
 	int64_t get_dependency_sum(GUID);

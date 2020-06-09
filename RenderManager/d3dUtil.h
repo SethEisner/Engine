@@ -13,6 +13,9 @@
 #include <DirectXCollision.h>
 #include "MathHelper.h"
 
+
+//contains structures that are needed on the CPU side, and helper functions
+
 extern const int g_num_frame_resources;
 
 inline void assert_if_failed(HRESULT hr) {
@@ -71,12 +74,12 @@ struct SubMesh {
 	size_t m_start_index = 0;
 	size_t m_base_vertex = 0;
 	// bounding box for the mesh. change to sphere later
-	DirectX::BoundingBox Bounds; // bounding box for the mesh 
+	//DirectX::BoundingBox Bounds; // bounding box for the mesh 
 };
 
-struct Mesh {
+struct Mesh { // contains the buffers for a single object. combines all the submeshes into buffers (for vertex and index and cpu and gpu)
 	std::string name; // look up by name
-	uint64_t hash_name; // look up by hashed string name
+	//uint64_t hash_name; // look up by hashed string name
 	Microsoft::WRL::ComPtr<ID3DBlob> m_vertex_buffer_cpu = nullptr;
 	Microsoft::WRL::ComPtr<ID3DBlob> m_index_buffer_cpu = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_vertex_buffer_gpu = nullptr;
@@ -89,7 +92,8 @@ struct Mesh {
 	DXGI_FORMAT m_index_format = DXGI_FORMAT_R16_UINT; // indecis are unsigned, and 16 bits in size
 	size_t m_index_buffer_size = 0;
 	// a mesh can contain multiple meshes in one vertex/index buffer
-	std::unordered_map<uint64_t, SubMesh> m_draw_args; // replace with hashtable in threadsafe containers
+	std::unordered_map<std::string, SubMesh> m_draw_args; // replace with hashtable in threadsafe containers
+	bool initialized = false;
 	D3D12_VERTEX_BUFFER_VIEW get_vertex_buffer_view() const {
 		D3D12_VERTEX_BUFFER_VIEW vbv;
 		vbv.BufferLocation = m_vertex_buffer_gpu->GetGPUVirtualAddress();
