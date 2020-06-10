@@ -14,12 +14,12 @@ Scene::~Scene() {
 bool Scene::init() {
 	// use the resource manager to load the items into memory
 	// then build each RenderItem and add it to the vector
-
-	engine->resource_manager->load_resource("cat.zip");
-	while (!engine->resource_manager->resource_loaded("cat.zip")) {
+	std::string temp = "cat";
+	engine->resource_manager->load_resource(temp + ".zip");
+	while (!engine->resource_manager->resource_loaded(temp + ".zip")) {
 		//std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
-	const aiScene* scene = engine->resource_manager->get_scene_pointer("cat.zip/cat.dae");
+	const aiScene* scene = engine->resource_manager->get_scene_pointer(temp + ".zip/" + temp + ".dae");
 	if (scene == nullptr) return false;
 
 	m_mesh->init(scene->mMeshes[0]);

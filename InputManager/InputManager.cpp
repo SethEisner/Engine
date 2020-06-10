@@ -1,10 +1,21 @@
 #include "InputManager.h"
 #include <windows.h>
 #include <windowsx.h>  // for GET_X/Y_PARAM
+#include <string>
 
-void InputManager::get_input(const MSG& message) {
+void InputManager::update() {
 	update_key_states(); // update the states of the relative buttons before we read in more input
-
+	//update_mouse_state(); // reset the mouse input once per frame
+}
+void InputManager::update_mouse_state() {
+	// set the current state to be the previous state
+	// m_mouse_state.x = m_mouse_state.prev_x;
+	// m_mouse_state.y = m_mouse_state.prev_y;
+	m_mouse_state.position_changed = false;
+}
+void InputManager::get_input(const MSG& message) {
+	// update_key_states(); // update the states of the relative buttons before we read in more input
+	// update_mouse_state();
 	//MSG message = { 0 };
 	//while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE) > 0) { // there's a message in the queue
 		// TranslateMessage(&message); // translate the message into 
@@ -109,6 +120,15 @@ int InputManager::get_mouse_x() const {
 int InputManager::get_mouse_y() const {
 	return m_mouse_state.y;
 }
+int InputManager::get_mouse_prev_x() const {
+	return m_mouse_state.prev_x;
+}
+int InputManager::get_mouse_prev_y() const {
+	return m_mouse_state.prev_y;
+}
+bool  InputManager::mouse_pos_changed() const {
+	return m_mouse_state.position_changed;
+}
 // private functions:
 void InputManager::update_key_states() { // used to make sure released only exists for one frame, and to make sure that we properly transition to held for the mouse buttons
 	memset(m_character_pressed, 0, 256 * sizeof(uint8_t)); // compiler should make this super fast
@@ -146,9 +166,17 @@ void InputManager::update_key_states() { // used to make sure released only exis
 		}
 	}
 }
+
 void InputManager::update_mouse_pos(const MSG& message) {
+	m_mouse_state.prev_x = m_mouse_state.x;
+	m_mouse_state.prev_y = m_mouse_state.y;
 	m_mouse_state.x = GET_X_LPARAM(message.lParam);
 	m_mouse_state.y = GET_Y_LPARAM(message.lParam);
+	m_mouse_state.position_changed = true;
+	// std::string temp = "";
+	// temp += std::to_string(m_mouse_state.x) + " " + std::to_string(m_mouse_state.y) + "\n";
+	// OutputDebugStringA(temp.c_str());
+	// std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 void InputManager::process_mousemove(const MSG& message) {
 	update_mouse_pos(message);

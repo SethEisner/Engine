@@ -5,6 +5,7 @@
 #include "FrameResources.h"
 #include "Scene.h"
 #include "../Engine.h"
+#include <exception>
 
 bool Renderer::init() {
 
@@ -40,7 +41,9 @@ bool Renderer::init() {
 
 	// chapter 6 specific items
 	ThrowIfFailed(m_command_list->Reset(m_command_list_allocator.Get(), nullptr));
-	engine->camera->set_position(0.0f, 2.0f, -200.0f);
+	engine->camera->set_position(0.0f, 0.0f, -15.0f);
+	// engine->camera->look_at(DirectX::XMFLOAT3(0.0f, -300.0f, -350.0f), DirectX::XMFLOAT3(0.0f,0.0f,0.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f)) ;
+	engine->camera->update_view_matrix();
 	load_textures(); // separate loading from the renderer to use the resource manager
 	build_root_signature();
 	build_descriptor_heaps();
@@ -101,13 +104,13 @@ void Renderer::draw() {
 
 	// chapter 6
 	ID3D12DescriptorHeap* descriptor_heaps[] = { m_srv_descriptor_heap.Get() };
-	m_command_list->SetDescriptorHeaps(_countof(descriptor_heaps), descriptor_heaps);
+	m_command_list->SetDescriptorHeaps(/*_countof(descriptor_heaps)*/ 0, descriptor_heaps);
 	m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
 	auto pass_cb = m_curr_frame_resource->m_pass_cb->get_resource();
 	m_command_list->SetGraphicsRootConstantBufferView(1, pass_cb->GetGPUVirtualAddress());
-	auto mat_buffer = m_curr_frame_resource->m_material_buffer->get_resource();
-	m_command_list->SetGraphicsRootShaderResourceView(2, mat_buffer->GetGPUVirtualAddress());
-	m_command_list->SetGraphicsRootDescriptorTable(3, m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
+	// auto mat_buffer = m_curr_frame_resource->m_material_buffer->get_resource();
+	// m_command_list->SetGraphicsRootShaderResourceView(2, mat_buffer->GetGPUVirtualAddress());
+	// m_command_list->SetGraphicsRootDescriptorTable(3, m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
 	draw_render_items(m_command_list.Get(), m_opaque_render_items);
 	m_command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(current_back_buffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 	ThrowIfFailed(m_command_list->Close());
@@ -116,7 +119,15 @@ void Renderer::draw() {
 	ID3D12CommandList* cmd_lists[] = { m_command_list.Get() };
 	m_command_queue->ExecuteCommandLists(_countof(cmd_lists), cmd_lists);
 	// swap the back and front buffers
-	ThrowIfFailed(m_swap_chain->Present(0, 0));
+	try {
+		ThrowIfFailed(m_swap_chain->Present(0, 0));
+	}
+	catch (DxException& e) {
+		HRESULT hr = m_d3d_device->GetDeviceRemovedReason();
+		MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
+		exit(e.error_code);
+	}
+	//ThrowIfFailed(m_swap_chain->Present(0, 0));
 	m_current_back_buffer = (m_current_back_buffer + 1) % SWAP_CHAIN_BUFFER_COUNT;
 	// advance the dence value to mark the commands up to this fence point
 	m_curr_frame_resource->m_fence = ++m_current_fence;
@@ -351,8 +362,8 @@ void Renderer::build_shaders_and_input_layout() {
 	m_shaders["opaque_ps"] = compile_shader(L"Shaders\\color.hlsl", nullptr, "PS", "ps_5_1");
 	m_input_layout = {
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		//{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
 }
 void Renderer::build_shape_geometry() {
@@ -368,14 +379,14 @@ void Renderer::build_shape_geometry() {
 	cat.m_base_vertex = vertex_offset;
 
 
-	// for each mesh, we copy the data to an vertices and indices buffer. for now we only have one mesh so we only copy one buffer 
+	// for each mesh, we copy the data to a vertices and indices buffer. for now we only have one mesh so we only copy one buffer 
 	size_t vertex_count = engine->scene->m_mesh->m_vertices.size();
 	size_t index_count = engine->scene->m_mesh->m_indecis.size();
 	std::vector<Vertex> vertices(vertex_count); // frameresources Vertex type
 	std::vector<uint16_t> indices(index_count);
 	size_t vertices_index = 0;
-	memcpy(vertices.data(), engine->scene->m_mesh->m_vertices.data(), vertex_count);
-	memcpy(indices.data(), engine->scene->m_mesh->m_indecis.data(), index_count);
+	memcpy(vertices.data(), engine->scene->m_mesh->m_vertices.data(), vertex_count * sizeof(Vertex));
+	memcpy(indices.data(), engine->scene->m_mesh->m_indecis.data(), index_count * sizeof(uint16_t));
 
 	const size_t vb_byte_size = vertices.size() * sizeof(Vertex);
 	const size_t ib_byte_size = indices.size() * sizeof(uint16_t);
@@ -397,6 +408,8 @@ void Renderer::build_shape_geometry() {
 	geo->m_index_buffer_size = ib_byte_size;
 
 	geo->m_draw_args["cat"] = cat;
+
+	m_geometries[geo->name] = std::move(geo);
 
 	// read and build from data that should be in ResourceManager
 	// using namespace DirectX;
@@ -464,10 +477,23 @@ void Renderer::build_psos() {
 		m_shaders["standard_vs"]->GetBufferSize()
 	};
 	opaque_pso_desc.PS = { 
-		reinterpret_cast<BYTE*>(m_shaders["opaque_vs"]->GetBufferPointer()),
-		m_shaders["opaque_vs"]->GetBufferSize()
+		reinterpret_cast<BYTE*>(m_shaders["opaque_ps"]->GetBufferPointer()),
+		m_shaders["opaque_ps"]->GetBufferSize()
 	};
-	opaque_pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	CD3DX12_RASTERIZER_DESC rasterizer_state = {};
+	rasterizer_state.FillMode = D3D12_FILL_MODE_WIREFRAME;
+	rasterizer_state.CullMode = D3D12_CULL_MODE_BACK;
+	rasterizer_state.FrontCounterClockwise = FALSE;
+	rasterizer_state.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+	rasterizer_state.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+	rasterizer_state.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+	rasterizer_state.DepthClipEnable = TRUE;
+	rasterizer_state.MultisampleEnable = FALSE;
+	rasterizer_state.AntialiasedLineEnable = FALSE;
+	rasterizer_state.ForcedSampleCount = 0;
+	rasterizer_state.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+	
+	opaque_pso_desc.RasterizerState = rasterizer_state;
 	opaque_pso_desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	opaque_pso_desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	opaque_pso_desc.SampleMask = UINT_MAX;
@@ -488,10 +514,16 @@ void Renderer::build_frame_resources() {
 void Renderer::build_materials() {}
 void Renderer::build_render_items() {
 	RenderItem* cat = new RenderItem();
-	XMStoreFloat4x4(&cat->m_world, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f) * DirectX::XMMatrixTranslation(0.0f, 1.0f, 0.0f));
+	XMStoreFloat4x4(&cat->m_world, DirectX::XMMatrixScaling(0.01f, 0.01f, 0.01f) * DirectX::XMMatrixTranslation(0.0f, 0.0f, 0.0f));
 	XMStoreFloat4x4(&cat->m_tex_transform, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
 	cat->m_obj_cb_index = 0;
-	cat->m_mesh = m_geometries["cat_geo"].ge;
+	cat->m_mesh = m_geometries["cat_geo"];
+	cat->m_primitive_type = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	cat->m_index_count = cat->m_mesh->m_draw_args["cat"].m_index_count;
+	cat->m_start_index_location = cat->m_mesh->m_draw_args["cat"].m_start_index;
+	cat->m_base_vertex_location = cat->m_mesh->m_draw_args["cat"].m_base_vertex;
+	m_render_items.push_back(cat);
+	m_opaque_render_items.push_back(cat);
 }
 void Renderer::draw_render_items(ID3D12GraphicsCommandList* cmd_list, const std::vector<RenderItem*>& r_items) { // rename to draw_game_objects
 	size_t obj_cb_size = calc_constant_buffer_size(sizeof(ObjectConstants));
@@ -518,7 +550,7 @@ void Renderer::update_object_cbs(const Timer& t) {
 			ObjectConstants obj_consts;
 			XMStoreFloat4x4(&obj_consts.m_world, XMMatrixTranspose(world));
 			XMStoreFloat4x4(&obj_consts.m_tex_transform, XMMatrixTranspose(tex_transform));
-			obj_consts.m_material_index = item->m_material->m_mat_cb_index;
+			//obj_consts.m_material_index = item->m_material->m_mat_cb_index;
 			curr_object_cb->copy_data(item->m_obj_cb_index, obj_consts);
 			item->m_num_frames_dirty--;
 		}
@@ -544,6 +576,7 @@ void Renderer::update_material_buffer(const Timer& t) {
 }
 void Renderer::update_main_pass_cb(const Timer& t) {
 	using namespace DirectX;
+	engine->camera->update_view_matrix();
 	XMMATRIX view = engine->camera->get_view();
 	XMMATRIX proj = engine->camera->get_proj();
 	XMMATRIX view_proj = XMMatrixMultiply(view, proj);

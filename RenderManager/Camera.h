@@ -37,11 +37,14 @@ public:
 	DirectX::XMMATRIX get_proj() const;
 	DirectX::XMFLOAT4X4 get_view4x4() const;
 	DirectX::XMFLOAT4X4 get_proj4x4() const;
+	void pitch(float angle);
+	void yaw(float angle);
 	// set strafe/walk the camera a distance d
 	void strafe(float d);
 	void walk(float d);
 	// function to rebuild the view matrix after the camera moves
 	void update_view_matrix();
+	void update(); // read from the input manager
 private:
 	// camera coodinate system defined relative to world space
 	DirectX::XMFLOAT3 m_pos = { 0.0f, 0.0f, 0.0f }; // default position is world origin
@@ -59,4 +62,6 @@ private:
 	// current view and projection matrices
 	DirectX::XMFLOAT4X4 m_view = MathHelper::identity_4x4();
 	DirectX::XMFLOAT4X4 m_proj = MathHelper::identity_4x4();
+	DirectX::XMFLOAT4X4 m_rotation = MathHelper::identity_4x4();
+	// DirectX::XMFLOAT4X4 m_translation = MathHelper::identity_4x4();
 };

@@ -37,6 +37,7 @@ bool Engine::init(HINSTANCE hInstance) {
 void Engine::run() {
 	MSG msg = { 0 };
 	while (true) {
+		input_manager->update();
 		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0) {
 			if (msg.message == WM_QUIT) return;
 			TranslateMessage(&msg);
@@ -61,6 +62,7 @@ void Engine::shutdown() {
 	delete engine;
 }
 void Engine::update() {
+	camera->update();
 	global_timer->tick();
 	renderer->update();
 }

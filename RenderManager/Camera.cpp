@@ -1,5 +1,7 @@
 #include "Camera.h"
 #include "../Utilities/Utilities.h"
+#include "../Engine.h"
+#include "../InputManager/InputManager.h"
 using namespace DirectX;
 
 Camera::Camera() {
@@ -108,6 +110,25 @@ XMFLOAT4X4 Camera::get_view4x4() const {
 XMFLOAT4X4 Camera::get_proj4x4() const {
 	return m_proj;
 }
+// given radians
+void Camera::pitch(float angle) { // rotate about the right vector
+	// rotates the up and look vector about the right vector
+	XMMATRIX rotation = XMMatrixRotationAxis(XMLoadFloat3(&m_right), angle);
+	XMStoreFloat3(&m_up, XMVector3TransformNormal(XMLoadFloat3(&m_up), rotation));
+	XMStoreFloat3(&m_look, XMVector3TransformNormal(XMLoadFloat3(&m_look), rotation));
+	//XMStoreFloat4x4(&m_rotation, rotation);
+	m_view_dirty = true;
+}
+void Camera::yaw(float angle) {
+	// rotates the basis vectors about the y-axis
+	XMMATRIX rotation = XMMatrixRotationY(angle);
+
+	XMStoreFloat3(&m_right, XMVector3Transform(XMLoadFloat3(&m_right), rotation));
+	XMStoreFloat3(&m_up, XMVector3Transform(XMLoadFloat3(&m_up), rotation));
+	XMStoreFloat3(&m_look, XMVector3Transform(XMLoadFloat3(&m_look), rotation));
+
+	m_view_dirty = true;
+}
 // strafe left and right along the right vector
 void Camera::strafe(float d) { // d is direction (+d is right, -d is left)
 	// m_pos += d * m_right; kinematic equation
@@ -167,5 +188,21 @@ void Camera::update_view_matrix() {
 		m_view(3, 3) = 1.0f;
 
 		m_view_dirty = false;
+	}
+}
+void Camera::update() {
+	if (engine->input_manager->mouse_pos_changed()) {
+
+		int x = engine->input_manager->get_mouse_x();
+		int y = engine->input_manager->get_mouse_y();
+		int prev_x = engine->input_manager->get_mouse_prev_x();
+		int prev_y = engine->input_manager->get_mouse_prev_y();
+		float dx = XMConvertToRadians(0.125f * -static_cast<float>(x - prev_x));
+		float dy = XMConvertToRadians(0.125f * -static_cast<float>(y - prev_y));
+		std::string temp = std::to_string(dx) + " " + std::to_string(dy) + "\n";
+		OutputDebugStringA(temp.c_str());
+		yaw(dx);
+		pitch(dy);
+		engine->input_manager->update_mouse_state();
 	}
 }
