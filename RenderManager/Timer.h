@@ -9,6 +9,8 @@ public:
     void start();
     void stop();
     void tick();
+    bool running() const;
+    void toggle();
 private:
     double m_seconds_per_count; // hardware specific
     double m_delta_time;

@@ -2,16 +2,29 @@
 #include <windows.h>
 #include <windowsx.h>  // for GET_X/Y_PARAM
 #include <string>
+#include "../RenderManager/Window.h"
+#include "../Engine.h"
+#include "../Utilities/Utilities.h"
 
+void InputManager::init() {
+	add_action(HASH("right"), InputManager::Key('D'));
+	add_action(HASH("left"), InputManager::Key('A'));
+	add_action(HASH("forward"), InputManager::Key('W'));
+	add_action(HASH("backward"), InputManager::Key('S'));
+}
 void InputManager::update() {
 	update_key_states(); // update the states of the relative buttons before we read in more input
-	//update_mouse_state(); // reset the mouse input once per frame
+	update_mouse_state(); // reset the mouse input once per frame
 }
 void InputManager::update_mouse_state() {
-	// set the current state to be the previous state
-	// m_mouse_state.x = m_mouse_state.prev_x;
-	// m_mouse_state.y = m_mouse_state.prev_y;
-	m_mouse_state.position_changed = false;
+	// set the prev state to be the current state
+	if (m_mouse_state.position_changed) {
+		// m_mouse_state.prev_x = m_mouse_state.x;
+		// m_mouse_state.prev_y = m_mouse_state.y;
+		//m_mouse_state.delta_y = 0.0f;
+		//SetCursorPos(static_cast<int>(engine->window->m_width / 2), static_cast<int>(engine->window->m_height / 2));
+		m_mouse_state.position_changed = false;
+	}
 }
 void InputManager::get_input(const MSG& message) {
 	// update_key_states(); // update the states of the relative buttons before we read in more input
@@ -78,6 +91,7 @@ bool InputManager::is_released(uint32_t hashed_action_name) const {
 }
 bool InputManager::is_held(uint32_t hashed_action_name) const {
 	//const GameAction* action = &(m_name_to_action[hashed_action_name % m_action_count]);
+	//OutputDebugStringA("is held\n");
 	const GameAction action = m_name_to_action->at(hashed_action_name);
 	if (action.m_type == GameAction::GameAction_t::MOUSEBUTTON) {
 		return m_mouse_state.m_buttons[static_cast<uint32_t>(action.m_value.m_button)].m_curr_state == State::HELD;
@@ -126,6 +140,14 @@ int InputManager::get_mouse_prev_x() const {
 int InputManager::get_mouse_prev_y() const {
 	return m_mouse_state.prev_y;
 }
+float InputManager::get_mouse_delta_x() const {
+	return m_mouse_state.delta_x;
+	//return m_mouse_state.x - m_mouse_state.prev_x;
+}
+float InputManager::get_mouse_delta_y() const {
+	return m_mouse_state.delta_y;
+	// return m_mouse_state.y - m_mouse_state.prev_y;
+}
 bool  InputManager::mouse_pos_changed() const {
 	return m_mouse_state.position_changed;
 }
@@ -168,15 +190,28 @@ void InputManager::update_key_states() { // used to make sure released only exis
 }
 
 void InputManager::update_mouse_pos(const MSG& message) {
-	m_mouse_state.prev_x = m_mouse_state.x;
-	m_mouse_state.prev_y = m_mouse_state.y;
-	m_mouse_state.x = GET_X_LPARAM(message.lParam);
-	m_mouse_state.y = GET_Y_LPARAM(message.lParam);
-	m_mouse_state.position_changed = true;
-	// std::string temp = "";
-	// temp += std::to_string(m_mouse_state.x) + " " + std::to_string(m_mouse_state.y) + "\n";
-	// OutputDebugStringA(temp.c_str());
-	// std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	// convert window coordinate to client area coordinate with origin at the center of the client area
+	int delta_x = GET_X_LPARAM(message.lParam) - static_cast<int>(engine->window->m_width / 2) - engine->window->m_left;
+	int delta_y = -(GET_Y_LPARAM(message.lParam) - static_cast<int>(engine->window->m_height / 2)) + engine->window->m_top;
+	std::string debug = std::to_string(delta_x) + " " + std::to_string(delta_y) + "\n";
+	//OutputDebugStringA(debug.c_str());
+	// if the mouse is not centered at the screen
+	if (delta_x != 0 || delta_y != 0) { // there is a change in either the x or y direction
+		// distance of mouse from the center of the window
+		m_mouse_state.delta_x += delta_x;
+		m_mouse_state.delta_y += -delta_y;
+		// m_mouse_state.delta_y = m_mouse_state.y - m_mouse_state.prev_y;
+		// m_mouse_state.delta_x = (static_cast<float>(GET_X_LPARAM(message.lParam)) - static_cast<float>(m_mouse_state.prev_x)) - static_cast<float>(engine->window->m_width / 2);
+		// m_mouse_state.delta_y = -(static_cast<float>(GET_Y_LPARAM(message.lParam)) - static_cast<float>(engine->window->m_height / 2));
+		m_mouse_state.position_changed = true;
+		if (engine->window->m_mouse_captured) {
+			SetCursorPos(static_cast<int>(engine->window->m_width / 2) + engine->window->m_screen_x, static_cast<int>(engine->window->m_height / 2) + engine->window->m_screen_y);
+		}
+		// std::string temp = "";
+		// temp += std::to_string(m_mouse_state.x) + " " + std::to_string(m_mouse_state.y) + "\n";
+		// OutputDebugStringA(temp.c_str());
+		// std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
 }
 void InputManager::process_mousemove(const MSG& message) {
 	update_mouse_pos(message);

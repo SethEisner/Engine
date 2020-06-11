@@ -44,7 +44,7 @@ public:
 	void walk(float d);
 	// function to rebuild the view matrix after the camera moves
 	void update_view_matrix();
-	void update(); // read from the input manager
+	void update(float); // read from the input manager
 private:
 	// camera coodinate system defined relative to world space
 	DirectX::XMFLOAT3 m_pos = { 0.0f, 0.0f, 0.0f }; // default position is world origin
@@ -62,6 +62,17 @@ private:
 	// current view and projection matrices
 	DirectX::XMFLOAT4X4 m_view = MathHelper::identity_4x4();
 	DirectX::XMFLOAT4X4 m_proj = MathHelper::identity_4x4();
-	DirectX::XMFLOAT4X4 m_rotation = MathHelper::identity_4x4();
-	// DirectX::XMFLOAT4X4 m_translation = MathHelper::identity_4x4();
+	DirectX::XMFLOAT4X4 m_rotation_right = MathHelper::identity_4x4();
+	const DirectX::XMVECTOR m_default_forward = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+	const DirectX::XMVECTOR m_default_right = DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+
+
+	float m_strafe = 0.0f;
+	float m_walk = 0.0f;
+
+	float m_yaw = 0.0f;
+	float m_pitch = 0.0f;
+
+	float m_curr_pitch = 0.0f;
+	// roll should always be zero (for now)
 };

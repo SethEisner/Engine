@@ -46,6 +46,14 @@ bool Window::init() {
 	}
 	ShowWindow(m_handle, SW_SHOW);
 	UpdateWindow(m_handle);
+	SetCapture(m_handle);
+	m_mouse_captured = true;
+	//ClipCursor(&R);
+	m_left = R.left;
+	m_top = R.top;
+	GetWindowRect(m_handle, &R);
+	m_screen_x = R.left;
+	m_screen_y = R.top;
 	window_initialized = true;
 	return true;
 }
@@ -63,6 +71,11 @@ LRESULT Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 float Window::get_aspect_ratio() {
 	return static_cast<float>(m_width) / m_height;
+}
+void Window::toggle_mouse_capture() {
+	if (m_mouse_captured) ReleaseCapture();
+	else SetCapture(m_handle);
+	m_mouse_captured = !m_mouse_captured;
 }
 // HWND Window::get_handle() {
 // 	return m_window_handle;

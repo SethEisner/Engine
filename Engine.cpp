@@ -18,6 +18,7 @@ bool Engine::init(HINSTANCE hInstance) {
 	resource_manager = new ResourceManager();
 	global_timer = new Timer();
 	input_manager = new InputManager();
+	input_manager->init();
 	camera = new Camera();
 
 	scene = new Scene();
@@ -37,18 +38,21 @@ bool Engine::init(HINSTANCE hInstance) {
 void Engine::run() {
 	MSG msg = { 0 };
 	while (true) {
-		input_manager->update();
+		input_manager->update(); // update the input manager states
 		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0) {
 			if (msg.message == WM_QUIT) return;
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
-			switch (msg.message) {
-				// add size case
+			if (msg.message == WM_KEYDOWN && msg.wParam == VK_ESCAPE) {
+				engine->window->toggle_mouse_capture();
+				global_timer->toggle();
 			}
 			input_manager->get_input(msg); // call input manager with the message so it can process it
 		}
-		update();
-		renderer->draw();
+		if (global_timer->running()) {
+			update();
+			renderer->draw();
+		}
 	}
 }
 void Engine::shutdown() {
@@ -62,7 +66,7 @@ void Engine::shutdown() {
 	delete engine;
 }
 void Engine::update() {
-	camera->update();
+	camera->update(global_timer->delta_time());
 	global_timer->tick();
 	renderer->update();
 }

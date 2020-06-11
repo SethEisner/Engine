@@ -7,6 +7,7 @@ using namespace DirectX;
 Camera::Camera() {
 	// create default lens with an fov of 90, an aspect ratio of 1.0f, a near plane at 1.0f,a nd a far plane at 1000.0f
 	set_lens(radians(90.0f), 1.0f, 1.0f, 1000.0f);
+	//update_view_matrix();
 }
 XMVECTOR Camera::get_position() const{
 	return XMLoadFloat3(&m_pos);
@@ -97,14 +98,14 @@ void Camera::look_at(const XMFLOAT3& pos, const XMFLOAT3& target, const XMFLOAT3
 	m_view_dirty = true;
 }
 XMMATRIX Camera::get_view() const {
-	assert(!m_view_dirty);
+	//assert(!m_view_dirty);
 	return XMLoadFloat4x4(&m_view);
 }
 XMMATRIX Camera::get_proj() const {
 	return XMLoadFloat4x4(&m_proj);
 }
 XMFLOAT4X4 Camera::get_view4x4() const {
-	assert(!m_view_dirty);
+	//assert(!m_view_dirty);
 	return m_view;
 }
 XMFLOAT4X4 Camera::get_proj4x4() const {
@@ -137,6 +138,7 @@ void Camera::strafe(float d) { // d is direction (+d is right, -d is left)
 	XMVECTOR pos = XMLoadFloat3(&m_pos);
 	// scalar * right + pos
 	XMStoreFloat3(&m_pos, XMVectorMultiplyAdd(scalar, right, pos));
+	//XMStoreFloat3(&m_look, XMVectorAdd(pos, XMLoadFloat3(&m_look)));
 	m_view_dirty = true;
 }
 // walk forwards and backwards and the look vector (+d forwards, -d backwards)
@@ -148,7 +150,7 @@ void Camera::walk(float d) {
 	m_view_dirty = true;
 }
 void Camera::update_view_matrix() {
-	if (m_view_dirty) {
+	/*if (m_view_dirty) {
 		XMVECTOR right = XMLoadFloat3(&m_right);
 		XMVECTOR up = XMLoadFloat3(&m_up);
 		XMVECTOR look = XMLoadFloat3(&m_look);
@@ -159,9 +161,9 @@ void Camera::update_view_matrix() {
 		right = XMVector3Cross(up, look);
 		
 		// negate because LH coordinate system
-		float x = -XMVectorGetX(XMVector3Dot(pos, right));
-		float y = -XMVectorGetX(XMVector3Dot(pos, up));
-		float z = -XMVectorGetZ(XMVector3Dot(pos, look));
+		float x = XMVectorGetX(XMVector3Dot(pos, right));
+		float y = XMVectorGetX(XMVector3Dot(pos, up));
+		float z = XMVectorGetZ(XMVector3Dot(pos, look));
 
 		XMStoreFloat3(&m_right, right);
 		XMStoreFloat3(&m_right, up);
@@ -188,21 +190,59 @@ void Camera::update_view_matrix() {
 		m_view(3, 3) = 1.0f;
 
 		m_view_dirty = false;
-	}
+	}*/
 }
-void Camera::update() {
-	if (engine->input_manager->mouse_pos_changed()) {
+void Camera::update(float delta_t) {
+	// if (engine->input_manager->mouse_pos_changed()) {
+	// 	int x = engine->input_manager->get_mouse_x();
+	// 	int y = engine->input_manager->get_mouse_y();
+	// 	int prev_x = engine->input_manager->get_mouse_prev_x();
+	// 	int prev_y = engine->input_manager->get_mouse_prev_y();
+	// 	float dx = XMConvertToRadians(0.125f * static_cast<float>(x - prev_x));
+	// 	float dy = XMConvertToRadians(0.125f * static_cast<float>(y - prev_y));
+	// 	std::string temp = std::to_string(dx) + " " + std::to_string(dy) + "\n";
+	// 	OutputDebugStringA(temp.c_str());
+	// 	yaw(dx);
+	// 	pitch(dy);
+	// 	//engine->input_manager->update_mouse_state();
+	// }
+	
+	//if (engine->input_manager->mouse_pos_changed()) {
+		m_yaw = engine->input_manager->get_mouse_delta_x() * 0.001f;
+		//m_yaw = 0.0f;
+		m_pitch = engine->input_manager->get_mouse_delta_y() * 0.001f;
 
-		int x = engine->input_manager->get_mouse_x();
-		int y = engine->input_manager->get_mouse_y();
-		int prev_x = engine->input_manager->get_mouse_prev_x();
-		int prev_y = engine->input_manager->get_mouse_prev_y();
-		float dx = XMConvertToRadians(0.125f * -static_cast<float>(x - prev_x));
-		float dy = XMConvertToRadians(0.125f * -static_cast<float>(y - prev_y));
-		std::string temp = std::to_string(dx) + " " + std::to_string(dy) + "\n";
-		OutputDebugStringA(temp.c_str());
-		yaw(dx);
-		pitch(dy);
-		engine->input_manager->update_mouse_state();
-	}
+		XMMATRIX rotation = XMMatrixRotationRollPitchYaw(-m_pitch, m_yaw, 0.0f);
+		XMVECTOR target = XMVector3Normalize(XMVector3TransformCoord(m_default_forward, rotation));
+		// XMFLOAT4 temp;
+		// XMStoreFloat4(&temp, target);
+		// std::string debug = "";
+		// debug += std::to_string(temp.x) + " " + std::to_string(temp.y) + " " + std::to_string(temp.z) + " " + std::to_string(temp.w) + "\n";
+		// OutputDebugStringA(debug.c_str());
+		// rotate the basis about the up vector
+		XMMATRIX rotate_y = XMMatrixRotationY(m_yaw);
+		XMStoreFloat3(&m_right, XMVector3TransformCoord(m_default_right, rotate_y));
+		XMStoreFloat3(&m_up, XMVector3TransformCoord(XMLoadFloat3(&m_up), rotate_y));
+		XMStoreFloat3(&m_look, XMVector3TransformCoord(m_default_forward, rotate_y));
+
+		// update position here later
+		if (engine->input_manager->is_held(HASH("forward")) || engine->input_manager->is_pressed(HASH("forward"))) {
+			walk(delta_t*10.0f);
+		}
+		if (engine->input_manager->is_held(HASH("backward")) || engine->input_manager->is_pressed(HASH("backward"))) {
+			walk(-delta_t * 10.0f);
+		}
+		if (engine->input_manager->is_held(HASH("right")) || engine->input_manager->is_pressed(HASH("right"))) {
+			strafe(delta_t * 10.0f);
+		}
+		if (engine->input_manager->is_held(HASH("left")) || engine->input_manager->is_pressed(HASH("left"))) {
+			strafe(-delta_t * 10.0f);
+		}
+
+
+		// update the view matrix to be our rotation
+		XMStoreFloat4x4(&m_view, XMMatrixLookToLH(XMLoadFloat3(&m_pos), target, XMLoadFloat3(&m_up)));
+		m_view_dirty = false;
+	//}
+
 }

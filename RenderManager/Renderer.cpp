@@ -41,9 +41,9 @@ bool Renderer::init() {
 
 	// chapter 6 specific items
 	ThrowIfFailed(m_command_list->Reset(m_command_list_allocator.Get(), nullptr));
-	engine->camera->set_position(0.0f, 0.0f, -15.0f);
+	engine->camera->set_position(0.0f, 1.0f, -30.0f);
 	// engine->camera->look_at(DirectX::XMFLOAT3(0.0f, -300.0f, -350.0f), DirectX::XMFLOAT3(0.0f,0.0f,0.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f)) ;
-	engine->camera->update_view_matrix();
+	//engine->camera->update_view_matrix();
 	load_textures(); // separate loading from the renderer to use the resource manager
 	build_root_signature();
 	build_descriptor_heaps();
@@ -576,7 +576,7 @@ void Renderer::update_material_buffer(const Timer& t) {
 }
 void Renderer::update_main_pass_cb(const Timer& t) {
 	using namespace DirectX;
-	engine->camera->update_view_matrix();
+	//engine->camera->update_view_matrix();
 	XMMATRIX view = engine->camera->get_view();
 	XMMATRIX proj = engine->camera->get_proj();
 	XMMATRIX view_proj = XMMatrixMultiply(view, proj);

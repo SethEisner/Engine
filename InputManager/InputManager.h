@@ -52,6 +52,7 @@ PRESSED  --->  HELD    UNHELD  <--- start
 		//delete m_name_to_action;
 		FREE(m_name_to_action, memory_manager->get_linear_allocator());
 	}
+	void init();
 	void update();
 	void get_input(const MSG&);
 	// get state of a game action using a hashed string literal (e.g. HASH("shoot"))
@@ -68,6 +69,8 @@ PRESSED  --->  HELD    UNHELD  <--- start
 	int get_mouse_y() const;
 	int get_mouse_prev_x() const;
 	int get_mouse_prev_y() const;
+	float get_mouse_delta_x() const;
+	float get_mouse_delta_y() const;
 	bool mouse_pos_changed() const;
 	void update_mouse_state();
 
@@ -107,10 +110,12 @@ private:
 		int y; // number of pixels from top of window
 		int prev_x;
 		int prev_y;
+		float delta_x;
+		float delta_y;
 		uint32_t m_button_count; // size of the m_buttons array
 		KeyEntry m_buttons[3]; // left, middle, right states
 		bool position_changed;
-		Mouse() : x(0), y(0), prev_x(0), prev_y(0), m_button_count(3), m_buttons(), position_changed(false) {}
+		Mouse() : x(0), y(0), prev_x(0), prev_y(0), delta_x(0.0f), delta_y(0.0f), m_button_count(3), m_buttons(), position_changed(false) {}
 	};
 	// should use pointer so the input manager can manage the lifetime of the GameAction objects
 	// std::unordered_map<uint32_t, GameAction*>* m_name_to_action; // stores the mapping from the hashed string literal used by the programmer to identify a game action to the actual game action object itself

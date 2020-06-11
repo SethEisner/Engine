@@ -55,3 +55,12 @@ void Timer::tick() {
 	m_prev_time = m_curr_time;
 	if (m_delta_time < 0.0) m_delta_time = 0.0f;
 }
+
+bool Timer::running() const {
+	return !m_stopped;
+}
+void Timer::toggle() {
+	if (m_stopped) start();
+	else stop();
+	//m_stopped = !m_stopped;
+}
