@@ -1,10 +1,25 @@
-#include "Geometry.h"
+#include "Object.h"
 #include <assimp/mesh.h>
-void MeshData::init(const aiMesh* mesh) {
+void SubMeshData::init(const aiMesh* mesh) {
 	int temp = 0;
 	// assuming only one mesh in the scene (true for cat.dae)
 	// scene->mMeshes->
 	// m_vertices.resize(scene)
+	m_name = mesh->mName.C_Str();
+
+	m_material_index = mesh->mMaterialIndex;
+
+	switch (mesh->mPrimitiveTypes) {
+	case aiPrimitiveType_LINE:
+		m_primitive = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+		break;
+	case aiPrimitiveType_TRIANGLE:
+		m_primitive = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		break;
+	default:
+		assert(false && "mesh contains an unsupported primitive topology");
+	}
+
 	m_vertices.resize(mesh->mNumVertices);
 	for (size_t i = 0; i != mesh->mNumVertices; ++i) {
 		m_vertices[i] = VertexData(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z,
@@ -16,7 +31,8 @@ void MeshData::init(const aiMesh* mesh) {
 	// for (size_t i = 0; i != mesh->mNumFaces; ++i) { // for each face, add the number of indecis it contains
 	// 	num_indecis += mesh->mFaces[i].mNumIndices;
 	// }
-	//m_indecis.resize(num_indecis);
+	//m_indecis.resize(3 * mesh->mNumFaces);
+	mesh->mNumFaces;
 	size_t index = 0;
 	for (size_t i = 0; i != mesh->mNumFaces; ++i) { // for each face
 		int num_indecis = mesh->mFaces[i].mNumIndices;

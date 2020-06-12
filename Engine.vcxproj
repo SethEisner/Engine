@@ -28,7 +28,7 @@
     <ClCompile Include="RenderManager\Camera.cpp" />
     <ClCompile Include="RenderManager\d3dUtil.cpp" />
     <ClCompile Include="RenderManager\FrameResources.cpp" />
-    <ClCompile Include="RenderManager\Geometry.cpp" />
+    <ClCompile Include="RenderManager\Object.cpp" />
     <ClCompile Include="RenderManager\MathHelper.cpp" />
     <ClCompile Include="RenderManager\Renderer.cpp" />
     <ClCompile Include="RenderManager\Scene.cpp" />
@@ -57,7 +57,7 @@
     <ClInclude Include="RenderManager\Camera.h" />
     <ClInclude Include="RenderManager\d3dUtil.h" />
     <ClInclude Include="RenderManager\FrameResources.h" />
-    <ClInclude Include="RenderManager\Geometry.h" />
+    <ClInclude Include="RenderManager\Object.h" />
     <ClInclude Include="RenderManager\MathHelper.h" />
     <ClInclude Include="RenderManager\Renderer.h" />
     <ClInclude Include="RenderManager\RenderItem.h" />

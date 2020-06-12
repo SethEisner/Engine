@@ -73,6 +73,10 @@ struct SubMesh {
 	size_t m_index_count = 0;
 	size_t m_start_index = 0;
 	size_t m_base_vertex = 0;
+	D3D_PRIMITIVE_TOPOLOGY m_primitive = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
+	DirectX::XMMATRIX m_transform;
+	SubMesh& operator=(SubMesh&) = default;
+	//SubMesh& operator=(const SubMesh&) = default;
 	// bounding box for the mesh. change to sphere later
 	//DirectX::BoundingBox Bounds; // bounding box for the mesh 
 };
@@ -135,7 +139,7 @@ struct MaterialConstants {
 // professional engines use a class hierarchy of materials
 struct Material {
 	std::string name; // change to hash
-	uint64_t hash_name;
+	//uint64_t hash_name;
 	// index into constant buffer corresponding to this material
 	int m_mat_cb_index = -1;
 	int m_diffuse_srv_heap_index = -1;

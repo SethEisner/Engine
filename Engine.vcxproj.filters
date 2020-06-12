@@ -119,7 +119,7 @@
     <ClCompile Include="RenderManager\Scene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="RenderManager\Geometry.cpp">
+    <ClCompile Include="RenderManager\Object.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -214,7 +214,7 @@
     <ClInclude Include="RenderManager\Scene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RenderManager\Geometry.h">
+    <ClInclude Include="RenderManager\Object.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

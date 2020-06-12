@@ -6,6 +6,7 @@
 #include "Scene.h"
 #include "../Engine.h"
 #include <exception>
+#include <queue>
 
 bool Renderer::init() {
 
@@ -41,7 +42,7 @@ bool Renderer::init() {
 
 	// chapter 6 specific items
 	ThrowIfFailed(m_command_list->Reset(m_command_list_allocator.Get(), nullptr));
-	engine->camera->set_position(0.0f, 1.0f, -30.0f);
+	engine->camera->set_position(0.0f, 1.0f, -3.0f);
 	// engine->camera->look_at(DirectX::XMFLOAT3(0.0f, -300.0f, -350.0f), DirectX::XMFLOAT3(0.0f,0.0f,0.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f)) ;
 	//engine->camera->update_view_matrix();
 	load_textures(); // separate loading from the renderer to use the resource manager
@@ -367,49 +368,116 @@ void Renderer::build_shaders_and_input_layout() {
 	};
 }
 void Renderer::build_shape_geometry() {
+	// copy every mesh in the object (and later the scene) into the buffers and use the submesh to index
 	// MeshData for the scene is in Engine->scene 
 
 	// use the MeshData structure to build the Mesh and Submesh structures
-	uint32_t vertex_offset = 0;
-	uint32_t index_offset = 0;
+	size_t vertex_offset = 0;
+	size_t index_offset = 0;
+	size_t old_vertex_offset = 0;
+	size_t old_index_offset = 0;
+	Mesh* object_mesh = new Mesh();
 
-	SubMesh cat;
-	cat.m_index_count = engine->scene->m_mesh->m_indecis.size();
-	cat.m_start_index = index_offset;
-	cat.m_base_vertex = vertex_offset;
+	std::vector<Vertex> vertices;
+	std::vector<uint16_t> indices;
+
+	// traverse the scene graph in post order -> look at all the children before working on the root
+
+	//std::stack<Node*> node_hierarchy;
+	//std::stack<uint32_t> children_count;
+	std::queue<Node*> nodes;
+	Node* curr;// = engine->scene->m_root;
+	nodes.push(engine->scene->m_root);
+	while (!nodes.empty()) {
+		// process the node at the front of the vector
+		curr = nodes.front();
+		nodes.pop();
+		for(size_t i = 0; i != curr->m_object->m_mesh_count; ++i){
+			SubMesh sub_mesh = {};
+			sub_mesh.m_index_count = curr->m_object->m_sub_meshes[i].m_indecis.size();
+			sub_mesh.m_start_index = index_offset;
+			sub_mesh.m_base_vertex = vertex_offset;
+			sub_mesh.m_primitive = curr->m_object->m_sub_meshes[i].m_primitive;
+			sub_mesh.m_transform = curr->m_node_transform;
+
+			old_vertex_offset = vertex_offset;
+			old_index_offset = index_offset;
+			vertex_offset += curr->m_object->m_sub_meshes[i].m_vertices.size();
+			index_offset += curr->m_object->m_sub_meshes[i].m_indecis.size();
+			// make space for the new submesh
+			vertices.resize(vertex_offset);
+			indices.resize(index_offset);
+
+			memcpy(vertices.data() + old_vertex_offset, curr->m_object->m_sub_meshes[i].m_vertices.data(), (vertex_offset - old_vertex_offset) * sizeof(Vertex));
+			memcpy(indices.data() + old_index_offset, curr->m_object->m_sub_meshes[i].m_indecis.data(), (index_offset - old_index_offset) * sizeof(uint16_t));
+
+			object_mesh->m_draw_args[curr->m_object->m_sub_meshes[i].m_name] = sub_mesh;
+		}
+		// add the child nodes to the back of the vector
+		for (size_t i = 0; i != curr->m_children_count; ++i) {
+			nodes.push((curr->m_children + i));
+		}
+
+	}
+
+	// for (size_t i = 0; i != engine->scene->m_object->m_mesh_count; ++i) { // for each mesh in the object we want to render
+	// 	// create a submesh for it
+	// 	SubMesh sub_mesh = {};
+	// 	sub_mesh.m_index_count = engine->scene->m_object->m_sub_meshes[i].m_indecis.size();
+	// 	sub_mesh.m_start_index = index_offset;
+	// 	sub_mesh.m_base_vertex = vertex_offset;
+	// 	sub_mesh.m_primitive = engine->scene->m_object->m_sub_meshes[i].m_primitive;
+	// 
+	// 	// update the values we use to index into the vertex array for the memcpy
+	// 	old_vertex_offset = vertex_offset;
+	// 	old_index_offset = index_offset;
+	// 	vertex_offset += engine->scene->m_object->m_sub_meshes[i].m_vertices.size();
+	// 	index_offset += engine->scene->m_object->m_sub_meshes[i].m_indecis.size();
+	// 	// make space for the new submesh
+	// 	vertices.resize(vertex_offset);
+	// 	indices.resize(index_offset);
+	// 	
+	// 	memcpy(vertices.data() + old_vertex_offset, engine->scene->m_object->m_sub_meshes[i].m_vertices.data(), (vertex_offset - old_vertex_offset) * sizeof(Vertex));
+	// 	memcpy(indices.data() + old_index_offset, engine->scene->m_object->m_sub_meshes[i].m_indecis.data(), (index_offset - old_index_offset) * sizeof(uint16_t));
+	// 
+	// 	object_mesh->m_draw_args[engine->scene->m_object->m_sub_meshes[i].m_name] = sub_mesh; // should copy into the map
+	// }
+
+	//SubMesh cat;
+	//cat.m_index_count = engine->scene->m_object->m_meshes[0].m_indecis.size();
+	//cat.m_start_index = index_offset;
+	//cat.m_base_vertex = vertex_offset;
 
 
 	// for each mesh, we copy the data to a vertices and indices buffer. for now we only have one mesh so we only copy one buffer 
-	size_t vertex_count = engine->scene->m_mesh->m_vertices.size();
-	size_t index_count = engine->scene->m_mesh->m_indecis.size();
-	std::vector<Vertex> vertices(vertex_count); // frameresources Vertex type
-	std::vector<uint16_t> indices(index_count);
-	size_t vertices_index = 0;
-	memcpy(vertices.data(), engine->scene->m_mesh->m_vertices.data(), vertex_count * sizeof(Vertex));
-	memcpy(indices.data(), engine->scene->m_mesh->m_indecis.data(), index_count * sizeof(uint16_t));
+	// size_t vertex_count = engine->scene->m_object->m_meshes[0].m_vertices.size();
+	// size_t index_count = engine->scene->m_object->m_meshes[0].m_indecis.size();
+	// //std::vector<Vertex> vertices(vertex_count); // frameresources Vertex type
+	// std::vector<uint16_t> indices(index_count);
+	// size_t vertices_index = 0;
+	// memcpy(vertices.data(), engine->scene->m_object->m_meshes[0].m_vertices.data(), vertex_count * sizeof(Vertex));
+	// memcpy(indices.data(), engine->scene->m_object->m_meshes[0].m_indecis.data(), index_count * sizeof(uint16_t));
 
 	const size_t vb_byte_size = vertices.size() * sizeof(Vertex);
 	const size_t ib_byte_size = indices.size() * sizeof(uint16_t);
 
 	// create a Mesh that holds the SubMesh and buffers we just created
-	Mesh* geo = new Mesh();
-	geo->name = "cat_geo";
-	ThrowIfFailed(D3DCreateBlob(vb_byte_size, &geo->m_vertex_buffer_cpu));
-	CopyMemory(geo->m_vertex_buffer_cpu->GetBufferPointer(), vertices.data(), vb_byte_size);
-	ThrowIfFailed(D3DCreateBlob(ib_byte_size, &geo->m_index_buffer_cpu));
-	CopyMemory(geo->m_index_buffer_cpu->GetBufferPointer(), indices.data(), ib_byte_size);
+	// Mesh* geo = new Mesh();
+	object_mesh->name = "object";
+	ThrowIfFailed(D3DCreateBlob(vb_byte_size, &object_mesh->m_vertex_buffer_cpu));
+	CopyMemory(object_mesh->m_vertex_buffer_cpu->GetBufferPointer(), vertices.data(), vb_byte_size);
+	ThrowIfFailed(D3DCreateBlob(ib_byte_size, &object_mesh->m_index_buffer_cpu));
+	CopyMemory(object_mesh->m_index_buffer_cpu->GetBufferPointer(), indices.data(), ib_byte_size);
 
-	geo->m_vertex_buffer_gpu = create_default_buffer(m_d3d_device.Get(), m_command_list.Get(), vertices.data(), vb_byte_size, geo->m_vertex_buffer_uploader);
-	geo->m_index_buffer_gpu = create_default_buffer(m_d3d_device.Get(), m_command_list.Get(), indices.data(), ib_byte_size, geo->m_index_buffer_uploader);
+	object_mesh->m_vertex_buffer_gpu = create_default_buffer(m_d3d_device.Get(), m_command_list.Get(), vertices.data(), vb_byte_size, object_mesh->m_vertex_buffer_uploader);
+	object_mesh->m_index_buffer_gpu = create_default_buffer(m_d3d_device.Get(), m_command_list.Get(), indices.data(), ib_byte_size, object_mesh->m_index_buffer_uploader);
 
-	geo->m_vertex_stride = sizeof(Vertex);
-	geo->m_vertex_buffer_size = vb_byte_size;
-	geo->m_index_format = DXGI_FORMAT_R16_UINT;
-	geo->m_index_buffer_size = ib_byte_size;
+	object_mesh->m_vertex_stride = sizeof(Vertex);
+	object_mesh->m_vertex_buffer_size = vb_byte_size;
+	object_mesh->m_index_format = DXGI_FORMAT_R16_UINT;
+	object_mesh->m_index_buffer_size = ib_byte_size;
 
-	geo->m_draw_args["cat"] = cat;
-
-	m_geometries[geo->name] = std::move(geo);
+	m_geometries[object_mesh->name] = std::move(object_mesh);
 
 	// read and build from data that should be in ResourceManager
 	// using namespace DirectX;
@@ -513,17 +581,36 @@ void Renderer::build_frame_resources() {
 }
 void Renderer::build_materials() {}
 void Renderer::build_render_items() {
-	RenderItem* cat = new RenderItem();
-	XMStoreFloat4x4(&cat->m_world, DirectX::XMMatrixScaling(0.01f, 0.01f, 0.01f) * DirectX::XMMatrixTranslation(0.0f, 0.0f, 0.0f));
-	XMStoreFloat4x4(&cat->m_tex_transform, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
-	cat->m_obj_cb_index = 0;
-	cat->m_mesh = m_geometries["cat_geo"];
-	cat->m_primitive_type = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	cat->m_index_count = cat->m_mesh->m_draw_args["cat"].m_index_count;
-	cat->m_start_index_location = cat->m_mesh->m_draw_args["cat"].m_start_index;
-	cat->m_base_vertex_location = cat->m_mesh->m_draw_args["cat"].m_base_vertex;
-	m_render_items.push_back(cat);
-	m_opaque_render_items.push_back(cat);
+	// for each sub_mesh in draw_args
+	size_t i = 0;
+	for (auto& object : m_geometries) { // for each mesh in the geometries map
+		for (auto& sub_object : object.second->m_draw_args) { // for each submesh in the object
+			RenderItem* ri = new RenderItem();
+			//XMStoreFloat4x4(&ri->m_world, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f) * DirectX::XMMatrixTranslation(0.0f, 0.0f, 0.0f));
+			XMStoreFloat4x4(&ri->m_world, sub_object.second.m_transform);
+			XMStoreFloat4x4(&ri->m_tex_transform, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
+			ri->m_obj_cb_index = i++; // use the old value of i
+			ri->m_mesh = object.second;
+			ri->m_primitive_type = sub_object.second.m_primitive;//D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST; // should be read in from the SubMeshData structure
+			ri->m_index_count = sub_object.second.m_index_count;
+			ri->m_start_index_location = sub_object.second.m_start_index;
+			ri->m_base_vertex_location = sub_object.second.m_base_vertex;
+			m_render_items.push_back(ri);
+			m_opaque_render_items.push_back(ri);
+		}
+	}
+	// RenderItem* object = new RenderItem();
+	// XMStoreFloat4x4(&object->m_world, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f) * DirectX::XMMatrixTranslation(0.0f, 0.0f, 0.0f));
+	// XMStoreFloat4x4(&object->m_tex_transform, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
+	// object->m_obj_cb_index = 0;
+	// object->m_mesh = m_geometries["object"];
+	// object->m_primitive_type = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	// 
+	// object->m_index_count = object->m_mesh->m_draw_args["object"].m_index_count;
+	// object->m_start_index_location = object->m_mesh->m_draw_args["object"].m_start_index;
+	// object->m_base_vertex_location = object->m_mesh->m_draw_args["object"].m_base_vertex;
+	// m_render_items.push_back(object);
+	// m_opaque_render_items.push_back(object);
 }
 void Renderer::draw_render_items(ID3D12GraphicsCommandList* cmd_list, const std::vector<RenderItem*>& r_items) { // rename to draw_game_objects
 	size_t obj_cb_size = calc_constant_buffer_size(sizeof(ObjectConstants));
