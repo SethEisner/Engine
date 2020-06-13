@@ -73,7 +73,7 @@ static constexpr char resource_path[52] = "C:/Users/Seth Eisner/source/repos/Eng
 class ResourceManager {
 	typedef size_t GUID;
 	typedef uint8_t byte;
-	enum class FileType { ZIP = 0, OBJ = 1, MTL = 2, DAE = 3, INVALID = 4 };
+	enum class FileType { ZIP = 0, OBJ = 1, MTL = 2, DAE = 3, DDS = 4, INVALID = 5 };
 	struct ReferenceCountEntry {
 		GUID m_resource; // the resource to update the reference count of
 		int m_delta; // the number to change the reference count by
@@ -141,6 +141,8 @@ class ResourceManager {
 public:
 	ResourceManager() :
 		m_registry(new HashTable<GUID, RegistryEntry>()),
+		m_handle_map(new HashTable<GUID, Handle>()),
+		m_size_map(new HashTable<GUID, size_t>()),
 		m_ready_map(new HashTable<GUID, bool>()),
 		m_ready_map_lock(new std::shared_mutex()),
 		m_scene_map(new HashTable<GUID, const aiScene*>()),
@@ -157,6 +159,8 @@ public:
 		run_flag = false; // set the run_flag to false to stop the thread from looping
 		m_thread->join(); // 
 		delete m_registry;
+		delete m_handle_map;
+		delete m_size_map;
 		delete m_ready_map;
 		delete m_scene_map;
 		delete m_ready_map_lock;
@@ -175,6 +179,8 @@ public:
 	void remove_resource(const std::string&);
 	// reads a shared data structure and returns the ppointer to an aiScene object when given the filename
 	const aiScene* get_scene_pointer(const std::string&) const;
+	byte* get_data_pointer(const std::string&); // given the filename of the resource, get the pointer to the data contained in the registry
+	size_t get_data_size(const std::string&) const;
 private:
 	void remove_from_ready_map(GUID);
 	void set_ready_map(GUID, bool);
@@ -203,6 +209,8 @@ private:
 	FileType get_file_type(const std::string&);
 	// m_registry is shared across threads
 	HashTable<GUID, RegistryEntry>* m_registry; // registry to keep track of what has been loaded
+	HashTable<GUID, Handle>* m_handle_map;
+	HashTable<GUID, size_t>* m_size_map;
 	HashTable<GUID, bool>* m_ready_map; // map from GUIDs to bools to we dont need to read the registry, only the resource thread should have access to the registry
 	HashTable<GUID, const aiScene*>* m_scene_map; // map from GUIDs to scene pointers so we can build the scene after it is loaded by assimp
 	std::shared_mutex* m_ready_map_lock;

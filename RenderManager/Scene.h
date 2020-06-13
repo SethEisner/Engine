@@ -23,5 +23,7 @@ public:
 	// eventually have a scene graph
 	// eventually have a BVH
 	//Object* m_object; // keep this for now so we compile
+	Texture* m_textures; // stores the textures that we build from 
 	Node* m_root;
+	uint32_t m_texture_count;
 };

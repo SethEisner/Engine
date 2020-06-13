@@ -155,7 +155,7 @@ struct Material {
 
 struct Texture {
 	std::string m_name;
-	std::wstring m_filename;
+	std::string m_filename;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_resource = nullptr; // pointer to the texture resource
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_upload_heap = nullptr; // pointer to the upload heap that we put the resource into
 };

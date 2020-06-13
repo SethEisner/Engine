@@ -35,6 +35,15 @@ bool ResourceManager::resource_loaded(const std::string& filepath) {
 	GUID resource_guid = std::hash<std::string>{}(filepath);
 	return get_ready_map(resource_guid);
 }
+Byte* ResourceManager::get_data_pointer(const std::string& filepath) { // given the filename of the resource, get the pointer to the data contained in the registry
+	GUID resource_guid = std::hash<std::string>{}(filepath);
+	return reinterpret_cast<Byte*>(m_allocator->get_pointer(m_handle_map->at(resource_guid)));
+}
+size_t ResourceManager::get_data_size(const std::string& filepath) const {
+	GUID resource_guid = std::hash<std::string>{}(filepath);
+	return m_size_map->at(resource_guid);
+}
+
 
 void ResourceManager::remove_resource(const std::string& filepath) {
 	GUID resource_guid = std::hash<std::string>{}(filepath);
@@ -168,6 +177,8 @@ void ResourceManager::unzip_resource(const std::string& zip_file, byte* compress
 		// add 1 to the count because a resource file always is depended on by the zip it is contained within
 		// add the dependency counnt of the zip file to the count
 		m_registry->insert(resource_guid, RegistryEntry(h_uncompressed, uncompressed_size, count + zip_dependency_count, false, file_type)); // moves the registry entry into the hash table
+		m_handle_map->insert(resource_guid, h_uncompressed);
+		m_size_map->insert(resource_guid, uncompressed_size);
 		set_ready_map(resource_guid, false);
 		// add every file we decompress to the external dependencies list of the zip file
 		add_external_dependency(zip_hash, resource_guid);
@@ -205,6 +216,9 @@ void ResourceManager::get_external_dependencies(GUID resource, const std::string
 		}
 		m_scene_map->insert(resource, scene_ptr);
 		break;
+	}
+	case FileType::DDS: { // texture files, shouldn't be anything special for dds files as they have no external dependencies
+
 	}
 	case FileType::OBJ:
 		char needle[] = { 'm', 't', 'l', 'l', 'i', 'b', ' ' };
@@ -431,6 +445,7 @@ ResourceManager::FileType ResourceManager::get_file_type(const std::string& file
 	if (extension == ".obj") return FileType::OBJ;
 	if (extension == ".mtl") return FileType::MTL;
 	if (extension == ".dae") return FileType::DAE;
+	if (extension == ".dds") return FileType::DDS;
 	//if (extension == ".fbx") return FileType::FBX;
 	assert(false); // the file extension is one we dont know how to handle
 	return FileType::INVALID;

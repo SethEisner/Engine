@@ -7,6 +7,8 @@
 #include "../Engine.h"
 #include <exception>
 #include <queue>
+#include <DDSTextureLoader.h>
+#include "../ResourceManager/ResourceManager.h"
 
 bool Renderer::init() {
 
@@ -698,7 +700,16 @@ void Renderer::update_main_pass_cb(const Timer& t) {
 	curr_pass_cb->copy_data(0, m_main_pass_cb);
 }
 void Renderer::load_textures() {
-	// call resource manager
+	for (size_t i = 0; i != engine->scene->m_texture_count; ++i) { // for each texture in the scene
+		Texture tex = Texture();
+		tex.m_name = engine->scene->m_textures[i].m_name;
+		tex.m_filename = engine->scene->m_textures[i].m_filename;
+
+		DirectX::CreateDDSTextureFromMemory(m_d3d_device.Get(), m_command_list.Get(),
+														  engine->resource_manager->get_data_pointer(tex.m_filename), 
+														  engine->resource_manager->get_data_size(tex.m_filename),
+														  tex.m_resource, tex.m_upload_heap);
+	}
 }
 std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> Renderer::get_static_samplers() {
 	const CD3DX12_STATIC_SAMPLER_DESC point_wrap(

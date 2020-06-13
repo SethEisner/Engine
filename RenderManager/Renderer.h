@@ -118,7 +118,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_descriptor_heap = nullptr;
 	std::unordered_map<std::string, Mesh*> m_geometries;
 	std::unordered_map<std::string, Material*> m_materials;
-	std::unordered_map<std::string, Texture*> m_textures;
+	std::unordered_map<std::string, Texture*> m_textures; // textures store the material data
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>> m_shaders;
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> m_psos;
 	std::vector<RenderItem*> m_render_items; // all render items for the frame

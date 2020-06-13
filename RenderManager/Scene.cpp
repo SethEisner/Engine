@@ -49,12 +49,13 @@ void Scene::process_node(Node* current_node, Node* parent, aiNode* ai_node, cons
 bool Scene::init() {
 	// use the resource manager to load the items into memory
 	// then build each RenderItem and add it to the vector
-	std::string temp = "Sword";
-	engine->resource_manager->load_resource(temp + ".zip");
-	while (!engine->resource_manager->resource_loaded(temp + ".zip")) {
+	std::string name = "Sword";
+	std::string zip_file = name + ".zip";
+	engine->resource_manager->load_resource(zip_file);
+	while (!engine->resource_manager->resource_loaded(zip_file)) { // wait until the zipfile is loaded
 		//std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
-	const aiScene* scene = engine->resource_manager->get_scene_pointer(temp + ".zip/" + temp + ".dae");
+	const aiScene* scene = engine->resource_manager->get_scene_pointer(zip_file + "/" + name + ".dae");
 
 	// m_object = new Object(scene->mNumMeshes);
 	// 
@@ -65,34 +66,14 @@ bool Scene::init() {
 	m_root = new Node();
 	process_node(m_root, nullptr, scene->mRootNode, scene);
 
+	// should eventually read in a file that has all this data in a nice format. maybe a json file callend scene
+	// build the textures in the scene, or tell the renderer about them
+	m_texture_count = 1;
+	m_textures = new Texture[m_texture_count]; // make an array of one texture, just use the color texture for now
+	m_textures[0].m_name = "base_color";
+	m_textures[0].m_filename = zip_file + "/Sting_Base_Color.dds"; // use the name to look up into the resource manager and get the data pointer
+	// do just the color now as that will be the simplest to implement in the shader
 
-	// std::string name = "";
-	// for (size_t i = 0; i != m_object->m_material_count; ++i) { // init every mesh in the scene to the object
-	// 	//m_object->m_materials[i].m_diffuse_albedo;
-	// 	if (AI_SUCCESS != scene->mMaterials[i]->Get(AI_MATKEY_NAME, name)) {
-	// 		name = "test";
-	// 	}
-	// 	// ambient, diffuse, specular, shininess, index of refraction
-	// 
-	// 
-	// 			//	m_material->name = "cat_name";
-	// 			//}
-	// }
-
-
-	//if (scene == nullptr) return false;
-	//
-	//m_mesh->init(scene->mMeshes[0]);
-	//
-	//if (AI_SUCCESS != scene->mMaterials[0]->Get(AI_MATKEY_NAME, m_material->name)) {
-	//	m_material->name = "cat_name";
-	//}
-	//if (AI_SUCCESS != scene->mMaterials[0]->Get(AI_MATKEY_COLOR_DIFFUSE, m_material->m_diffuse_albedo)) {
-	//	m_material->m_diffuse_albedo = { 1.0f, 1.0f, 1.0f, 1.0f };
-	//}
-	//if (AI_SUCCESS != scene->mMaterials[0]->Get(AI_MATKEY_COLOR_AMBIENT, m_material->m_diffuse_albedo)) {
-	//	m_material->m_diffuse_albedo = { 1.0f, 1.0f, 1.0f, 1.0f };
-	//}
 	
 	return true;
 }
