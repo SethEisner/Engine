@@ -122,6 +122,9 @@
     <ClCompile Include="RenderManager\Object.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="RenderManager\DDSTextureLoader12.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine.h">
@@ -215,6 +218,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RenderManager\Object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderManager\DDSTextureLoader12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

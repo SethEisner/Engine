@@ -6,6 +6,12 @@
 #include "../Engine.h"
 #include "../Utilities/Utilities.h"
 
+
+InputManager::InputManager() : m_name_to_action(NEW(HashTable<uint32_t COMMA GameAction>, memory_manager->get_linear_allocator())(63)), m_key_state(), m_character_pressed(), 
+							   m_mouse_state(static_cast<int>(engine->window->m_width / 2), static_cast<int>(engine->window->m_height / 2), static_cast<int>(engine->window->m_width / 2), static_cast<int>(engine->window->m_height / 2)) {
+
+}
+
 void InputManager::init() {
 	add_action(HASH("right"), InputManager::Key('D'));
 	add_action(HASH("left"), InputManager::Key('A'));

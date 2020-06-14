@@ -16,6 +16,7 @@ struct Light
     float SpotPower;    // spot light only
 };
 
+// probably not necessary as we want to store material data in textures
 struct MaterialData
 {
     float4   DiffuseAlbedo;
@@ -65,6 +66,17 @@ cbuffer cbPass : register(b1)
     Light gLights[MaxLights];
 };
 
+
+Texture2D gColorMap[1] : register(t0);
+
+SamplerState gsamPointWrap        : register(s0);
+SamplerState gsamPointClamp       : register(s1);
+SamplerState gsamLinearWrap       : register(s2);
+SamplerState gsamLinearClamp      : register(s3);
+SamplerState gsamAnisotropicWrap  : register(s4);
+SamplerState gsamAnisotropicClamp : register(s5);
+
+
 struct VertexIn
 {
 	float3 PosL  : POSITION;
@@ -99,13 +111,14 @@ VertexOut VS(VertexIn vin)
 
     // Output vertex attributes for interpolation across triangle.
     float4 texC = mul(float4(vin.TexC, 0.0f, 1.0f), gTexTransform);
-    //vout.TexC = mul(texC, matData.MatTransform).xy;
+    vout.TexC = texC.xy;
 
     return vout;
 }
 
 float4 PS(VertexOut pin) : SV_Target
 {
-    return float4(0.5f, 0.5f, 0.5f, 1.0f);
+    // return float4(1.0f, 0.0f, 0.0f, 1.0f);
+    return float4(gColorMap[0].Sample(gsamLinearWrap, pin.TexC));
 }
 

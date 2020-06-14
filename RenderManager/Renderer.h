@@ -19,6 +19,8 @@
 #include "Camera.h"
 #include "Timer.h"
 #include "RenderItem.h"
+#include "DDSTextureLoader.h"
+#include "ResourceUploadBatch.h"
 
 class Engine;
 // contains a command queue, heaps, vector of render items that's in the potentially visible set
@@ -30,8 +32,6 @@ class Engine;
 
 class Renderer {
 public:
-	// Renderer() = delete;
-	// explicit Renderer(Window* window);
 	Renderer() = default;
 	~Renderer() = default;
 	//bool init_window();
@@ -125,4 +125,6 @@ private:
 	std::vector<RenderItem*> m_opaque_render_items; // render items for a pso
 	PassConstants m_main_pass_cb;
 	Camera m_camera; // move to engine?
+	// directx12 texture specific
+	DirectX::ResourceUploadBatch* m_upload_batch = {};
 };

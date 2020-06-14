@@ -42,12 +42,12 @@ PRESSED  --->  HELD    UNHELD  <--- start
 		RIGHT = 2
 	};
 	// InputManager() : m_key_state(), m_character_pressed(), m_mouse_state(), m_name_to_action(new std::unordered_map<uint32_t, GameAction*>) {}
-	InputManager() : m_name_to_action(NEW(HashTable<uint32_t COMMA GameAction>, memory_manager->get_linear_allocator())(63)), m_key_state(), m_character_pressed(), m_mouse_state() {
+	InputManager();// : m_name_to_action(NEW(HashTable<uint32_t COMMA GameAction>, memory_manager->get_linear_allocator())(63)), m_key_state(), m_character_pressed(), m_mouse_state() {
 		// allocate an array of game_objects
 		//m_name_to_action = static_cast<GameAction*>(memory_manager->get_linear_allocator().allocate_aligned(sizeof(GameAction) * m_action_count, alignof(GameAction)));
 		// allocate an array of game_objects using the default constructor
 		//m_name_to_action = NEW_ARRAY(GameAction, m_action_count, memory_manager->get_linear_allocator())();
-	}
+	// }
 	~InputManager() {
 		//delete m_name_to_action;
 		FREE(m_name_to_action, memory_manager->get_linear_allocator());
@@ -116,6 +116,7 @@ private:
 		KeyEntry m_buttons[3]; // left, middle, right states
 		bool position_changed;
 		Mouse() : x(0), y(0), prev_x(0), prev_y(0), delta_x(0.0f), delta_y(0.0f), m_button_count(3), m_buttons(), position_changed(false) {}
+		Mouse(int _x, int _y, int _prev_x, int _prev_y) : x(_x), y(_y), prev_x(_prev_x), prev_y(_prev_y), delta_x(0.0f), delta_y(0.0f), m_button_count(3), m_buttons(), position_changed(false) {}
 	};
 	// should use pointer so the input manager can manage the lifetime of the GameAction objects
 	// std::unordered_map<uint32_t, GameAction*>* m_name_to_action; // stores the mapping from the hashed string literal used by the programmer to identify a game action to the actual game action object itself

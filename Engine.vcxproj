@@ -27,6 +27,7 @@
     <ClCompile Include="Memory\MemoryManager.cpp" />
     <ClCompile Include="RenderManager\Camera.cpp" />
     <ClCompile Include="RenderManager\d3dUtil.cpp" />
+    <ClCompile Include="RenderManager\DDSTextureLoader12.cpp" />
     <ClCompile Include="RenderManager\FrameResources.cpp" />
     <ClCompile Include="RenderManager\Object.cpp" />
     <ClCompile Include="RenderManager\MathHelper.cpp" />
@@ -56,6 +57,7 @@
     <ClInclude Include="Memory\StackAllocator.h" />
     <ClInclude Include="RenderManager\Camera.h" />
     <ClInclude Include="RenderManager\d3dUtil.h" />
+    <ClInclude Include="RenderManager\DDSTextureLoader12.h" />
     <ClInclude Include="RenderManager\FrameResources.h" />
     <ClInclude Include="RenderManager\Object.h" />
     <ClInclude Include="RenderManager\MathHelper.h" />

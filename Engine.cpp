@@ -24,15 +24,16 @@ bool Engine::init(HINSTANCE hInstance) {
 	scene = new Scene();
 	if (!scene->init()) return false;
 
-	renderer = new Renderer();	
+	renderer = new Renderer();
+	//renderer = new Renderer();	
 	try {
 		renderer->init();
+		renderer->on_resize();
 	}
 	catch (DxException& e) {
 		MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
 		exit(e.error_code);
 	}
-	renderer->on_resize();
 	return true;
 }
 void Engine::run() {

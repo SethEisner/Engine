@@ -24,6 +24,7 @@ void SubMeshData::init(const aiMesh* mesh) {
 	for (size_t i = 0; i != mesh->mNumVertices; ++i) {
 		m_vertices[i] = VertexData(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z,
 			mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z,
+			// 0.0f, 0.0f);
 			// first numer (0) is the supported nymber of texture coordinates per mesh, should only care about meshes with one set of texture coordinates as of right now (so it's okay to just hardcode the 0) 
 			mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y); // will need to change the hardcoded 0 to use a texture index we look up
 	}

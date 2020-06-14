@@ -9,6 +9,8 @@
 #include <queue>
 #include <DDSTextureLoader.h>
 #include "../ResourceManager/ResourceManager.h"
+#include <DDSTextureLoader.h>
+#include "DDSTextureLoader12.h"
 
 bool Renderer::init() {
 
@@ -39,11 +41,12 @@ bool Renderer::init() {
 	assert(m_4xMSAA_quality > 0);
 	create_command_objects();
 	create_swap_chain();
-	create_rtv_and_dsv_descriptor_heaps();
-
+	create_rtv_and_dsv_descriptor_heaps();	
 
 	// chapter 6 specific items
 	ThrowIfFailed(m_command_list->Reset(m_command_list_allocator.Get(), nullptr));
+	m_cbv_srv_descriptor_size = m_d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	m_upload_batch = new DirectX::ResourceUploadBatch(m_d3d_device.Get());
 	engine->camera->set_position(0.0f, 1.0f, -3.0f);
 	// engine->camera->look_at(DirectX::XMFLOAT3(0.0f, -300.0f, -350.0f), DirectX::XMFLOAT3(0.0f,0.0f,0.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f)) ;
 	//engine->camera->update_view_matrix();
@@ -107,13 +110,13 @@ void Renderer::draw() {
 
 	// chapter 6
 	ID3D12DescriptorHeap* descriptor_heaps[] = { m_srv_descriptor_heap.Get() };
-	m_command_list->SetDescriptorHeaps(/*_countof(descriptor_heaps)*/ 0, descriptor_heaps);
+	m_command_list->SetDescriptorHeaps(_countof(descriptor_heaps), descriptor_heaps);
 	m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
 	auto pass_cb = m_curr_frame_resource->m_pass_cb->get_resource();
 	m_command_list->SetGraphicsRootConstantBufferView(1, pass_cb->GetGPUVirtualAddress());
 	// auto mat_buffer = m_curr_frame_resource->m_material_buffer->get_resource();
 	// m_command_list->SetGraphicsRootShaderResourceView(2, mat_buffer->GetGPUVirtualAddress());
-	// m_command_list->SetGraphicsRootDescriptorTable(3, m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
+	m_command_list->SetGraphicsRootDescriptorTable(3, m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
 	draw_render_items(m_command_list.Get(), m_opaque_render_items);
 	m_command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(current_back_buffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 	ThrowIfFailed(m_command_list->Close());
@@ -275,7 +278,6 @@ D3D12_CPU_DESCRIPTOR_HANDLE Renderer::depth_stencil_view() const {
 	return m_dsv_heap->GetCPUDescriptorHandleForHeapStart();
 }
 void Renderer::build_descriptor_heaps() {
-	/* no texutres to deal with yet
 	D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc = {};
 	srv_heap_desc.NumDescriptors = 4;
 	srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -285,35 +287,50 @@ void Renderer::build_descriptor_heaps() {
 
 	// fill out the heap with our 4 descriptors
 	CD3DX12_CPU_DESCRIPTOR_HANDLE h_desc(m_srv_descriptor_heap->GetCPUDescriptorHandleForHeapStart());
-	auto bricks_tex = m_textures["bricks_tex"]->m_resource;
-	auto stone_tex = m_textures["stone_tex"]->m_resource;
-	auto tile_tex = m_textures["tile_tex"]->m_resource;
-	auto crate_tex = m_textures["create_tex"]->m_resource;
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
 	srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srv_desc.Format = bricks_tex->GetDesc().Format;
-	srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srv_desc.Texture2D.MostDetailedMip = 0;
-	srv_desc.Texture2D.MipLevels = bricks_tex->GetDesc().MipLevels;
 	srv_desc.Texture2D.ResourceMinLODClamp = 0.0f;
-	m_d3d_device->CreateShaderResourceView(bricks_tex.Get(), &srv_desc, h_desc);
+	srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	size_t offset = 0;
+	for (auto& pair : m_textures) {
+		auto tex = pair.second->m_resource;
+		h_desc.Offset(offset, m_cbv_srv_descriptor_size); // first texture resoruce has an offset of 0, every following texture resource has an offset of 1 from the previous resource
+		srv_desc.Format = tex->GetDesc().Format;
+		srv_desc.Texture2D.MipLevels = tex->GetDesc().MipLevels;
+		m_d3d_device->CreateShaderResourceView(tex.Get(), &srv_desc, h_desc);
+		offset = 1;
+	}
+	// auto bricks_tex = m_textures["bricks_tex"]->m_resource;
+	// auto stone_tex = m_textures["stone_tex"]->m_resource;
+	// auto tile_tex = m_textures["tile_tex"]->m_resource;
+	// auto crate_tex = m_textures["create_tex"]->m_resource;
 
-	h_desc.Offset(1, m_cbv_srv_descriptor_size);
-	srv_desc.Format = stone_tex->GetDesc().Format;
-	srv_desc.Texture2D.MipLevels = stone_tex->GetDesc().MipLevels;
-	m_d3d_device->CreateShaderResourceView(stone_tex.Get(), &srv_desc, h_desc);
-
-	h_desc.Offset(1, m_cbv_srv_descriptor_size);
-	srv_desc.Format = tile_tex->GetDesc().Format;
-	srv_desc.Texture2D.MipLevels = tile_tex->GetDesc().MipLevels;
-	m_d3d_device->CreateShaderResourceView(tile_tex.Get(), &srv_desc, h_desc);
-
-	h_desc.Offset(1, m_cbv_srv_descriptor_size);
-	srv_desc.Format = crate_tex->GetDesc().Format;
-	srv_desc.Texture2D.MipLevels = crate_tex->GetDesc().MipLevels;
-	m_d3d_device->CreateShaderResourceView(crate_tex.Get(), &srv_desc, h_desc);
-	*/
+	//D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+	//srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	//srv_desc.Format = bricks_tex->GetDesc().Format;
+	//srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	//srv_desc.Texture2D.MostDetailedMip = 0;
+	// srv_desc.Texture2D.MipLevels = bricks_tex->GetDesc().MipLevels;
+	// //srv_desc.Texture2D.ResourceMinLODClamp = 0.0f;
+	// m_d3d_device->CreateShaderResourceView(bricks_tex.Get(), &srv_desc, h_desc);
+	// 
+	// h_desc.Offset(1, m_cbv_srv_descriptor_size);
+	// srv_desc.Format = stone_tex->GetDesc().Format;
+	// srv_desc.Texture2D.MipLevels = stone_tex->GetDesc().MipLevels;
+	// m_d3d_device->CreateShaderResourceView(stone_tex.Get(), &srv_desc, h_desc);
+	// 
+	// h_desc.Offset(1, m_cbv_srv_descriptor_size);
+	// srv_desc.Format = tile_tex->GetDesc().Format;
+	// srv_desc.Texture2D.MipLevels = tile_tex->GetDesc().MipLevels;
+	// m_d3d_device->CreateShaderResourceView(tile_tex.Get(), &srv_desc, h_desc);
+	// 
+	// h_desc.Offset(1, m_cbv_srv_descriptor_size);
+	// srv_desc.Format = crate_tex->GetDesc().Format;
+	// srv_desc.Texture2D.MipLevels = crate_tex->GetDesc().MipLevels;
+	// m_d3d_device->CreateShaderResourceView(crate_tex.Get(), &srv_desc, h_desc);
+	// */
 }
 // void Renderer::build_constant_buffers() {
 // 	m_object_cb = new UploadBuffer<ObjectConstants>(m_d3d_device.Get(), 1, true);
@@ -330,7 +347,7 @@ void Renderer::build_descriptor_heaps() {
 // }
 void Renderer::build_root_signature() {
 	CD3DX12_DESCRIPTOR_RANGE tex_table;
-	tex_table.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 0, 0);
+	tex_table.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, m_textures.size(), 0, 0);
 	CD3DX12_ROOT_PARAMETER slot_root_parameter[4];
 	slot_root_parameter[0].InitAsConstantBufferView(0);
 	slot_root_parameter[1].InitAsConstantBufferView(1);
@@ -551,7 +568,7 @@ void Renderer::build_psos() {
 		m_shaders["opaque_ps"]->GetBufferSize()
 	};
 	CD3DX12_RASTERIZER_DESC rasterizer_state = {};
-	rasterizer_state.FillMode = D3D12_FILL_MODE_WIREFRAME;
+	rasterizer_state.FillMode = D3D12_FILL_MODE_SOLID; //D3D12_FILL_MODE_WIREFRAME;
 	rasterizer_state.CullMode = D3D12_CULL_MODE_BACK;
 	rasterizer_state.FrontCounterClockwise = FALSE;
 	rasterizer_state.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
@@ -563,7 +580,7 @@ void Renderer::build_psos() {
 	rasterizer_state.ForcedSampleCount = 0;
 	rasterizer_state.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 	
-	opaque_pso_desc.RasterizerState = rasterizer_state;
+	opaque_pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // rasterizer_state;
 	opaque_pso_desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	opaque_pso_desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	opaque_pso_desc.SampleMask = UINT_MAX;
@@ -588,7 +605,7 @@ void Renderer::build_render_items() {
 	for (auto& object : m_geometries) { // for each mesh in the geometries map
 		for (auto& sub_object : object.second->m_draw_args) { // for each submesh in the object
 			RenderItem* ri = new RenderItem();
-			//XMStoreFloat4x4(&ri->m_world, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f) * DirectX::XMMatrixTranslation(0.0f, 0.0f, 0.0f));
+			// XMStoreFloat4x4(&ri->m_world, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f) * DirectX::XMMatrixTranslation(0.0f, 0.0f, 0.0f));
 			XMStoreFloat4x4(&ri->m_world, sub_object.second.m_transform);
 			XMStoreFloat4x4(&ri->m_tex_transform, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
 			ri->m_obj_cb_index = i++; // use the old value of i
@@ -700,16 +717,23 @@ void Renderer::update_main_pass_cb(const Timer& t) {
 	curr_pass_cb->copy_data(0, m_main_pass_cb);
 }
 void Renderer::load_textures() {
+	//DirectX::ResourceUploadBatch resource_upload(m_d3d_device.Get());
+	
+	// m_upload_batch->Begin();
 	for (size_t i = 0; i != engine->scene->m_texture_count; ++i) { // for each texture in the scene
-		Texture tex = Texture();
-		tex.m_name = engine->scene->m_textures[i].m_name;
-		tex.m_filename = engine->scene->m_textures[i].m_filename;
-
-		DirectX::CreateDDSTextureFromMemory(m_d3d_device.Get(), m_command_list.Get(),
-														  engine->resource_manager->get_data_pointer(tex.m_filename), 
-														  engine->resource_manager->get_data_size(tex.m_filename),
-														  tex.m_resource, tex.m_upload_heap);
+		Texture* tex = new Texture();
+		tex->m_name = engine->scene->m_textures[i].m_name;
+		tex->m_filename = engine->scene->m_textures[i].m_filename;
+		// ThrowIfFailed(DirectX::CreateDDSTextureFromMemory(m_d3d_device.Get(), *m_upload_batch, 
+		// 									engine->resource_manager->get_data_pointer(tex->m_filename), 
+		// 									engine->resource_manager->get_data_size(tex->m_filename), tex->m_resource.GetAddressOf(), tex->m_upload_heap.GetAddressOf()));
+		ThrowIfFailed(CreateDDSTextureFromMemory12(m_d3d_device.Get(), m_command_list.Get(), 
+									engine->resource_manager->get_data_pointer(tex->m_filename), 
+									engine->resource_manager->get_data_size(tex->m_filename), tex->m_resource, tex->m_upload_heap));
+		m_textures[tex->m_name] = std::move(tex);
 	}
+	// auto finish = m_upload_batch->End(m_command_queue.Get());
+	// finish.wait();
 }
 std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> Renderer::get_static_samplers() {
 	const CD3DX12_STATIC_SAMPLER_DESC point_wrap(
