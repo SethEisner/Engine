@@ -212,7 +212,7 @@ void Camera::update(float delta_t) {
 		//m_yaw = 0.0f;
 		m_pitch = engine->input_manager->get_mouse_delta_y() * 0.001f;
 
-		XMMATRIX rotation = XMMatrixRotationRollPitchYaw(-m_pitch, m_yaw, 0.0f);
+		XMMATRIX rotation = XMMatrixRotationRollPitchYaw(m_pitch, m_yaw, 0.0f);
 		XMVECTOR target = XMVector3Normalize(XMVector3TransformCoord(m_default_forward, rotation));
 		// XMFLOAT4 temp;
 		// XMStoreFloat4(&temp, target);

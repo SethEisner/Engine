@@ -116,8 +116,8 @@ void Scene::create_mesh(const aiScene* scene) {
 			float norm_x = scene->mMeshes[i]->mNormals[j].x;
 			float norm_y = scene->mMeshes[i]->mNormals[j].y;
 			float norm_z = scene->mMeshes[i]->mNormals[j].z;
-			float tex_x = scene->mMeshes[i]->mTextureCoords[0]->x;
-			float tex_y = scene->mMeshes[i]->mTextureCoords[0]->y;
+			float tex_x = scene->mMeshes[i]->mTextureCoords[0][j].x;
+			float tex_y = scene->mMeshes[i]->mTextureCoords[0][j].y;
 			temp.m_pos = {pos_x, pos_y, pos_z};
 			temp.m_normal = {norm_x, norm_y, norm_z};
 			temp.m_text_coord = {tex_x, tex_y};

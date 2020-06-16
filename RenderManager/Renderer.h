@@ -138,4 +138,6 @@ private:
 	Camera m_camera; // move to engine?
 	// directx12 texture specific
 	DirectX::ResourceUploadBatch* m_upload_batch = {};
+
+	bool m_added_textures = false;
 };

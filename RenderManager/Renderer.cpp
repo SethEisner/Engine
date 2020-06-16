@@ -44,6 +44,7 @@ void Renderer::create_and_add_texture(const std::string& name, const std::string
 		engine->resource_manager->get_data_pointer(tex->m_filename),
 		engine->resource_manager->get_data_size(tex->m_filename), tex->m_resource, tex->m_upload_heap));
 	m_textures[tex->m_name] = std::move(tex);
+	m_added_textures = true;
 }
 bool Renderer::init() {
 
@@ -74,25 +75,27 @@ bool Renderer::init() {
 	assert(m_4xMSAA_quality > 0);
 	create_command_objects();
 	create_swap_chain();
-	create_rtv_and_dsv_descriptor_heaps();	
+	create_rtv_and_dsv_descriptor_heaps(); // for the render target and depth stencil view
+
+
+	engine->camera->set_position(0.0f, 1.0f, -3.0f);
+
 
 	// chapter 6 specific items
 	ThrowIfFailed(m_command_list->Reset(m_command_list_allocator.Get(), nullptr));
-	m_cbv_srv_descriptor_size = m_d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	m_upload_batch = new DirectX::ResourceUploadBatch(m_d3d_device.Get());
-	engine->camera->set_position(0.0f, 1.0f, -3.0f);
+	// m_cbv_srv_descriptor_size = m_d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	// engine->camera->look_at(DirectX::XMFLOAT3(0.0f, -300.0f, -350.0f), DirectX::XMFLOAT3(0.0f,0.0f,0.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f)) ;
 	//engine->camera->update_view_matrix();
 	// load_textures(); // separate loading from the renderer to use the resource manager
-	build_root_signature();
-	build_descriptor_heaps();
-	build_shaders_and_input_layout();
+	// build_root_signature();
+	// build_descriptor_heaps();
+	// build_shaders_and_input_layout();
 	// build_constant_buffers();
 	// build_shape_geometry();
 	// build_materials();
 	// build_render_items();
-	//build_frame_resources();
-	build_psos();
+	// build_frame_resources();
+	// build_psos();
 	ThrowIfFailed(m_command_list->Close()); // execute the initialization commands
 	ID3D12CommandList* cmd_lists[] = { m_command_list.Get() };
 	m_command_queue->ExecuteCommandLists(_countof(cmd_lists), cmd_lists);
@@ -102,9 +105,13 @@ bool Renderer::init() {
 
 
 void Renderer::update() {
-	// build_root_signature();
-	// build_descriptor_heaps();
+	ThrowIfFailed(m_command_list->Reset(m_command_list_allocator.Get(), nullptr));
+	m_cbv_srv_descriptor_size = m_d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	build_root_signature();
+	build_descriptor_heaps();
+	build_shaders_and_input_layout();
 	build_render_items();
+	build_psos();
 	if (m_render_items.empty()) return; // if there is nothing to render then there is nothing to update
 
 	// m_curr_frame_resources_index = (m_curr_frame_resources_index + 1) % g_num_frame_resources;
@@ -128,6 +135,11 @@ void Renderer::update() {
 	update_material_buffer(*engine->global_timer);
 	update_main_pass_cb(*engine->global_timer);
 	m_frame_resources.push(m_curr_frame_resource);
+
+	ThrowIfFailed(m_command_list->Close()); // execute the initialization commands
+	ID3D12CommandList* cmd_lists[] = { m_command_list.Get() };
+	m_command_queue->ExecuteCommandLists(_countof(cmd_lists), cmd_lists);
+	flush_command_queue();
 }
 void Renderer::draw() {
 	if (m_render_items.empty()) return; // if there is nothing to render then there is nothing to draw
@@ -330,8 +342,10 @@ D3D12_CPU_DESCRIPTOR_HANDLE Renderer::depth_stencil_view() const {
 	return m_dsv_heap->GetCPUDescriptorHandleForHeapStart();
 }
 void Renderer::build_descriptor_heaps() { // create heaps to hold the textures (maybe dont create them every frame but only for new textures...
+	// if m_textures_added then we need to destroy and create the
+	if (!m_added_textures) return; // if we have not added textures then there is nothing to build descriptor heaps for
 	D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc = {};
-	srv_heap_desc.NumDescriptors = 4;
+	srv_heap_desc.NumDescriptors = m_textures.size();
 	srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	//srv_heap_desc.NodeMask = 0;
@@ -354,35 +368,7 @@ void Renderer::build_descriptor_heaps() { // create heaps to hold the textures (
 		m_d3d_device->CreateShaderResourceView(tex.Get(), &srv_desc, h_desc);
 		offset = 1;
 	}
-	// auto bricks_tex = m_textures["bricks_tex"]->m_resource;
-	// auto stone_tex = m_textures["stone_tex"]->m_resource;
-	// auto tile_tex = m_textures["tile_tex"]->m_resource;
-	// auto crate_tex = m_textures["create_tex"]->m_resource;
-
-	//D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
-	//srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	//srv_desc.Format = bricks_tex->GetDesc().Format;
-	//srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	//srv_desc.Texture2D.MostDetailedMip = 0;
-	// srv_desc.Texture2D.MipLevels = bricks_tex->GetDesc().MipLevels;
-	// //srv_desc.Texture2D.ResourceMinLODClamp = 0.0f;
-	// m_d3d_device->CreateShaderResourceView(bricks_tex.Get(), &srv_desc, h_desc);
-	// 
-	// h_desc.Offset(1, m_cbv_srv_descriptor_size);
-	// srv_desc.Format = stone_tex->GetDesc().Format;
-	// srv_desc.Texture2D.MipLevels = stone_tex->GetDesc().MipLevels;
-	// m_d3d_device->CreateShaderResourceView(stone_tex.Get(), &srv_desc, h_desc);
-	// 
-	// h_desc.Offset(1, m_cbv_srv_descriptor_size);
-	// srv_desc.Format = tile_tex->GetDesc().Format;
-	// srv_desc.Texture2D.MipLevels = tile_tex->GetDesc().MipLevels;
-	// m_d3d_device->CreateShaderResourceView(tile_tex.Get(), &srv_desc, h_desc);
-	// 
-	// h_desc.Offset(1, m_cbv_srv_descriptor_size);
-	// srv_desc.Format = crate_tex->GetDesc().Format;
-	// srv_desc.Texture2D.MipLevels = crate_tex->GetDesc().MipLevels;
-	// m_d3d_device->CreateShaderResourceView(crate_tex.Get(), &srv_desc, h_desc);
-	// */
+	m_added_textures = false;
 }
 // void Renderer::build_constant_buffers() {
 // 	m_object_cb = new UploadBuffer<ObjectConstants>(m_d3d_device.Get(), 1, true);
@@ -399,8 +385,8 @@ void Renderer::build_descriptor_heaps() { // create heaps to hold the textures (
 // }
 void Renderer::build_root_signature() {
 	CD3DX12_DESCRIPTOR_RANGE tex_table;
-	// tex_table.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, m_textures.size(), 0, 0);
-	tex_table.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 0, 0);
+	tex_table.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, m_textures.size(), 0, 0);
+	// tex_table.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 0, 0);
 	CD3DX12_ROOT_PARAMETER slot_root_parameter[4];//  4]; (change to 4 once I add back textures)
 	slot_root_parameter[0].InitAsConstantBufferView(0);
 	slot_root_parameter[1].InitAsConstantBufferView(1);
@@ -625,8 +611,8 @@ void Renderer::build_psos() {
 		m_shaders["opaque_ps"]->GetBufferSize()
 	};
 	CD3DX12_RASTERIZER_DESC rasterizer_state = {};
-	// rasterizer_state.FillMode = D3D12_FILL_MODE_SOLID;
-	rasterizer_state.FillMode = D3D12_FILL_MODE_WIREFRAME;
+	rasterizer_state.FillMode = D3D12_FILL_MODE_SOLID;
+	// rasterizer_state.FillMode = D3D12_FILL_MODE_WIREFRAME;
 	rasterizer_state.CullMode = D3D12_CULL_MODE_BACK;
 	rasterizer_state.FrontCounterClockwise = FALSE;
 	rasterizer_state.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
@@ -638,8 +624,8 @@ void Renderer::build_psos() {
 	rasterizer_state.ForcedSampleCount = 0;
 	rasterizer_state.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 	
-	// opaque_pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // rasterizer_state;
-	opaque_pso_desc.RasterizerState = rasterizer_state;
+	opaque_pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // rasterizer_state;
+	// opaque_pso_desc.RasterizerState = rasterizer_state;
 	opaque_pso_desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	opaque_pso_desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	opaque_pso_desc.SampleMask = UINT_MAX;
