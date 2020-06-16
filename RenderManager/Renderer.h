@@ -21,6 +21,7 @@
 #include "RenderItem.h"
 #include "DDSTextureLoader.h"
 #include "ResourceUploadBatch.h"
+#include <queue>
 
 class Engine;
 // contains a command queue, heaps, vector of render items that's in the potentially visible set
@@ -41,6 +42,12 @@ public:
 	void shutdown();
 	void on_resize();
 	//Window* get_window() const;
+	Microsoft::WRL::ComPtr<ID3D12Device> get_device();
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> get_command_list(size_t id);
+	void reset_command_list(size_t id);
+	void close_command_list(size_t id);
+	void add_mesh(Mesh* mesh);
+	void create_and_add_texture(const std::string& name, const std::string& file_name, size_t id);
 private:
 	void create_command_objects();
 	void create_swap_chain();
@@ -77,6 +84,9 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_command_queue;
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_command_list_allocator;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_command_list;
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_command_lists[1]; // publically facing command lists that other threads can access using their job system thread id
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_command_list_allocators[1];
+	size_t m_num_command_lists = 1;
 	static const size_t SWAP_CHAIN_BUFFER_COUNT = 2;
 	size_t m_current_back_buffer = 0;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_swap_chain_buffer[SWAP_CHAIN_BUFFER_COUNT];
@@ -111,7 +121,8 @@ private:
 	POINT m_last_mouse_pos;
 
 	// chapter 15 specific items
-	std::vector<FrameResources*> m_frame_resources; // the frame resources ring buffer
+	//std::vector<FrameResources*> m_frame_resources; // the frame resources ring buffer
+	std::queue<FrameResources*> m_frame_resources;
 	FrameResources* m_curr_frame_resource = nullptr; // the frame resoures structure for the current frame
 	size_t m_curr_frame_resources_index = 0;
 	uint32_t m_cbv_srv_descriptor_size = 0;

@@ -1,6 +1,7 @@
 #include "Scene.h"
 #include "../Engine.h"
 #include "../ResourceManager/ResourceManager.h"
+#include "Renderer.h"
 
 // Scene::Scene() : m_items(new std::vector<RenderItem>()) {}\
 // Scene::~Scene() {
@@ -10,10 +11,57 @@ Scene::Scene() : m_name(""), m_hash_name(0) {}//, m_object(new Object()) {}//m_m
 Scene::~Scene() {
 	//delete m_material;
 	//delete m_object;
-	delete m_root;
+	//delete m_root;
 }
 
-void Scene::process_node(Node* current_node, Node* parent, aiNode* ai_node, const aiScene* scene) {
+void Scene::process_node(const DirectX::XMMATRIX& parent_transform, aiNode* ai_node, const aiScene* scene) {
+	// only need to set the transform and the primitive type of submesh using the mesh index
+
+
+	aiMatrix4x4 temp = ai_node->mTransformation.Transpose(); // transpose because we are using directx
+	DirectX::XMMATRIX temp_transform = DirectX::XMLoadFloat4x4(&DirectX::XMFLOAT4X4(temp.a1, temp.a2, temp.a3, temp.a4,
+		temp.b1, temp.b2, temp.b3, temp.b4,
+		temp.c1, temp.c2, temp.c3, temp.c4,
+		temp.d1, temp.d2, temp.d3, temp.d4));
+	// make the node transform be the multiplication of the current node transform and the parent node so it is in world space
+	DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(temp_transform, parent_transform);
+
+	D3D_PRIMITIVE_TOPOLOGY primitive;
+
+	// for each mesh in our node, we need to set the primitive type and the transform we calculated
+	for (size_t i = 0; i != ai_node->mNumMeshes; ++i) { // possible that we reference the same mesh more than once... which results in the transform being messed up
+		// for each ai_mesh in the node, create a new SubMesh and add it to the draw_args
+		SubMesh sub_mesh = {};
+
+		uint32_t scene_mesh_index = ai_node->mMeshes[i];
+
+		sub_mesh.m_index_count = m_mesh->m_sub_mesh_helper.at(scene_mesh_index).m_index_count;
+		sub_mesh.m_base_vertex = m_mesh->m_sub_mesh_helper.at(scene_mesh_index).m_base_vertex;
+		sub_mesh.m_start_index = m_mesh->m_sub_mesh_helper.at(scene_mesh_index).m_start_index;
+		sub_mesh.m_transform = transform;
+		switch (scene->mMeshes[scene_mesh_index]->mPrimitiveTypes) {
+		case aiPrimitiveType_LINE:
+			primitive = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+			break;
+		case aiPrimitiveType_TRIANGLE:
+			primitive = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+			break;
+		default:
+			assert(false && "mesh contains an unsupported primitive topology");
+		}
+		sub_mesh.m_primitive = primitive;
+
+		std::string name = "";
+		std::string node_name(ai_node->mName.C_Str());
+		std::string mesh_name(scene->mMeshes[scene_mesh_index]->mName.C_Str());
+		name = node_name + "_" + mesh_name;
+		m_mesh->m_draw_args[name] = sub_mesh; // copies the sub_mesh into the unordered map
+	}
+	for (size_t i = 0; i != ai_node->mNumChildren; ++i) { // process all the child node and give our transform because we are their parent
+		process_node(transform, ai_node->mChildren[i], scene);
+	}
+
+	/*
 	// fill out the current_node members from the aiNode
 	current_node->m_parent = parent;
 	current_node->m_children_count = ai_node->mNumChildren;
@@ -31,11 +79,16 @@ void Scene::process_node(Node* current_node, Node* parent, aiNode* ai_node, cons
 	current_node->m_node_transform = DirectX::XMMatrixMultiply(temp_transform, parent_transform);
 	//current_node->m_node_transform = DirectX::XMMatrixMultiply(temp_transform, DirectX::XMLoadFloat4x4(&parent->m_node_transform));
 	// create an object that holds zero or more meshes
-	current_node->m_object = new Object(ai_node->mNumMeshes);
-	for (size_t i = 0; i != current_node->m_object->m_mesh_count; ++i) {
+	//current_node->m_object = new Object(ai_node->mNumMeshes);
+	current_node->m_sub_mesh_count = ai_node->mNumMeshes;
+	current_node->m_sub_meshes = new SubMesh[current_node->m_sub_mesh_count];
+	//for (size_t i = 0; i != current_node->m_object->m_mesh_count; ++i) {
+	for(size_t i = 0; i != current_node->m_sub_mesh_count; ++i) {
 		uint32_t scene_mesh_index = ai_node->mMeshes[i]; // each mesh has an index into the scene structure array of meshes
 		// process the mesh...
-		current_node->m_object->m_sub_meshes[i].init(scene->mMeshes[scene_mesh_index]);
+		// current_node->m_object->m_sub_meshes[i].init(scene->mMeshes[scene_mesh_index]);
+
+
 		//current_node->m_object[i].init(scene->mMeshes[i]);
 	}
 	for (size_t i = 0; i != current_node->m_children_count; ++i) {
@@ -44,8 +97,74 @@ void Scene::process_node(Node* current_node, Node* parent, aiNode* ai_node, cons
 	}
 	// and then call this function recursively on the child nodes
 	return;
+	*/
 }
+void Scene::create_mesh(const aiScene* scene) {
+	std::vector<Vertex> vertices;
+	std::vector<uint16_t> indices;
 
+	size_t base_vertex = vertices.size();
+	size_t start_index = indices.size();
+
+	for (size_t i = 0; i != scene->mNumMeshes; ++i) { // for each aiMesh
+		OutputDebugStringA(scene->mMeshes[i]->mName.C_Str());
+		for (size_t j = 0; j != scene->mMeshes[i]->mNumVertices; ++j) { // for each vertex in an aiMesh
+			Vertex temp;
+			float pos_x = scene->mMeshes[i]->mVertices[j].x;
+			float pos_y = scene->mMeshes[i]->mVertices[j].y;
+			float pos_z = scene->mMeshes[i]->mVertices[j].z;
+			float norm_x = scene->mMeshes[i]->mNormals[j].x;
+			float norm_y = scene->mMeshes[i]->mNormals[j].y;
+			float norm_z = scene->mMeshes[i]->mNormals[j].z;
+			float tex_x = scene->mMeshes[i]->mTextureCoords[0]->x;
+			float tex_y = scene->mMeshes[i]->mTextureCoords[0]->y;
+			temp.m_pos = {pos_x, pos_y, pos_z};
+			temp.m_normal = {norm_x, norm_y, norm_z};
+			temp.m_text_coord = {tex_x, tex_y};
+			vertices.push_back(std::move(temp));
+		}
+		size_t num_indices = 0;
+		for (size_t j = 0; j != scene->mMeshes[i]->mNumFaces; ++j) { // for each face in an aiMesh
+			for (size_t k = 0; k != scene->mMeshes[i]->mFaces[j].mNumIndices; ++k) { // for each index in the face
+				indices.push_back(scene->mMeshes[i]->mFaces[j].mIndices[k]);
+				num_indices++;
+			}
+		}
+		SubMeshBufferData temp_sub_mesh = { };
+		temp_sub_mesh.m_index_count = num_indices;
+		temp_sub_mesh.m_base_vertex = base_vertex;
+		temp_sub_mesh.m_start_index = start_index;
+		// will set the primitive topology and the transform whhile traversing the node hierarchy
+		m_mesh->m_sub_mesh_helper[i] = temp_sub_mesh;
+		base_vertex = vertices.size();
+		start_index = indices.size();
+	}
+
+	const size_t vb_byte_size = vertices.size() * sizeof(Vertex);
+	const size_t ib_byte_size = indices.size() * sizeof(uint16_t);
+	
+	
+	m_mesh->name = m_name;
+
+	engine->renderer->reset_command_list(0);
+
+	ThrowIfFailed(D3DCreateBlob(vb_byte_size, &m_mesh->m_vertex_buffer_cpu));
+	CopyMemory(m_mesh->m_vertex_buffer_cpu->GetBufferPointer(), vertices.data(), vb_byte_size);
+	ThrowIfFailed(D3DCreateBlob(ib_byte_size, &m_mesh->m_index_buffer_cpu));
+	CopyMemory(m_mesh->m_index_buffer_cpu->GetBufferPointer(), indices.data(), ib_byte_size);
+	
+	m_mesh->m_vertex_buffer_gpu = create_default_buffer(engine->renderer->get_device().Get(), engine->renderer->get_command_list(0).Get(), vertices.data(), vb_byte_size, m_mesh->m_vertex_buffer_uploader);
+	m_mesh->m_index_buffer_gpu = create_default_buffer(engine->renderer->get_device().Get(), engine->renderer->get_command_list(0).Get(), indices.data(), ib_byte_size, m_mesh->m_index_buffer_uploader);
+	
+
+	engine->renderer->close_command_list(0);
+
+	m_mesh->m_vertex_stride = sizeof(Vertex);
+	m_mesh->m_vertex_buffer_size = vb_byte_size;
+	m_mesh->m_index_format = DXGI_FORMAT_R16_UINT;
+	m_mesh->m_index_buffer_size = ib_byte_size;
+
+}
 bool Scene::init() {
 	// use the resource manager to load the items into memory
 	// then build each RenderItem and add it to the vector
@@ -63,15 +182,30 @@ bool Scene::init() {
 	// 	m_object->m_sub_meshes[i].init(scene->mMeshes[i]);
 	// }
 
-	m_root = new Node();
-	process_node(m_root, nullptr, scene->mRootNode, scene);
+
+	m_mesh = new Mesh();
+	create_mesh(scene);
+	engine->renderer->add_mesh(m_mesh);
+
+
+	// m_root = new Node();
+	process_node(DirectX::XMMatrixIdentity(), scene->mRootNode, scene);
+
+	
 
 	// should eventually read in a file that has all this data in a nice format. maybe a json file callend scene
 	// build the textures in the scene, or tell the renderer about them
-	m_texture_count = 1;
-	m_textures = new Texture[m_texture_count]; // make an array of one texture, just use the color texture for now
-	m_textures[0].m_name = "base_color";
-	m_textures[0].m_filename = zip_file + "/Sting_Base_Color.dds"; // use the name to look up into the resource manager and get the data pointer
+
+	// replace 0 with the thread id to index into the array of command lists
+	engine->renderer->reset_command_list(0);
+	std::string tex_name = "base_color";
+	std::string filename = zip_file + "/Sting_Base_Color.dds";
+	engine->renderer->create_and_add_texture(tex_name, filename, 0);
+	engine->renderer->close_command_list(0);
+	// m_texture_count = 1;
+	// m_textures = new Texture[m_texture_count]; // make an array of one texture, just use the color texture for now
+	// m_textures[0].m_name = "base_color";
+	// m_textures[0].m_filename = zip_file + "/Sting_Base_Color.dds"; // use the name to look up into the resource manager and get the data pointer
 	// do just the color now as that will be the simplest to implement in the shader
 
 	

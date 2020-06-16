@@ -21,19 +21,22 @@ bool Engine::init(HINSTANCE hInstance) {
 	input_manager->init();
 	camera = new Camera();
 
-	scene = new Scene();
-	if (!scene->init()) return false;
 
 	renderer = new Renderer();
+	scene = new Scene();
 	//renderer = new Renderer();	
 	try {
 		renderer->init();
 		renderer->on_resize();
+		if (!scene->init()) return false;
 	}
 	catch (DxException& e) {
 		MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
 		exit(e.error_code);
 	}
+
+	// scene needs the renderer to have created command lists for it to use
+
 	return true;
 }
 void Engine::run() {

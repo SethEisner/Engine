@@ -12,6 +12,7 @@
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
 #include "MathHelper.h"
+//#include "FrameResources.h"
 
 
 //contains structures that are needed on the CPU side, and helper functions
@@ -81,11 +82,17 @@ struct SubMesh {
 	//DirectX::BoundingBox Bounds; // bounding box for the mesh 
 };
 
+struct SubMeshBufferData {
+	size_t m_index_count = 0;
+	size_t m_start_index = 0;
+	size_t m_base_vertex = 0;
+};
+
 struct Mesh { // contains the buffers for a single object. combines all the submeshes into buffers (for vertex and index and cpu and gpu)
 	std::string name; // look up by name
 	//uint64_t hash_name; // look up by hashed string name
-	Microsoft::WRL::ComPtr<ID3DBlob> m_vertex_buffer_cpu = nullptr;
-	Microsoft::WRL::ComPtr<ID3DBlob> m_index_buffer_cpu = nullptr;
+	Microsoft::WRL::ComPtr<ID3DBlob> m_vertex_buffer_cpu = nullptr; // contains the Vertex vector we build up
+	Microsoft::WRL::ComPtr<ID3DBlob> m_index_buffer_cpu = nullptr; // contains the index buffer we build up for a model
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_vertex_buffer_gpu = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_index_buffer_gpu = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_vertex_buffer_uploader = nullptr;
@@ -97,6 +104,8 @@ struct Mesh { // contains the buffers for a single object. combines all the subm
 	size_t m_index_buffer_size = 0;
 	// a mesh can contain multiple meshes in one vertex/index buffer
 	std::unordered_map<std::string, SubMesh> m_draw_args; // replace with hashtable in threadsafe containers
+	std::unordered_map<uint32_t, SubMeshBufferData> m_sub_mesh_helper; // map from sub mesh index to the submesh data we create while building the Mesh and traversing the node hierarchy
+	//std::vector<SubMesh> m_sub_meshes;
 	bool initialized = false;
 	D3D12_VERTEX_BUFFER_VIEW get_vertex_buffer_view() const {
 		D3D12_VERTEX_BUFFER_VIEW vbv;
@@ -116,6 +125,7 @@ struct Mesh { // contains the buffers for a single object. combines all the subm
 		m_vertex_buffer_uploader = nullptr;
 		m_index_buffer_uploader = nullptr;
 	}
+	// void create_mesh(const std::vector<Vertex>& vertices, const std::vector<Vertex>& indices);
 };
 
 struct Light { // ordered this way because of HLSL structure packing rules

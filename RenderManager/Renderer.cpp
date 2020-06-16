@@ -12,6 +12,39 @@
 #include <DDSTextureLoader.h>
 #include "DDSTextureLoader12.h"
 
+
+Microsoft::WRL::ComPtr<ID3D12Device> Renderer::get_device() {
+	return m_d3d_device;
+}
+Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> Renderer::get_command_list(size_t id) {
+	return m_command_lists[id];
+}
+void Renderer::reset_command_list(size_t id) {
+	ThrowIfFailed(m_command_lists[id]->Reset(m_command_list_allocators[id].Get(), nullptr));
+}
+void Renderer::close_command_list(size_t id) { // WRONG!!! funciton is used now to build the Mesh buffers while creating the scene, 
+	// need to ensure that once we start submitting draw calls from other threads that we flush the command queue with every thread's command list
+	// right now we would flush the command queue for every thread which is very wasteful
+	ThrowIfFailed(m_command_lists[id]->Close()); // execute the initialization commands
+	ID3D12CommandList* cmd_lists[] = { m_command_lists[id].Get() };
+	m_command_queue->ExecuteCommandLists(_countof(cmd_lists), cmd_lists);
+	flush_command_queue();
+}
+void Renderer::add_mesh(Mesh* mesh) {
+	m_geometries[mesh->name] = mesh;
+}
+void Renderer::create_and_add_texture(const std::string& name, const std::string& filename, size_t id) {// use the thread's command list to create and add the texture 
+
+	//DirectX::ResourceUploadBatch resource_upload(m_d3d_device.Get());
+	Texture* tex = new Texture();
+	tex->m_name = name;
+	tex->m_filename = filename;
+
+	ThrowIfFailed(CreateDDSTextureFromMemory12(m_d3d_device.Get(), m_command_lists[id].Get(),
+		engine->resource_manager->get_data_pointer(tex->m_filename),
+		engine->resource_manager->get_data_size(tex->m_filename), tex->m_resource, tex->m_upload_heap));
+	m_textures[tex->m_name] = std::move(tex);
+}
 bool Renderer::init() {
 
 #if defined(DEBUG) || defined(_DEBUG)
@@ -50,15 +83,15 @@ bool Renderer::init() {
 	engine->camera->set_position(0.0f, 1.0f, -3.0f);
 	// engine->camera->look_at(DirectX::XMFLOAT3(0.0f, -300.0f, -350.0f), DirectX::XMFLOAT3(0.0f,0.0f,0.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f)) ;
 	//engine->camera->update_view_matrix();
-	load_textures(); // separate loading from the renderer to use the resource manager
+	// load_textures(); // separate loading from the renderer to use the resource manager
 	build_root_signature();
 	build_descriptor_heaps();
 	build_shaders_and_input_layout();
-	//build_constant_buffers();
-	build_shape_geometry();
-	build_materials();
-	build_render_items();
-	build_frame_resources();
+	// build_constant_buffers();
+	// build_shape_geometry();
+	// build_materials();
+	// build_render_items();
+	//build_frame_resources();
 	build_psos();
 	ThrowIfFailed(m_command_list->Close()); // execute the initialization commands
 	ID3D12CommandList* cmd_lists[] = { m_command_list.Get() };
@@ -69,23 +102,36 @@ bool Renderer::init() {
 
 
 void Renderer::update() {
+	// build_root_signature();
+	// build_descriptor_heaps();
+	build_render_items();
+	if (m_render_items.empty()) return; // if there is nothing to render then there is nothing to update
 
-	m_curr_frame_resources_index = (m_curr_frame_resources_index + 1) % g_num_frame_resources;
-	m_curr_frame_resource = m_frame_resources[m_curr_frame_resources_index];
+	// m_curr_frame_resources_index = (m_curr_frame_resources_index + 1) % g_num_frame_resources;
+	// m_curr_frame_resource = m_frame_resources[m_curr_frame_resources_index];
+	if (m_frame_resources.size() == 3) {
+		auto front_frame_resource = m_frame_resources.front();
 
-	// GPU has not finished using this frame resource so we must wait until the GPU is done
-	if (m_curr_frame_resource->m_fence != 0 && m_fence->GetCompletedValue() < m_curr_frame_resource->m_fence) {
-		HANDLE event_handle = CreateEventEx(nullptr, NULL, false, EVENT_ALL_ACCESS);
-		ThrowIfFailed(m_fence->SetEventOnCompletion(m_curr_frame_resource->m_fence, event_handle));
-		WaitForSingleObject(event_handle, INFINITE);
-		CloseHandle(event_handle);
+		// GPU has not finished using this frame resource so we must wait until the GPU is done
+		if (front_frame_resource->m_fence != 0 && m_fence->GetCompletedValue() < front_frame_resource->m_fence) {
+			HANDLE event_handle = CreateEventEx(nullptr, NULL, false, EVENT_ALL_ACCESS);
+			ThrowIfFailed(m_fence->SetEventOnCompletion(front_frame_resource->m_fence, event_handle));
+			WaitForSingleObject(event_handle, INFINITE);
+			CloseHandle(event_handle);
+		}
+		m_frame_resources.pop(); // remove it from the queue
+		delete front_frame_resource;
 	}
+	m_curr_frame_resource = new FrameResources(m_d3d_device.Get(), 1, m_render_items.size(), m_materials.size());
 	animate_materials(*engine->global_timer);
 	update_object_cbs(*engine->global_timer);
 	update_material_buffer(*engine->global_timer);
 	update_main_pass_cb(*engine->global_timer);
+	m_frame_resources.push(m_curr_frame_resource);
 }
 void Renderer::draw() {
+	if (m_render_items.empty()) return; // if there is nothing to render then there is nothing to draw
+
 	auto command_list_allocator = m_curr_frame_resource->m_cmd_list_allocator;
 	ThrowIfFailed(command_list_allocator->Reset()); // reset the allocator to accept new commands (must be done after GPU is done using the allocator
 	// reset command list after it has been added to the command queue
@@ -116,6 +162,7 @@ void Renderer::draw() {
 	m_command_list->SetGraphicsRootConstantBufferView(1, pass_cb->GetGPUVirtualAddress());
 	// auto mat_buffer = m_curr_frame_resource->m_material_buffer->get_resource();
 	// m_command_list->SetGraphicsRootShaderResourceView(2, mat_buffer->GetGPUVirtualAddress());
+	// m_command_list->SetGraphicsRootDescriptorTable(3, m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
 	m_command_list->SetGraphicsRootDescriptorTable(3, m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
 	draw_render_items(m_command_list.Get(), m_opaque_render_items);
 	m_command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(current_back_buffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
@@ -222,6 +269,11 @@ void Renderer::create_command_objects() {
 	ThrowIfFailed(m_d3d_device->CreateCommandQueue(&command_queue_desc, IID_PPV_ARGS(m_command_queue.GetAddressOf())));
 	ThrowIfFailed(m_d3d_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_command_list_allocator.GetAddressOf())));
 	ThrowIfFailed(m_d3d_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_command_list_allocator.Get(), nullptr, IID_PPV_ARGS(m_command_list.GetAddressOf())));
+	for (size_t i = 0; i != m_num_command_lists; ++i) {
+		ThrowIfFailed(m_d3d_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_command_list_allocators[i].GetAddressOf())));
+		ThrowIfFailed(m_d3d_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_command_list_allocators[i].Get(), nullptr, IID_PPV_ARGS(m_command_lists[i].GetAddressOf())));
+		ThrowIfFailed(m_command_lists[i]->Close());
+	}
 	m_command_list->Close();
 }
 void Renderer::create_swap_chain() {
@@ -277,7 +329,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE Renderer::current_back_buffer_view() const {
 D3D12_CPU_DESCRIPTOR_HANDLE Renderer::depth_stencil_view() const {
 	return m_dsv_heap->GetCPUDescriptorHandleForHeapStart();
 }
-void Renderer::build_descriptor_heaps() {
+void Renderer::build_descriptor_heaps() { // create heaps to hold the textures (maybe dont create them every frame but only for new textures...
 	D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc = {};
 	srv_heap_desc.NumDescriptors = 4;
 	srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -347,8 +399,9 @@ void Renderer::build_descriptor_heaps() {
 // }
 void Renderer::build_root_signature() {
 	CD3DX12_DESCRIPTOR_RANGE tex_table;
-	tex_table.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, m_textures.size(), 0, 0);
-	CD3DX12_ROOT_PARAMETER slot_root_parameter[4];
+	// tex_table.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, m_textures.size(), 0, 0);
+	tex_table.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 0, 0);
+	CD3DX12_ROOT_PARAMETER slot_root_parameter[4];//  4]; (change to 4 once I add back textures)
 	slot_root_parameter[0].InitAsConstantBufferView(0);
 	slot_root_parameter[1].InitAsConstantBufferView(1);
 	slot_root_parameter[2].InitAsShaderResourceView(0, 1);
@@ -357,7 +410,11 @@ void Renderer::build_root_signature() {
 	// array of 6 CD3DX12_STATIC_SAMPLER_DESC
 	auto static_samplers = get_static_samplers();
 	// the root signature is an array of root parameters, in our case 4 root parameters
+	
+	//add above line one i'm suing textures again
 	CD3DX12_ROOT_SIGNATURE_DESC root_sig_desc(4, slot_root_parameter, static_samplers.size(), static_samplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	// CD3DX12_ROOT_SIGNATURE_DESC root_sig_desc(3, slot_root_parameter, static_samplers.size(), static_samplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	
 	// create a root signature with a single slot that points to a descriptor range consisting of a single constant buffer
 	Microsoft::WRL::ComPtr<ID3DBlob> serialized_root_sig = nullptr;
 	Microsoft::WRL::ComPtr<ID3DBlob> error_blob = nullptr;
@@ -406,38 +463,38 @@ void Renderer::build_shape_geometry() {
 	//std::stack<uint32_t> children_count;
 	std::queue<Node*> nodes;
 	Node* curr;// = engine->scene->m_root;
-	nodes.push(engine->scene->m_root);
-	while (!nodes.empty()) {
-		// process the node at the front of the vector
-		curr = nodes.front();
-		nodes.pop();
-		for(size_t i = 0; i != curr->m_object->m_mesh_count; ++i){
-			SubMesh sub_mesh = {};
-			sub_mesh.m_index_count = curr->m_object->m_sub_meshes[i].m_indecis.size();
-			sub_mesh.m_start_index = index_offset;
-			sub_mesh.m_base_vertex = vertex_offset;
-			sub_mesh.m_primitive = curr->m_object->m_sub_meshes[i].m_primitive;
-			sub_mesh.m_transform = curr->m_node_transform;
-
-			old_vertex_offset = vertex_offset;
-			old_index_offset = index_offset;
-			vertex_offset += curr->m_object->m_sub_meshes[i].m_vertices.size();
-			index_offset += curr->m_object->m_sub_meshes[i].m_indecis.size();
-			// make space for the new submesh
-			vertices.resize(vertex_offset);
-			indices.resize(index_offset);
-
-			memcpy(vertices.data() + old_vertex_offset, curr->m_object->m_sub_meshes[i].m_vertices.data(), (vertex_offset - old_vertex_offset) * sizeof(Vertex));
-			memcpy(indices.data() + old_index_offset, curr->m_object->m_sub_meshes[i].m_indecis.data(), (index_offset - old_index_offset) * sizeof(uint16_t));
-
-			object_mesh->m_draw_args[curr->m_object->m_sub_meshes[i].m_name] = sub_mesh;
-		}
-		// add the child nodes to the back of the vector
-		for (size_t i = 0; i != curr->m_children_count; ++i) {
-			nodes.push((curr->m_children + i));
-		}
-
-	}
+	// nodes.push(engine->scene->m_root);
+	// while (!nodes.empty()) {
+	// 	// process the node at the front of the vector
+	// 	curr = nodes.front();
+	// 	nodes.pop();
+	// 	for(size_t i = 0; i != curr->m_object->m_mesh_count; ++i){
+	// 		SubMesh sub_mesh = {};
+	// 		sub_mesh.m_index_count = curr->m_object->m_sub_meshes[i].m_indecis.size();
+	// 		sub_mesh.m_start_index = index_offset;
+	// 		sub_mesh.m_base_vertex = vertex_offset;
+	// 		sub_mesh.m_primitive = curr->m_object->m_sub_meshes[i].m_primitive;
+	// 		sub_mesh.m_transform = curr->m_node_transform;
+	// 
+	// 		old_vertex_offset = vertex_offset;
+	// 		old_index_offset = index_offset;
+	// 		vertex_offset += curr->m_object->m_sub_meshes[i].m_vertices.size();
+	// 		index_offset += curr->m_object->m_sub_meshes[i].m_indecis.size();
+	// 		// make space for the new submesh
+	// 		vertices.resize(vertex_offset);
+	// 		indices.resize(index_offset);
+	// 
+	// 		memcpy(vertices.data() + old_vertex_offset, curr->m_object->m_sub_meshes[i].m_vertices.data(), (vertex_offset - old_vertex_offset) * sizeof(Vertex));
+	// 		memcpy(indices.data() + old_index_offset, curr->m_object->m_sub_meshes[i].m_indecis.data(), (index_offset - old_index_offset) * sizeof(uint16_t));
+	// 
+	// 		object_mesh->m_draw_args[curr->m_object->m_sub_meshes[i].m_name] = sub_mesh;
+	// 	}
+	// 	// add the child nodes to the back of the vector
+	// 	for (size_t i = 0; i != curr->m_children_count; ++i) {
+	// 		nodes.push((curr->m_children + i));
+	// 	}
+	// 
+	// }
 
 	// for (size_t i = 0; i != engine->scene->m_object->m_mesh_count; ++i) { // for each mesh in the object we want to render
 	// 	// create a submesh for it
@@ -568,7 +625,8 @@ void Renderer::build_psos() {
 		m_shaders["opaque_ps"]->GetBufferSize()
 	};
 	CD3DX12_RASTERIZER_DESC rasterizer_state = {};
-	rasterizer_state.FillMode = D3D12_FILL_MODE_SOLID; //D3D12_FILL_MODE_WIREFRAME;
+	// rasterizer_state.FillMode = D3D12_FILL_MODE_SOLID;
+	rasterizer_state.FillMode = D3D12_FILL_MODE_WIREFRAME;
 	rasterizer_state.CullMode = D3D12_CULL_MODE_BACK;
 	rasterizer_state.FrontCounterClockwise = FALSE;
 	rasterizer_state.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
@@ -580,7 +638,8 @@ void Renderer::build_psos() {
 	rasterizer_state.ForcedSampleCount = 0;
 	rasterizer_state.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 	
-	opaque_pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // rasterizer_state;
+	// opaque_pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // rasterizer_state;
+	opaque_pso_desc.RasterizerState = rasterizer_state;
 	opaque_pso_desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	opaque_pso_desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	opaque_pso_desc.SampleMask = UINT_MAX;
@@ -593,43 +652,31 @@ void Renderer::build_psos() {
 	ThrowIfFailed(m_d3d_device->CreateGraphicsPipelineState(&opaque_pso_desc, IID_PPV_ARGS(&m_psos["opaque"])));
 }
 void Renderer::build_frame_resources() {
-	for (int i = 0; i < g_num_frame_resources; ++i) { // okay to initialize in a loop because g_num_frame_resources should be around 2 or 3
-		FrameResources* temp = new FrameResources(m_d3d_device.Get(), 1, m_render_items.size(), m_materials.size());
-		m_frame_resources.push_back(temp);
-	}
+	// for (int i = 0; i < g_num_frame_resources; ++i) { // okay to initialize in a loop because g_num_frame_resources should be around 2 or 3
+	// 	FrameResources* temp = new FrameResources(m_d3d_device.Get(), 1, m_render_items.size(), m_materials.size());
+	// 	m_frame_resources.push_back(temp);
+	// }
 }
 void Renderer::build_materials() {}
 void Renderer::build_render_items() {
 	// for each sub_mesh in draw_args
 	size_t i = 0;
-	for (auto& object : m_geometries) { // for each mesh in the geometries map
-		for (auto& sub_object : object.second->m_draw_args) { // for each submesh in the object
-			RenderItem* ri = new RenderItem();
-			// XMStoreFloat4x4(&ri->m_world, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f) * DirectX::XMMatrixTranslation(0.0f, 0.0f, 0.0f));
-			XMStoreFloat4x4(&ri->m_world, sub_object.second.m_transform);
-			XMStoreFloat4x4(&ri->m_tex_transform, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
-			ri->m_obj_cb_index = i++; // use the old value of i
-			ri->m_mesh = object.second;
-			ri->m_primitive_type = sub_object.second.m_primitive;//D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST; // should be read in from the SubMeshData structure
-			ri->m_index_count = sub_object.second.m_index_count;
-			ri->m_start_index_location = sub_object.second.m_start_index;
-			ri->m_base_vertex_location = sub_object.second.m_base_vertex;
-			m_render_items.push_back(ri);
-			m_opaque_render_items.push_back(ri);
-		}
+	auto mesh = engine->scene->m_mesh;
+	for (auto& obj: engine->scene->m_mesh->m_draw_args) {
+		SubMesh sub_mesh = obj.second;
+		RenderItem* ri = new RenderItem();
+		XMStoreFloat4x4(&ri->m_world, sub_mesh.m_transform);
+		// XMStoreFloat4x4(&ri->m_world, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f) * DirectX::XMMatrixTranslation(0.0f, 0.0f, 0.0f));
+		XMStoreFloat4x4(&ri->m_tex_transform, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
+		ri->m_obj_cb_index = i++; // use the old value of i
+		ri->m_mesh = engine->scene->m_mesh;
+		ri->m_primitive_type = sub_mesh.m_primitive;//D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST; // should be read in from the SubMeshData structure
+		ri->m_index_count = sub_mesh.m_index_count;
+		ri->m_start_index_location = sub_mesh.m_start_index;
+		ri->m_base_vertex_location = sub_mesh.m_base_vertex;
+		m_render_items.push_back(ri);
+		m_opaque_render_items.push_back(ri);
 	}
-	// RenderItem* object = new RenderItem();
-	// XMStoreFloat4x4(&object->m_world, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f) * DirectX::XMMatrixTranslation(0.0f, 0.0f, 0.0f));
-	// XMStoreFloat4x4(&object->m_tex_transform, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
-	// object->m_obj_cb_index = 0;
-	// object->m_mesh = m_geometries["object"];
-	// object->m_primitive_type = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	// 
-	// object->m_index_count = object->m_mesh->m_draw_args["object"].m_index_count;
-	// object->m_start_index_location = object->m_mesh->m_draw_args["object"].m_start_index;
-	// object->m_base_vertex_location = object->m_mesh->m_draw_args["object"].m_base_vertex;
-	// m_render_items.push_back(object);
-	// m_opaque_render_items.push_back(object);
 }
 void Renderer::draw_render_items(ID3D12GraphicsCommandList* cmd_list, const std::vector<RenderItem*>& r_items) { // rename to draw_game_objects
 	size_t obj_cb_size = calc_constant_buffer_size(sizeof(ObjectConstants));

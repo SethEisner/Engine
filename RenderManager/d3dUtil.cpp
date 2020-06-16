@@ -1,4 +1,5 @@
 #include "d3dUtil.h"
+#include <vector>
 
 const int g_num_frame_resources = 3;
 
@@ -59,3 +60,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> create_default_buffer(ID3D12Device* devic
 	// need to keep the upload buffer alive until the command list that performs the vopy is executed. can be released after the copy
 	return default_buffer;
 }
+
+//void Mesh::create_mesh(const std::vector<Vertex>& vertices, const std::vector<Vertex>& indices) { // build shape geometry
+//
+//}
