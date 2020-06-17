@@ -32,19 +32,23 @@ void Renderer::close_command_list(size_t id) { // WRONG!!! funciton is used now 
 }
 void Renderer::add_mesh(Mesh* mesh) {
 	m_geometries[mesh->name] = mesh;
+	build_descriptor_heaps(mesh); // build the descriptor heap for the mesh
 }
-void Renderer::create_and_add_texture(const std::string& name, const std::string& filename, size_t id) {// use the thread's command list to create and add the texture 
+void Renderer::create_and_add_texture(const std::string& name, const std::string& filename, size_t id, Mesh* corresponding_mesh, TextureFlags flag) {// use the thread's command list to create and add the texture 
 
 	//DirectX::ResourceUploadBatch resource_upload(m_d3d_device.Get());
-	Texture* tex = new Texture();
-	tex->m_name = name;
-	tex->m_filename = filename;
+	Texture* texture = new Texture();
+	texture->m_name = name;
+	texture->m_filename = filename;
 
 	ThrowIfFailed(CreateDDSTextureFromMemory12(m_d3d_device.Get(), m_command_lists[id].Get(),
-		engine->resource_manager->get_data_pointer(tex->m_filename),
-		engine->resource_manager->get_data_size(tex->m_filename), tex->m_resource, tex->m_upload_heap));
-	m_textures[tex->m_name] = std::move(tex);
-	m_added_textures = true;
+		engine->resource_manager->get_data_pointer(texture->m_filename),
+		engine->resource_manager->get_data_size(texture->m_filename), texture->m_resource, texture->m_upload_heap));
+	//m_textures[tex->m_name] = std::move(tex);
+
+	int index = get_texture_index(flag);
+	assert(m_texture_map[corresponding_mesh][index] == nullptr); // assert that we are not overwriting the data
+	m_texture_map[corresponding_mesh][index] = texture;
 }
 bool Renderer::init() {
 
@@ -77,41 +81,19 @@ bool Renderer::init() {
 	create_swap_chain();
 	create_rtv_and_dsv_descriptor_heaps(); // for the render target and depth stencil view
 
-
-	engine->camera->set_position(0.0f, 1.0f, -3.0f);
-
-
-	// chapter 6 specific items
-	ThrowIfFailed(m_command_list->Reset(m_command_list_allocator.Get(), nullptr));
-	// m_cbv_srv_descriptor_size = m_d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	// engine->camera->look_at(DirectX::XMFLOAT3(0.0f, -300.0f, -350.0f), DirectX::XMFLOAT3(0.0f,0.0f,0.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f)) ;
-	//engine->camera->update_view_matrix();
-	// load_textures(); // separate loading from the renderer to use the resource manager
-	// build_root_signature();
-	// build_descriptor_heaps();
-	// build_shaders_and_input_layout();
-	// build_constant_buffers();
-	// build_shape_geometry();
-	// build_materials();
-	// build_render_items();
-	// build_frame_resources();
-	// build_psos();
-	ThrowIfFailed(m_command_list->Close()); // execute the initialization commands
-	ID3D12CommandList* cmd_lists[] = { m_command_list.Get() };
-	m_command_queue->ExecuteCommandLists(_countof(cmd_lists), cmd_lists);
-	flush_command_queue();
-	return true;
+	// camera position can be set anywhere
+	engine->camera->set_position(0.0f, 2.0f, -3.0f);
+	// build the basic structures the rending pipeline can use to render our objects
+	build_root_signature();
+	build_shaders_and_input_layout();
+	build_psos();
 }
 
 
 void Renderer::update() {
 	ThrowIfFailed(m_command_list->Reset(m_command_list_allocator.Get(), nullptr));
-	m_cbv_srv_descriptor_size = m_d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	build_root_signature();
-	build_descriptor_heaps();
-	build_shaders_and_input_layout();
+	// m_cbv_srv_descriptor_size = m_d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	build_render_items();
-	build_psos();
 	if (m_render_items.empty()) return; // if there is nothing to render then there is nothing to update
 
 	// m_curr_frame_resources_index = (m_curr_frame_resources_index + 1) % g_num_frame_resources;
@@ -167,6 +149,9 @@ void Renderer::draw() {
 	m_command_list->OMSetRenderTargets(1, &current_back_buffer_view(), true, &depth_stencil_view());
 
 	// chapter 6
+	/*
+	// we have a descriptor heap per mesh so we need to move this to draw render items
+
 	ID3D12DescriptorHeap* descriptor_heaps[] = { m_srv_descriptor_heap.Get() };
 	m_command_list->SetDescriptorHeaps(_countof(descriptor_heaps), descriptor_heaps);
 	m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
@@ -176,6 +161,14 @@ void Renderer::draw() {
 	// m_command_list->SetGraphicsRootShaderResourceView(2, mat_buffer->GetGPUVirtualAddress());
 	// m_command_list->SetGraphicsRootDescriptorTable(3, m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
 	m_command_list->SetGraphicsRootDescriptorTable(3, m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
+	*/
+
+	// should be render item independent
+	m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
+	auto pass_cb = m_curr_frame_resource->m_pass_cb->get_resource();
+	m_command_list->SetGraphicsRootConstantBufferView(1, pass_cb->GetGPUVirtualAddress());
+
+
 	draw_render_items(m_command_list.Get(), m_opaque_render_items);
 	m_command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(current_back_buffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 	ThrowIfFailed(m_command_list->Close());
@@ -341,34 +334,61 @@ D3D12_CPU_DESCRIPTOR_HANDLE Renderer::current_back_buffer_view() const {
 D3D12_CPU_DESCRIPTOR_HANDLE Renderer::depth_stencil_view() const {
 	return m_dsv_heap->GetCPUDescriptorHandleForHeapStart();
 }
-void Renderer::build_descriptor_heaps() { // create heaps to hold the textures (maybe dont create them every frame but only for new textures...
-	// if m_textures_added then we need to destroy and create the
-	if (!m_added_textures) return; // if we have not added textures then there is nothing to build descriptor heaps for
+void Renderer::build_descriptor_heaps(Mesh* mesh) { // create heaps to hold the textures (maybe dont create them every frame but only for new textures...
+
+	// create a new descritpor heap and map it to the given mesh
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srv_descriptor_heap = nullptr;
 	D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc = {};
-	srv_heap_desc.NumDescriptors = m_textures.size();
+	srv_heap_desc.NumDescriptors = NUM_TEXTURES;
 	srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	//srv_heap_desc.NodeMask = 0;
-	ThrowIfFailed(m_d3d_device->CreateDescriptorHeap(&srv_heap_desc, IID_PPV_ARGS(&m_srv_descriptor_heap)));
+	ThrowIfFailed(m_d3d_device->CreateDescriptorHeap(&srv_heap_desc, IID_PPV_ARGS(&srv_descriptor_heap)));
 
-	// fill out the heap with our 4 descriptors
-	CD3DX12_CPU_DESCRIPTOR_HANDLE h_desc(m_srv_descriptor_heap->GetCPUDescriptorHandleForHeapStart());
+	m_descriptor_heap_map[mesh] = std::move(srv_descriptor_heap);
+
+	// fill out the heap with our NUM_TEXTURE descriptors
+	CD3DX12_CPU_DESCRIPTOR_HANDLE h_desc(m_descriptor_heap_map[mesh]->GetCPUDescriptorHandleForHeapStart());
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
 	srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srv_desc.Texture2D.MostDetailedMip = 0;
 	srv_desc.Texture2D.ResourceMinLODClamp = 0.0f;
-	srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // only support 2d textures for now
 	size_t offset = 0;
-	for (auto& pair : m_textures) {
-		auto tex = pair.second->m_resource;
-		h_desc.Offset(offset, m_cbv_srv_descriptor_size); // first texture resoruce has an offset of 0, every following texture resource has an offset of 1 from the previous resource
-		srv_desc.Format = tex->GetDesc().Format;
-		srv_desc.Texture2D.MipLevels = tex->GetDesc().MipLevels;
-		m_d3d_device->CreateShaderResourceView(tex.Get(), &srv_desc, h_desc);
-		offset = 1;
+
+	uint32_t supported_textures = static_cast<uint32_t>(mesh->m_textures_used);
+	static const uint32_t mask = 0x1;
+	for (size_t i = 0; i != NUM_TEXTURES; ++i, supported_textures >>= 1) { // for each texture type the mesh could support
+		// if it is supported, create the view
+		if (supported_textures & mask) {
+			Texture* tex = m_texture_map[mesh][i]; // get the corresponding texture pointer
+			//assert(tex != nullptr); // assert that we loaded and created the texture to bind
+			h_desc.Offset(offset, m_cbv_srv_descriptor_size);
+			srv_desc.Format = tex->m_resource->GetDesc().Format;
+			srv_desc.Texture2D.MipLevels = tex->m_resource->GetDesc().MipLevels;
+			m_d3d_device->CreateShaderResourceView(tex->m_resource.Get(), &srv_desc, h_desc);
+			offset = 1;
+		}
 	}
-	m_added_textures = false;
+
+
+
+
+
+
+
+
+
+
+	// for (auto& pair : m_textures) {
+	// 	auto tex = pair.second->m_resource;
+	// 	h_desc.Offset(offset, m_cbv_srv_descriptor_size); // first texture resoruce has an offset of 0, every following texture resource has an offset of 1 from the previous resource
+	// 	srv_desc.Format = tex->GetDesc().Format;
+	// 	srv_desc.Texture2D.MipLevels = tex->GetDesc().MipLevels;
+	// 	m_d3d_device->CreateShaderResourceView(tex.Get(), &srv_desc, h_desc);
+	// 	offset = 1;
+	// }
 }
 // void Renderer::build_constant_buffers() {
 // 	m_object_cb = new UploadBuffer<ObjectConstants>(m_d3d_device.Get(), 1, true);
@@ -385,7 +405,8 @@ void Renderer::build_descriptor_heaps() { // create heaps to hold the textures (
 // }
 void Renderer::build_root_signature() {
 	CD3DX12_DESCRIPTOR_RANGE tex_table;
-	tex_table.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, m_textures.size(), 0, 0);
+	tex_table.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURES, 0, 0);
+	// tex_table.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, m_textures.size(), 0, 0);
 	// tex_table.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 0, 0);
 	CD3DX12_ROOT_PARAMETER slot_root_parameter[4];//  4]; (change to 4 once I add back textures)
 	slot_root_parameter[0].InitAsConstantBufferView(0);
@@ -397,7 +418,6 @@ void Renderer::build_root_signature() {
 	auto static_samplers = get_static_samplers();
 	// the root signature is an array of root parameters, in our case 4 root parameters
 	
-	//add above line one i'm suing textures again
 	CD3DX12_ROOT_SIGNATURE_DESC root_sig_desc(4, slot_root_parameter, static_samplers.size(), static_samplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 	// CD3DX12_ROOT_SIGNATURE_DESC root_sig_desc(3, slot_root_parameter, static_samplers.size(), static_samplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 	
@@ -651,9 +671,10 @@ void Renderer::build_render_items() {
 	for (auto& obj: engine->scene->m_mesh->m_draw_args) {
 		SubMesh sub_mesh = obj.second;
 		RenderItem* ri = new RenderItem();
-		XMStoreFloat4x4(&ri->m_world, sub_mesh.m_transform);
+		XMStoreFloat4x4(&ri->m_world, DirectX::XMMatrixMultiply(sub_mesh.m_transform, DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f)));
 		// XMStoreFloat4x4(&ri->m_world, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f) * DirectX::XMMatrixTranslation(0.0f, 0.0f, 0.0f));
 		XMStoreFloat4x4(&ri->m_tex_transform, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
+		ri->m_textures_used = static_cast<int>(mesh->m_textures_used);
 		ri->m_obj_cb_index = i++; // use the old value of i
 		ri->m_mesh = engine->scene->m_mesh;
 		ri->m_primitive_type = sub_mesh.m_primitive;//D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST; // should be read in from the SubMeshData structure
@@ -667,8 +688,21 @@ void Renderer::build_render_items() {
 void Renderer::draw_render_items(ID3D12GraphicsCommandList* cmd_list, const std::vector<RenderItem*>& r_items) { // rename to draw_game_objects
 	size_t obj_cb_size = calc_constant_buffer_size(sizeof(ObjectConstants));
 	auto object_cb = m_curr_frame_resource->m_object_cb->get_resource();
-	for (size_t i = 0; i < r_items.size(); i++) {
+	for (size_t i = 0; i < r_items.size(); i++) { // have a different descriptor heap for each render item so need to set it that way
+
 		auto ri = r_items[i];
+
+
+		ID3D12DescriptorHeap* descriptor_heaps[] = { m_descriptor_heap_map.at(ri->m_mesh).Get() };
+		m_command_list->SetDescriptorHeaps(_countof(descriptor_heaps), descriptor_heaps);
+		// auto mat_buffer = m_curr_frame_resource->m_material_buffer->get_resource();
+		// m_command_list->SetGraphicsRootShaderResourceView(2, mat_buffer->GetGPUVirtualAddress());
+		// m_command_list->SetGraphicsRootDescriptorTable(3, m_srv_descriptor_heap->GetGPUDescriptorHandleForHeapStart());
+		m_command_list->SetGraphicsRootDescriptorTable(3, m_descriptor_heap_map.at(ri->m_mesh)->GetGPUDescriptorHandleForHeapStart());
+
+
+
+
 		cmd_list->IASetVertexBuffers(0, 1, &ri->m_mesh->get_vertex_buffer_view());
 		cmd_list->IASetIndexBuffer(&ri->m_mesh->get_index_buffer_view());
 		cmd_list->IASetPrimitiveTopology(ri->m_primitive_type);
@@ -689,6 +723,7 @@ void Renderer::update_object_cbs(const Timer& t) {
 			ObjectConstants obj_consts;
 			XMStoreFloat4x4(&obj_consts.m_world, XMMatrixTranspose(world));
 			XMStoreFloat4x4(&obj_consts.m_tex_transform, XMMatrixTranspose(tex_transform));
+			obj_consts.m_textures_used = item->m_textures_used; // should not change but the memcpy would overwrite it
 			//obj_consts.m_material_index = item->m_material->m_mat_cb_index;
 			curr_object_cb->copy_data(item->m_obj_cb_index, obj_consts);
 			item->m_num_frames_dirty--;
@@ -749,25 +784,25 @@ void Renderer::update_main_pass_cb(const Timer& t) {
 	UploadBuffer<PassConstants>* curr_pass_cb = m_curr_frame_resource->m_pass_cb;
 	curr_pass_cb->copy_data(0, m_main_pass_cb);
 }
-void Renderer::load_textures() {
-	//DirectX::ResourceUploadBatch resource_upload(m_d3d_device.Get());
-	
-	// m_upload_batch->Begin();
-	for (size_t i = 0; i != engine->scene->m_texture_count; ++i) { // for each texture in the scene
-		Texture* tex = new Texture();
-		tex->m_name = engine->scene->m_textures[i].m_name;
-		tex->m_filename = engine->scene->m_textures[i].m_filename;
-		// ThrowIfFailed(DirectX::CreateDDSTextureFromMemory(m_d3d_device.Get(), *m_upload_batch, 
-		// 									engine->resource_manager->get_data_pointer(tex->m_filename), 
-		// 									engine->resource_manager->get_data_size(tex->m_filename), tex->m_resource.GetAddressOf(), tex->m_upload_heap.GetAddressOf()));
-		ThrowIfFailed(CreateDDSTextureFromMemory12(m_d3d_device.Get(), m_command_list.Get(), 
-									engine->resource_manager->get_data_pointer(tex->m_filename), 
-									engine->resource_manager->get_data_size(tex->m_filename), tex->m_resource, tex->m_upload_heap));
-		m_textures[tex->m_name] = std::move(tex);
-	}
-	// auto finish = m_upload_batch->End(m_command_queue.Get());
-	// finish.wait();
-}
+// void Renderer::load_textures() {
+// 	//DirectX::ResourceUploadBatch resource_upload(m_d3d_device.Get());
+// 	
+// 	// m_upload_batch->Begin();
+// 	for (size_t i = 0; i != engine->scene->m_texture_count; ++i) { // for each texture in the scene
+// 		Texture* tex = new Texture();
+// 		tex->m_name = engine->scene->m_textures[i].m_name;
+// 		tex->m_filename = engine->scene->m_textures[i].m_filename;
+// 		// ThrowIfFailed(DirectX::CreateDDSTextureFromMemory(m_d3d_device.Get(), *m_upload_batch, 
+// 		// 									engine->resource_manager->get_data_pointer(tex->m_filename), 
+// 		// 									engine->resource_manager->get_data_size(tex->m_filename), tex->m_resource.GetAddressOf(), tex->m_upload_heap.GetAddressOf()));
+// 		ThrowIfFailed(CreateDDSTextureFromMemory12(m_d3d_device.Get(), m_command_list.Get(), 
+// 									engine->resource_manager->get_data_pointer(tex->m_filename), 
+// 									engine->resource_manager->get_data_size(tex->m_filename), tex->m_resource, tex->m_upload_heap));
+// 		m_textures[tex->m_name] = std::move(tex);
+// 	}
+// 	// auto finish = m_upload_batch->End(m_command_queue.Get());
+// 	// finish.wait();
+// }
 std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> Renderer::get_static_samplers() {
 	const CD3DX12_STATIC_SAMPLER_DESC point_wrap(
 		0,

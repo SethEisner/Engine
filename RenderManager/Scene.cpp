@@ -185,7 +185,6 @@ bool Scene::init() {
 
 	m_mesh = new Mesh();
 	create_mesh(scene);
-	engine->renderer->add_mesh(m_mesh);
 
 
 	// m_root = new Node();
@@ -200,15 +199,12 @@ bool Scene::init() {
 	engine->renderer->reset_command_list(0);
 	std::string tex_name = "base_color";
 	std::string filename = zip_file + "/Sting_Base_Color.dds";
-	engine->renderer->create_and_add_texture(tex_name, filename, 0);
+	engine->renderer->create_and_add_texture(tex_name, filename, 0, m_mesh, TextureFlags::COLOR);
 	engine->renderer->close_command_list(0);
-	// m_texture_count = 1;
-	// m_textures = new Texture[m_texture_count]; // make an array of one texture, just use the color texture for now
-	// m_textures[0].m_name = "base_color";
-	// m_textures[0].m_filename = zip_file + "/Sting_Base_Color.dds"; // use the name to look up into the resource manager and get the data pointer
-	// do just the color now as that will be the simplest to implement in the shader
+	m_mesh->m_textures_used = TextureFlags::COLOR;
 
-	
+
+	engine->renderer->add_mesh(m_mesh); // add mesh at the end because we bind the textures it uses in this function
 	return true;
 }
 void Scene::update() {

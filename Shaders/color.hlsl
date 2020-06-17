@@ -36,9 +36,9 @@ cbuffer cbPerObject : register(b0)
 	float4x4 gWorld;
 	float4x4 gTexTransform;
 	uint gMaterialIndex;
-	uint gObjPad0;
+    int gTexturesUsed; // contains the flags that tells us what textures the model uses to allow us to index into the gTextures array
+    uint gObjPad0;
 	uint gObjPad1;
-	uint gObjPad2;
 };
 
 cbuffer cbPass : register(b1)
@@ -66,8 +66,8 @@ cbuffer cbPass : register(b1)
     Light gLights[MaxLights];
 };
 
-
-Texture2D gColorMap[1] : register(t0);
+#define NUM_TEXTURES 4
+Texture2D gTextures[NUM_TEXTURES] : register(t0);
 
 SamplerState gsamPointWrap        : register(s0);
 SamplerState gsamPointClamp       : register(s1);
@@ -116,10 +116,19 @@ VertexOut VS(VertexIn vin)
     return vout;
 }
 
+#define COLOR_INDEX 0
+#define NORMAL_INDEX 1
+#define ROUGHNESS_INDEX 2
+#define METALLIC_INDEX 3
+
 float4 PS(VertexOut pin) : SV_Target
 {
-    // return float4(1.0f, 0.0f, 0.0f, 1.0f); // red
-    //return float4(0.5f, 0.5f, 0.5f, 1.0f); // grey
-    return float4(gColorMap[0].Sample(gsamLinearWrap, pin.TexC));
+    int color_used = (gTexturesUsed >> COLOR_INDEX) & 0x1;
+    int normal_used = (gTexturesUsed >> NORMAL_INDEX) & 0x1;
+    int roughness_used = (gTexturesUsed >> ROUGHNESS_INDEX) & 0x1;
+    int metallic_used = (gTexturesUsed >> METALLIC_INDEX) & 0x1;
+    
+    float4 base_color = color_used * gTextures[COLOR_INDEX].Sample(gsamLinearWrap, pin.TexC);
+    return base_color;
 }
 

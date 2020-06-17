@@ -12,10 +12,10 @@ struct ObjectConstants {
 	DirectX::XMFLOAT4X4 m_world = MathHelper::identity_4x4();
 	DirectX::XMFLOAT4X4 m_tex_transform = MathHelper::identity_4x4();
 	uint32_t m_material_index;
+	int m_textures_used;
 	// padding necessary beacuse of hlsl packing rules
 	uint32_t m_obj_pad0;
 	uint32_t m_obj_pad1;
-	uint32_t m_obj_pad2;
 };
 struct PassConstants {
 	DirectX::XMFLOAT4X4 m_view = MathHelper::identity_4x4();

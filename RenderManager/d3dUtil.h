@@ -70,6 +70,41 @@ inline size_t calc_constant_buffer_size(size_t size) {
 // multiple geometries can be contained in one vertex and index buffer
 // this provides the ofsets and data needed to draw a subset of geometry
 // probably should change the names of Mesh and SubMesh because mesh can contain the mesh data for multiple different objects
+
+extern constexpr uint32_t NUM_TEXTURES = 4; // support four different types of textures (none is not a texture)
+enum class TextureFlags {
+	NONE = 0,
+	COLOR = 1,
+	NORMAL = 2,
+	ROUGHNESS = 4,
+	METALLIC = 8
+};
+inline TextureFlags operator|(TextureFlags a, TextureFlags b) {
+	return static_cast<TextureFlags>(static_cast<int>(a) | static_cast<int>(b));
+}
+inline int get_texture_index(TextureFlags flag) {
+	switch (flag) {
+	case TextureFlags::COLOR:
+		return 0;
+	case TextureFlags::NORMAL:
+		return 1;
+	case TextureFlags::ROUGHNESS:
+		return 2;
+	case TextureFlags::METALLIC:
+		return 3;
+	default:
+		return -1;
+	}
+}
+
+struct Texture {
+	std::string m_name;
+	std::string m_filename;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_resource = nullptr; // pointer to the texture resource
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_upload_heap = nullptr; // pointer to the upload heap that we put the resource into
+};
+
+
 struct SubMesh {
 	size_t m_index_count = 0;
 	size_t m_start_index = 0;
@@ -81,12 +116,12 @@ struct SubMesh {
 	// bounding box for the mesh. change to sphere later
 	//DirectX::BoundingBox Bounds; // bounding box for the mesh 
 };
-
 struct SubMeshBufferData {
 	size_t m_index_count = 0;
 	size_t m_start_index = 0;
 	size_t m_base_vertex = 0;
 };
+
 
 struct Mesh { // contains the buffers for a single object. combines all the submeshes into buffers (for vertex and index and cpu and gpu)
 	std::string name; // look up by name
@@ -98,6 +133,7 @@ struct Mesh { // contains the buffers for a single object. combines all the subm
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_vertex_buffer_uploader = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_index_buffer_uploader = nullptr;
 	// buffer meta data
+	TextureFlags m_textures_used = TextureFlags::NONE; // default to not using any textures, set with flags from TextureType
 	size_t m_vertex_stride = 0;
 	size_t m_vertex_buffer_size = 0;
 	DXGI_FORMAT m_index_format = DXGI_FORMAT_R16_UINT; // indecis are unsigned, and 16 bits in size
@@ -163,12 +199,7 @@ struct Material {
 	DirectX::XMFLOAT4X4 m_mat_transform = MathHelper::identity_4x4();
 };
 
-struct Texture {
-	std::string m_name;
-	std::string m_filename;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_resource = nullptr; // pointer to the texture resource
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_upload_heap = nullptr; // pointer to the upload heap that we put the resource into
-};
+
 
 #ifndef ReleaseCom
 #define ReleaseCom(x) { if(x){ x->Release(); x = 0;}}

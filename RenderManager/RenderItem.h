@@ -11,6 +11,7 @@ struct RenderItem {
 	DirectX::XMFLOAT4X4 m_world = MathHelper::identity_4x4();
 	DirectX::XMFLOAT4X4 m_tex_transform = MathHelper::identity_4x4();
 	int m_num_frames_dirty = g_num_frame_resources;
+	int m_textures_used = 0;
 	uint32_t m_obj_cb_index = -1; // index into the contant buffer array
 	Material* m_material = nullptr;
 	Mesh* m_mesh = nullptr; // pointer to the geometry buffers that store all the beometry
