@@ -199,7 +199,7 @@ void InputManager::update_mouse_pos(const MSG& message) {
 	// convert window coordinate to client area coordinate with origin at the center of the client area
 	int delta_x = GET_X_LPARAM(message.lParam) - static_cast<int>(engine->window->m_width / 2) - engine->window->m_left;
 	int delta_y = -(GET_Y_LPARAM(message.lParam) - static_cast<int>(engine->window->m_height / 2)) + engine->window->m_top;
-	std::string debug = std::to_string(delta_x) + " " + std::to_string(delta_y) + "\n";
+	//std::string debug = std::to_string(delta_x) + " " + std::to_string(delta_y) + "\n";
 	//OutputDebugStringA(debug.c_str());
 	// if the mouse is not centered at the screen
 	if (delta_x != 0 || delta_y != 0) { // there is a change in either the x or y direction

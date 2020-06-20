@@ -100,11 +100,11 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pC
 
 	OutputDebugStringA("loaded the zip and its dependencies\n");
 
-	rm.remove_resource(path);
-
-	while (rm.resource_loaded(path)) {}; // (fixed?) seems super error prone to wait on a resource to be removed
-
-	OutputDebugStringA("unloaded the zip and its dependencies\n\n");
+	// rm.remove_resource(path);
+	// 
+	// while (rm.resource_loaded(path)) {}; // (fixed?) seems super error prone to wait on a resource to be removed
+	// 
+	// OutputDebugStringA("unloaded the zip and its dependencies\n\n");
 
 	// while (true) {}
 

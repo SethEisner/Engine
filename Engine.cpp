@@ -72,6 +72,13 @@ void Engine::shutdown() {
 void Engine::update() {
 	camera->update(global_timer->delta_time());
 	global_timer->tick();
-	renderer->update();
+	//try {
+		renderer->update();
+	// }
+	// catch (DxException& e) {
+	// 	MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
+	// 	OutputDebugStringW(e.ToString().c_str());
+	// 	exit(e.error_code);
+	// }
 }
 

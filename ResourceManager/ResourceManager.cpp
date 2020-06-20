@@ -9,9 +9,9 @@
 /* TODO:
 */
 
-static constexpr bool RESOURCE_QUEUE_FULL = false;
-static constexpr bool REFERENCE_QUEUE_FULL = false;
-static constexpr uint32_t flags = aiProcessPreset_TargetRealtime_Quality | aiProcess_ConvertToLeftHanded | aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices;
+constexpr bool RESOURCE_QUEUE_FULL = false;
+constexpr bool REFERENCE_QUEUE_FULL = false;
+constexpr uint32_t flags = aiProcessPreset_TargetRealtime_Quality | aiProcess_ConvertToLeftHanded | aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices;
 //typedef size_t GUID;
 // static HashTable<size_t, bool> ref_count_traversed_set;
 /* IMPORTANT:
@@ -69,7 +69,7 @@ void ResourceManager::set_ready_map(GUID resource, bool ready_flag) {
 }
 bool ResourceManager::get_ready_map(GUID resource) {
 	while (!m_ready_map_lock->try_lock_shared()) {} // spin until we get the lock
-	bool ret = m_ready_map->contains(resource) && m_ready_map->at(resource);
+	volatile bool ret = m_ready_map->contains(resource) && m_ready_map->at(resource);
 	m_ready_map_lock->unlock_shared();
 	return ret;
 }
@@ -205,6 +205,7 @@ void ResourceManager::get_external_dependencies(GUID resource, const std::string
 	switch (entry.m_file_type) {
 	case FileType::ZIP:
 		assert(false); // we should never get here
+		break;
 	case FileType::MTL: // mtls are self contained
 		break;
 	//case FileType::FBX:
@@ -359,27 +360,41 @@ void ResourceManager::free_resources() {
 	//		also, if a resource is not ready then we cannot trust i
 	//		if that sum is zero, then we can free the resource and all of it's dependencies
 	// maintain a list of zip file entries to iterate over
-	std::list<GUID> free_list;
-	std::list<GUID>::iterator begin;
+	// std::list<GUID> free_list;
+	// std::list<GUID>::iterator begin;
 	int64_t sum = 0;
-	for (begin = m_zip_files->begin(); begin != m_zip_files->end(); begin++) {
-		RegistryEntry entry = m_registry->at(*begin);
-		if (entry.m_ready) {
-			//m_dependencies_traversed_set->clear();
-			sum = get_dependency_sum(*begin);
-			if (sum == 0) free_list.push_back(*begin); // race condition?
+	m_free_list->clear();
+	// insert to the freelist the zip fiels that are ready and have no references
+	for (std::list<GUID>::iterator begin = m_zip_files->begin(); begin != m_zip_files->end(); ++begin) {
+		if (m_registry->at(*begin).m_ready && (get_dependency_sum(*begin) == 0)) {
+			m_free_list->emplace_back(*begin);
 		}
 	}
-	for (begin = free_list.begin(); begin != free_list.end(); begin++) {
+	for (std::list<GUID>::iterator begin = m_free_list->begin(); begin != m_free_list->end(); ++begin) {
 		free_resource_graph(*begin);
-		m_zip_files->remove(*begin); // remove the zip file from our list
+		m_zip_files->remove(*begin);
 	}
+	// for (begin = m_zip_files->begin(); begin != m_zip_files->end(); begin++) {
+	// 	RegistryEntry entry = m_registry->at(*begin);
+	// 	if (entry.m_ready) {
+	// 		//m_dependencies_traversed_set->clear();
+	// 		sum = get_dependency_sum(*begin);
+	// 		if (sum == 0) free_list.push_back(*begin); // race condition?
+	// 	}
+	// }
+	// for (begin = free_list.begin(); begin != free_list.end(); begin++) {
+	// 	free_resource_graph(*begin);
+	// 	m_zip_files->remove(*begin); // remove the zip file from our list
+	// }
 }
 void ResourceManager::start_resource_thread(void) { // run a loop that tries to pop a filepath from the Queue, and then read the data into memory
 	std::string zip_file;
 	ReferenceCountEntry entry;
 	byte* handle;
-	while (run_flag) {
+	// while (!m_run_flag) {
+	// 	std::this_thread::yield();
+	// }
+	while (m_run_flag) {
 		// if pop returned true then resource name has the name of the resource we need to unzip
 		if (m_resource_queue->pop(zip_file)) {
 			// if ((handle = read_resource_into_memory(zip_file)) != -1) {
@@ -450,7 +465,3 @@ ResourceManager::FileType ResourceManager::get_file_type(const std::string& file
 	assert(false); // the file extension is one we dont know how to handle
 	return FileType::INVALID;
 }
-
-// Ogex* parse_ogex(const char* begin, const char* end) {
-// 	Ogex* ogex = new Ogex();
-// }

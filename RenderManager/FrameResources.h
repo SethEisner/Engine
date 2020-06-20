@@ -50,6 +50,8 @@ struct MaterialData {
 struct Vertex {
 	DirectX::XMFLOAT3 m_pos;
 	DirectX::XMFLOAT3 m_normal;
+	DirectX::XMFLOAT3 m_tangent;
+	DirectX::XMFLOAT3 m_bitangent;
 	DirectX::XMFLOAT2 m_text_coord;
 };
 
@@ -63,9 +65,9 @@ public:
 	~FrameResources();
 	// every frame neds its own allocator and buffers because we cannot edit these while the gpu is using them
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_cmd_list_allocator;
-	UploadBuffer<PassConstants>* m_pass_cb = nullptr;
-	UploadBuffer<ObjectConstants>* m_object_cb = nullptr;
-	UploadBuffer<MaterialData>* m_material_buffer = nullptr;
+	UploadBuffer<PassConstants>* m_pass_cb;// = nullptr;
+	UploadBuffer<ObjectConstants>* m_object_cb;// = nullptr;
+	// UploadBuffer<MaterialData>* m_material_buffer;// = nullptr;
 	// fence value to mark commands up to this fence point
 	// enables the cpu to check if these frame resources are still in use by the gpu
 	uint64_t m_fence = 0;

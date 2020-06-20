@@ -10,6 +10,7 @@
 #include <set>
 #include <stack>
 #include <mutex>
+#include <vector>
 // assimp headers
 #include <assimp/Importer.hpp> // c++ importer interface
 #include <assimp/scene.h> // output data structure
@@ -68,7 +69,7 @@ Handle post load initialization later when I have a better idea about how the me
 */
 
 const size_t REFERENCE_ARRAY_SIZE = 16;
-static constexpr char resource_path[52] = "C:/Users/Seth Eisner/source/repos/Engine/Resources/";
+constexpr char resource_path[52] = "C:/Users/Seth Eisner/source/repos/Engine/Resources/";
 //void start_resource_thread(void);
 class ResourceManager {
 	typedef size_t GUID;
@@ -149,14 +150,17 @@ public:
 		m_dependency_count(new HashTable<GUID, size_t>()),
 		m_dependency_count_lock(new std::mutex()),
 		m_allocator(new GeneralAllocator(1024 * 1024 * 1024)),
+		m_run_flag(true),
 		m_thread(new std::thread(&ResourceManager::start_resource_thread, this)),
 		m_resource_queue(new Queue<std::string>(16)),
 		m_ref_count_queue(new Queue<ReferenceCountEntry>(16)),
 		m_potentially_ready(new std::list<GUID>()),
+		m_free_list(new std::list<GUID>()),
 		m_zip_files(new std::list<GUID>()),
-		m_importer(new Assimp::Importer()) {} // assimp importer to read files from memory and construct the object
+		m_importer(new Assimp::Importer())
+		 {} // assimp importer to read files from memory and construct the object
 	~ResourceManager() {
-		run_flag = false; // set the run_flag to false to stop the thread from looping
+		m_run_flag = false; // set the run_flag to false to stop the thread from looping
 		m_thread->join(); // 
 		delete m_registry;
 		delete m_handle_map;
@@ -171,6 +175,7 @@ public:
 		delete m_resource_queue;
 		delete m_ref_count_queue;
 		delete m_potentially_ready;
+		delete m_free_list;
 		delete m_zip_files;
 		delete m_importer;
 	}
@@ -217,15 +222,17 @@ private:
 	HashTable<GUID, size_t>* m_dependency_count; // used to mark dependencies of unloaded stuff, 
 	std::mutex* m_dependency_count_lock;
 	GeneralAllocator* m_allocator; // use own general allocator
+	bool m_run_flag; // initialize flag before the thread so it's true when the thread goes to read it
 	std::thread* m_thread;
 	Queue<std::string>* m_resource_queue; // queue of names of zip files to load
 	Queue<ReferenceCountEntry>* m_ref_count_queue;
-	std::list<GUID>* m_potentially_ready;
-	std::list<GUID>* m_zip_files;
+	std::list<GUID>* m_potentially_ready; // should be a list because we want fast removal from within the list
+	std::list<GUID>* m_free_list; // list of zip files to remove 
+	std::list<GUID>* m_zip_files; // should be a list because we want fast removal from within the list
 	// assimp stuff (shouldnt need to be threadsafe because it's all on one thread)
 	Assimp::Importer* m_importer;
 
-	bool run_flag = true; // dont need synchronization on this because only 1 thread writes to it and the other reads
+	 // dont need synchronization on this because only 1 thread writes to it and the other reads
 	/* SHARED objects:
 		m_ready_map, needs an actual lock
 		m_dependency_map, this needs an actual lock

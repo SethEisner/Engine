@@ -41,6 +41,7 @@ class DxException {
 public:
 	DxException() = default;
 	DxException(HRESULT hr, const std::wstring& function_name, const std::wstring& filename, int line_number);
+	~DxException() = default;
 	std::wstring ToString() const;
 	HRESULT error_code = S_OK;
 	std::wstring function_name;
@@ -71,13 +72,14 @@ inline size_t calc_constant_buffer_size(size_t size) {
 // this provides the ofsets and data needed to draw a subset of geometry
 // probably should change the names of Mesh and SubMesh because mesh can contain the mesh data for multiple different objects
 
-extern constexpr uint32_t NUM_TEXTURES = 4; // support four different types of textures (none is not a texture)
+extern constexpr uint32_t NUM_TEXTURES = 5; // support four different types of textures (none is not a texture)
 enum class TextureFlags {
 	NONE = 0,
 	COLOR = 1,
 	NORMAL = 2,
 	ROUGHNESS = 4,
-	METALLIC = 8
+	METALLIC = 8,
+	HEIGHT = 16
 };
 inline TextureFlags operator|(TextureFlags a, TextureFlags b) {
 	return static_cast<TextureFlags>(static_cast<int>(a) | static_cast<int>(b));
@@ -92,6 +94,8 @@ inline int get_texture_index(TextureFlags flag) {
 		return 2;
 	case TextureFlags::METALLIC:
 		return 3;
+	case TextureFlags::HEIGHT:
+		return 4;
 	default:
 		return -1;
 	}
@@ -125,6 +129,7 @@ struct SubMeshBufferData {
 
 struct Mesh { // contains the buffers for a single object. combines all the submeshes into buffers (for vertex and index and cpu and gpu)
 	std::string name; // look up by name
+	size_t m_mesh_id;
 	//uint64_t hash_name; // look up by hashed string name
 	Microsoft::WRL::ComPtr<ID3DBlob> m_vertex_buffer_cpu = nullptr; // contains the Vertex vector we build up
 	Microsoft::WRL::ComPtr<ID3DBlob> m_index_buffer_cpu = nullptr; // contains the index buffer we build up for a model

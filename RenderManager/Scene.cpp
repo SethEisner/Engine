@@ -107,20 +107,20 @@ void Scene::create_mesh(const aiScene* scene) {
 	size_t start_index = indices.size();
 
 	for (size_t i = 0; i != scene->mNumMeshes; ++i) { // for each aiMesh
-		OutputDebugStringA(scene->mMeshes[i]->mName.C_Str());
 		for (size_t j = 0; j != scene->mMeshes[i]->mNumVertices; ++j) { // for each vertex in an aiMesh
 			Vertex temp;
-			float pos_x = scene->mMeshes[i]->mVertices[j].x;
-			float pos_y = scene->mMeshes[i]->mVertices[j].y;
-			float pos_z = scene->mMeshes[i]->mVertices[j].z;
-			float norm_x = scene->mMeshes[i]->mNormals[j].x;
-			float norm_y = scene->mMeshes[i]->mNormals[j].y;
-			float norm_z = scene->mMeshes[i]->mNormals[j].z;
-			float tex_x = scene->mMeshes[i]->mTextureCoords[0][j].x;
-			float tex_y = scene->mMeshes[i]->mTextureCoords[0][j].y;
-			temp.m_pos = {pos_x, pos_y, pos_z};
-			temp.m_normal = {norm_x, norm_y, norm_z};
-			temp.m_text_coord = {tex_x, tex_y};
+			float pos[3] = { scene->mMeshes[i]->mVertices[j].x, scene->mMeshes[i]->mVertices[j].y, scene->mMeshes[i]->mVertices[j].z };
+			float norm[3] = { scene->mMeshes[i]->mNormals[j].x, scene->mMeshes[i]->mNormals[j].y, scene->mMeshes[i]->mNormals[j].z };
+			float tex[2] = { scene->mMeshes[i]->mTextureCoords[0][j].x, scene->mMeshes[i]->mTextureCoords[0][j].y };
+			float tang[3] = { scene->mMeshes[i]->mTangents[j].x, scene->mMeshes[i]->mTangents[j].y, scene->mMeshes[i]->mTangents[j].z };
+			float bitang[3] = { scene->mMeshes[i]->mBitangents[j].x, scene->mMeshes[i]->mBitangents[j].y, scene->mMeshes[i]->mBitangents[j].z };
+			temp.m_pos = DirectX::XMFLOAT3(pos);
+			temp.m_normal = DirectX::XMFLOAT3(norm);
+			temp.m_tangent = DirectX::XMFLOAT3(tang);
+			temp.m_bitangent = DirectX::XMFLOAT3(bitang);
+			temp.m_text_coord = DirectX::XMFLOAT2(tex);
+
+
 			vertices.push_back(std::move(temp));
 		}
 		size_t num_indices = 0;
@@ -184,6 +184,7 @@ bool Scene::init() {
 
 
 	m_mesh = new Mesh();
+	m_mesh->m_mesh_id = 0;
 	create_mesh(scene);
 
 
@@ -198,13 +199,28 @@ bool Scene::init() {
 	// replace 0 with the thread id to index into the array of command lists
 	engine->renderer->reset_command_list(0);
 	std::string tex_name = "base_color";
-	std::string filename = zip_file + "/Sting_Base_Color.dds";
-	engine->renderer->create_and_add_texture(tex_name, filename, 0, m_mesh, TextureFlags::COLOR);
+	std::string filename = zip_file + "/Sting_Color.dds";
+	engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::COLOR);
+
+	tex_name = "sword_normal";
+	filename = zip_file + "/Sting_Normal.dds";
+	engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::NORMAL);
+
+	tex_name = "sword_roughness";
+	filename = zip_file + "/Sting_Roughness.dds";
+	engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::ROUGHNESS);
+
+	tex_name = "sword_metalness";
+	filename = zip_file + "/Sting_Roughness.dds";
+	engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::METALLIC);
+
+	tex_name = "sword_height";
+	filename = zip_file + "/Sting_Height.dds";
+	engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::HEIGHT);
 	engine->renderer->close_command_list(0);
-	m_mesh->m_textures_used = TextureFlags::COLOR;
 
 
-	engine->renderer->add_mesh(m_mesh); // add mesh at the end because we bind the textures it uses in this function
+	engine->renderer->add_mesh(*m_mesh); // add mesh at the end because we bind the textures it uses in this function
 	return true;
 }
 void Scene::update() {

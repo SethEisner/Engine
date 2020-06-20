@@ -32,8 +32,11 @@ class Engine;
 // #pragma comment(lib, "dxgi.lib")
 
 
-// use the enum members as flags to set an integer to define what textures are present and can pass to the  
 
+
+static enum class RenderLayers {
+	opaque = 0
+};
 
 class Renderer {
 public:
@@ -50,8 +53,8 @@ public:
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> get_command_list(size_t id);
 	void reset_command_list(size_t id);
 	void close_command_list(size_t id);
-	void add_mesh(Mesh* mesh);
-	void create_and_add_texture(const std::string& name, const std::string& filename, size_t id, Mesh* corresponding_mesh, TextureFlags flag);
+	void add_mesh(Mesh& mesh);
+	void create_and_add_texture(const std::string& name, const std::string& filename, size_t id, Mesh& corresponding_mesh, TextureFlags flag); // needs to edit the mesh
 private:
 	void create_command_objects();
 	void create_swap_chain();
@@ -60,16 +63,16 @@ private:
 	ID3D12Resource* current_back_buffer() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE current_back_buffer_view() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE depth_stencil_view() const;
-	void build_descriptor_heaps(Mesh* mesh);
+	void build_descriptor_heaps(const Mesh& mesh);
 	//void build_constant_buffers();
 	void build_root_signature();
 	void build_shaders_and_input_layout();
-	void build_shape_geometry(); // change to use resource manager
 	void build_psos();
 	void build_frame_resources();
 	void build_materials();
+	void build_render_item(Mesh& mesh);
 	void build_render_items();
-	void draw_render_items(ID3D12GraphicsCommandList*, const std::vector<RenderItem*>&);
+	void draw_render_items(ID3D12GraphicsCommandList*, const std::vector<RenderItem>&);
 	void animate_materials(const Timer&);
 	void update_object_cbs(const Timer&);
 	void update_material_buffer(const Timer&);
@@ -125,28 +128,28 @@ private:
 	POINT m_last_mouse_pos;
 
 	// chapter 15 specific items
-	//std::vector<FrameResources*> m_frame_resources; // the frame resources ring buffer
-	std::queue<FrameResources*> m_frame_resources;
+	std::queue<FrameResources*> m_frame_resources; // the frame resources ring buffer
+	// std::queue<std::unique_ptr<FrameResources>> m_frame_resources;
 	FrameResources* m_curr_frame_resource = nullptr; // the frame resoures structure for the current frame
 	size_t m_curr_frame_resources_index = 0;
 	uint32_t m_cbv_srv_descriptor_size = 0;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_descriptor_heap = nullptr;
-	std::unordered_map<std::string, Mesh*> m_geometries;
+	// std::unordered_map<std::string, const Mesh*> m_geometries;
 	std::unordered_map<std::string, Material*> m_materials;
 	// std::unordered_map<std::string, Texture*> m_textures; // textures store the material data
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>> m_shaders;
-	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> m_psos;
-	std::vector<RenderItem*> m_render_items; // all render items for the frame
-	std::vector<RenderItem*> m_opaque_render_items; // render items for a pso
+	std::unordered_map<RenderLayers, Microsoft::WRL::ComPtr<ID3D12PipelineState>> m_psos;
+	std::vector<RenderItem> m_render_items; // all render items for the frame
+	std::vector<RenderItem> m_opaque_render_items; // render items for a pso
 	PassConstants m_main_pass_cb;
 	Camera m_camera; // move to engine?
 	// directx12 texture specific
 	DirectX::ResourceUploadBatch* m_upload_batch = {};
 
 	// texture system members
-	std::unordered_map<Mesh*, std::array<Texture*, NUM_TEXTURES>> m_texture_map; // map from mesh pointer to the array of textures it uses, use the Mesh pointer to get the texture flags and set the constants
+	std::unordered_map<size_t, std::array<Texture*, NUM_TEXTURES>> m_texture_map; // map from mesh pointer to the array of textures it uses, use the Mesh pointer to get the texture flags and set the constants
 	// will use the flags in the shader code to get a 0 or 1 which controls whether or not we use the result of the calculation
-	std::unordered_map<Mesh*, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> m_descriptor_heap_map; // map from the mesh to the descritor heaps for the textures it uses
+	std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> m_descriptor_heap_map; // map from the mesh to the descritor heaps for the textures it uses
 
 	bool m_added_textures = false;
 };
