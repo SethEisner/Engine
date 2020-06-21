@@ -12,6 +12,7 @@ public:
 	//void on_resize(); //function that gets called when the window is resized
 	float get_aspect_ratio();
 	void toggle_mouse_capture();
+	void update(float);
 	LRESULT WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	//HWND get_handle();
 	//size_t get_width();

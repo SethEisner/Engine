@@ -70,8 +70,9 @@ void Engine::shutdown() {
 	delete engine;
 }
 void Engine::update() {
-	camera->update(global_timer->delta_time());
 	global_timer->tick();
+	window->update(global_timer->delta_time());
+	camera->update(global_timer->delta_time());
 	//try {
 		renderer->update();
 	// }

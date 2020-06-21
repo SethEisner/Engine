@@ -13,6 +13,7 @@
 #include <vector>
 // assimp headers
 #include <assimp/Importer.hpp> // c++ importer interface
+#include <assimp/cimport.h>
 #include <assimp/scene.h> // output data structure
 #include <assimp/postprocess.h> // for post processing flags
 /* TODO:
@@ -156,8 +157,8 @@ public:
 		m_ref_count_queue(new Queue<ReferenceCountEntry>(16)),
 		m_potentially_ready(new std::list<GUID>()),
 		m_free_list(new std::list<GUID>()),
-		m_zip_files(new std::list<GUID>()),
-		m_importer(new Assimp::Importer())
+		m_zip_files(new std::list<GUID>())
+		//m_importer(new Assimp::Importer())
 		 {} // assimp importer to read files from memory and construct the object
 	~ResourceManager() {
 		m_run_flag = false; // set the run_flag to false to stop the thread from looping
@@ -177,7 +178,7 @@ public:
 		delete m_potentially_ready;
 		delete m_free_list;
 		delete m_zip_files;
-		delete m_importer;
+		//delete m_importer;
 	}
 	void load_resource(const std::string&, void(*function)(char*) = nullptr);
 	bool resource_loaded(const std::string&);
@@ -230,7 +231,7 @@ private:
 	std::list<GUID>* m_free_list; // list of zip files to remove 
 	std::list<GUID>* m_zip_files; // should be a list because we want fast removal from within the list
 	// assimp stuff (shouldnt need to be threadsafe because it's all on one thread)
-	Assimp::Importer* m_importer;
+	// Assimp::Importer* m_importer;
 
 	 // dont need synchronization on this because only 1 thread writes to it and the other reads
 	/* SHARED objects:

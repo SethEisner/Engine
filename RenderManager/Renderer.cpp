@@ -35,6 +35,7 @@ void Renderer::add_mesh(Mesh& mesh) {
 	// m_geometries[mesh.name] = &mesh;
 	build_descriptor_heaps(mesh); // build the descriptor heap for the mesh
 	//build_render_item(mesh);
+	m_scene_ready = true;
 }
 void Renderer::create_and_add_texture(const std::string& name, const std::string& filename, size_t id, Mesh& corresponding_mesh, TextureFlags flag) {// use the thread's command list to create and add the texture 
 
@@ -89,6 +90,7 @@ bool Renderer::init() {
 	create_swap_chain();
 	create_rtv_and_dsv_descriptor_heaps(); // for the render target and depth stencil view
 	m_cbv_srv_descriptor_size = m_d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	// m_frame_resources.resize(g_num_frame_resources);
 	// camera position can be set anywhere
 	engine->camera->set_position(0.0f, 2.0f, -10.0f);
 	// build the basic structures the rending pipeline can use to render our objects
@@ -100,10 +102,14 @@ bool Renderer::init() {
 
 
 void Renderer::update() {
-	m_command_list->Reset(m_command_list_allocator.Get(), nullptr); // ThrowIfFailed(m_command_list->Reset(m_command_list_allocator.Get(), nullptr));
-	// m_cbv_srv_descriptor_size = m_d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	build_render_items();
 	if (m_render_items.empty()) return; // if there is nothing to render then there is nothing to update
+
+	m_curr_frame_resources_index = (m_curr_frame_resources_index + 1) % g_num_frame_resources;
+	
+
+	// dont want to create new frame_resources every frame, want to reuse as it's slow to allocate the memory in the loop
+
 
 	// m_curr_frame_resources_index = (m_curr_frame_resources_index + 1) % g_num_frame_resources;
 	// m_curr_frame_resource = m_frame_resources[m_curr_frame_resources_index];
@@ -125,19 +131,13 @@ void Renderer::update() {
 	else {
 		m_frame_resources.emplace(new FrameResources(m_d3d_device.Get(), 1, m_render_items.size(), m_materials.size()));
 	}
-	// m_curr_frame_resource = new FrameResources(m_d3d_device.Get(), 1, m_render_items.size(), m_materials.size());
-	// m_frame_resources.emplace(std::make_unique<FrameResources>(m_d3d_device.Get(), 1, m_render_items.size(), m_materials.size()));
 	m_curr_frame_resource = m_frame_resources.front();
+	size_t a = sizeof(*m_curr_frame_resource);
+	
 	animate_materials(*engine->global_timer);
 	update_object_cbs(*engine->global_timer);
 	update_material_buffer(*engine->global_timer);
 	update_main_pass_cb(*engine->global_timer);
-	// m_frame_resources.push(m_curr_frame_resource);
-
-	m_command_list->Close(); // ThrowIfFailed(m_command_list->Close()); // execute the initialization commands
-	ID3D12CommandList* cmd_lists[] = { m_command_list.Get() };
-	m_command_queue->ExecuteCommandLists(_countof(cmd_lists), cmd_lists);
-	flush_command_queue();
 }
 void Renderer::draw() {
 	if (m_render_items.empty()) return; // if there is nothing to render then there is nothing to draw
@@ -276,9 +276,9 @@ void Renderer::on_resize() {
 
 
 	// chapter 6
-	using namespace DirectX;
-	XMMATRIX p = XMMatrixPerspectiveFovLH(0.25f * pi, engine->window->get_aspect_ratio(), 1.0f, 1000.0f);
-	XMStoreFloat4x4(&m_proj, p);
+	// using namespace DirectX;
+	// XMMATRIX p = XMMatrixPerspectiveFovLH(0.25f * pi, engine->window->get_aspect_ratio(), 1.0f, 1000.0f);
+	// XMStoreFloat4x4(&m_proj, p);
 }
 void Renderer::create_command_objects() {
 	D3D12_COMMAND_QUEUE_DESC command_queue_desc = {};
@@ -385,14 +385,6 @@ void Renderer::build_descriptor_heaps(const Mesh& mesh) { // create heaps to hol
 			m_d3d_device->CreateShaderResourceView(tex->m_resource.Get(), &srv_desc, h_desc);
 		}
 	}
-
-
-
-
-
-
-
-
 
 
 	// for (auto& pair : m_textures) {
@@ -512,12 +504,13 @@ void Renderer::build_psos() {
 	opaque_pso_desc.DSVFormat = m_depth_stencil_format;
 	m_d3d_device->CreateGraphicsPipelineState(&opaque_pso_desc, IID_PPV_ARGS(&m_psos[RenderLayers::opaque/*"opaque"*/])); // ThrowIfFailed(m_d3d_device->CreateGraphicsPipelineState(&opaque_pso_desc, IID_PPV_ARGS(&m_psos["opaque"])));
 }
-void Renderer::build_frame_resources() {
-	// for (int i = 0; i < g_num_frame_resources; ++i) { // okay to initialize in a loop because g_num_frame_resources should be around 2 or 3
-	// 	FrameResources* temp = new FrameResources(m_d3d_device.Get(), 1, m_render_items.size(), m_materials.size());
-	// 	m_frame_resources.push_back(temp);
-	// }
-}
+// void Renderer::build_frame_resources() {
+// 	for (int i = 0; i < g_num_frame_resources; ++i) { // okay to initialize in a loop because g_num_frame_resources should be around 2 or 3
+// 		// FrameResources* temp = new FrameResources(m_d3d_device.Get(), 1, m_render_items.size(), m_materials.size());
+// 		m_frame_resources.push_back(std::make_unique<FrameResources>(m_d3d_device.Get(), 1, m_render_items.size(), m_materials.size()));
+// 	}
+// 	m_created_frame_resources = true;
+// }
 void Renderer::build_materials() {}
 void Renderer::build_render_item(Mesh& mesh) {
 // 	size_t i = 0;
@@ -544,8 +537,7 @@ void Renderer::build_render_items() { // can tranverse the meshes in the scene, 
 	size_t i = 0;
 	for (auto& objs : engine->scene->m_mesh->m_draw_args) {
 		SubMesh sub_mesh = objs.second;
-		//RenderItem* ri = new RenderItem();
-		RenderItem ri = {}; // m_render_items[i];
+		RenderItem ri = {};
 		XMStoreFloat4x4(&ri.m_world, DirectX::XMMatrixMultiply(sub_mesh.m_transform, DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f)));
 		XMStoreFloat4x4(&ri.m_tex_transform, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
 		ri.m_textures_used = static_cast<int>(engine->scene->m_mesh->m_textures_used);
@@ -558,7 +550,6 @@ void Renderer::build_render_items() { // can tranverse the meshes in the scene, 
 		m_render_items.emplace_back(std::move(ri));
 		m_opaque_render_items.emplace_back(std::move(ri));
 	}
-	// OutputDebugStringA(std::to_string(m_render_items.size()).c_str());
 }
 		
 		

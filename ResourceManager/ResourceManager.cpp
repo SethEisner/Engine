@@ -210,9 +210,10 @@ void ResourceManager::get_external_dependencies(GUID resource, const std::string
 		break;
 	//case FileType::FBX:
 	case FileType::DAE: { // zip file contains a dae file
-		const aiScene* scene_ptr = m_importer->ReadFileFromMemory(p_mem, entry.m_size, flags);
+		//const aiScene* scene_ptr = m_importer->ReadFileFromMemory(p_mem, entry.m_size, flags);
+		const aiScene* scene_ptr = aiImportFileFromMemory(p_mem, entry.m_size, flags, "dae");
 		if (!scene_ptr) { // will be a nullptr if there was an error
-			OutputDebugStringA(m_importer->GetErrorString());
+			//OutputDebugStringA(m_importer->GetErrorString());
 			break;
 		}
 		m_scene_map->insert(resource, scene_ptr);

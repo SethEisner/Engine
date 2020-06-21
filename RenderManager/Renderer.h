@@ -119,19 +119,23 @@ private:
 	Microsoft::WRL::ComPtr<ID3DBlob> m_ps_bytecode = nullptr; // compiled shader code for the pixel shader
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_input_layout;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pso = nullptr;
-	DirectX::XMFLOAT4X4 m_world = MathHelper::identity_4x4();
-	DirectX::XMFLOAT4X4 m_view = MathHelper::identity_4x4();
-	DirectX::XMFLOAT4X4 m_proj = MathHelper::identity_4x4();
-	float m_theta = 1.5f * DirectX::XM_PI;
-	float m_phi = DirectX::XM_PIDIV4;
-	float m_radius = 5.0f;
-	POINT m_last_mouse_pos;
+	
+	// don't think i need these members
+	// DirectX::XMFLOAT4X4 m_world = MathHelper::identity_4x4();
+	// DirectX::XMFLOAT4X4 m_view = MathHelper::identity_4x4();
+	// DirectX::XMFLOAT4X4 m_proj = MathHelper::identity_4x4();
+	// float m_theta = 1.5f * DirectX::XM_PI;
+	// float m_phi = DirectX::XM_PIDIV4;
+	// float m_radius = 5.0f;
+	// POINT m_last_mouse_pos;
 
 	// chapter 15 specific items
 	std::queue<FrameResources*> m_frame_resources; // the frame resources ring buffer
 	// std::queue<std::unique_ptr<FrameResources>> m_frame_resources;
+	// std::vector<std::unique_ptr<FrameResources>> m_frame_resources;
+	// std::vector<FrameResources*> m_frame_resources;
 	FrameResources* m_curr_frame_resource = nullptr; // the frame resoures structure for the current frame
-	size_t m_curr_frame_resources_index = 0;
+	int m_curr_frame_resources_index = -1; // start at -1 because we add to it immediately (allows us to start from 0)
 	uint32_t m_cbv_srv_descriptor_size = 0;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_descriptor_heap = nullptr;
 	// std::unordered_map<std::string, const Mesh*> m_geometries;
@@ -152,4 +156,6 @@ private:
 	std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> m_descriptor_heap_map; // map from the mesh to the descritor heaps for the textures it uses
 
 	bool m_added_textures = false;
+	bool m_scene_ready = false;
+	bool m_created_frame_resources = false;
 };
