@@ -108,7 +108,7 @@ struct Texture {
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_upload_heap = nullptr; // pointer to the upload heap that we put the resource into
 };
 
-
+// eventually give each submesh a bounding box
 struct SubMesh {
 	size_t m_index_count = 0;
 	size_t m_start_index = 0;
@@ -146,7 +146,8 @@ struct Mesh { // contains the buffers for a single object. combines all the subm
 	// a mesh can contain multiple meshes in one vertex/index buffer
 	std::unordered_map<std::string, SubMesh> m_draw_args; // replace with hashtable in threadsafe containers
 	std::unordered_map<uint32_t, SubMeshBufferData> m_sub_mesh_helper; // map from sub mesh index to the submesh data we create while building the Mesh and traversing the node hierarchy
-	//std::vector<SubMesh> m_sub_meshes;
+	// std::vector<SubMesh> m_sub_meshes;
+	// DirectX::BoundingBox m_aabb; // axis-aligned bounding box for the mesh for collision detection
 	bool initialized = false;
 	D3D12_VERTEX_BUFFER_VIEW get_vertex_buffer_view() const {
 		D3D12_VERTEX_BUFFER_VIEW vbv;

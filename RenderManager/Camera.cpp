@@ -2,6 +2,7 @@
 #include "../Utilities/Utilities.h"
 #include "../Engine.h"
 #include "../InputManager/InputManager.h"
+#include <algorithm>
 using namespace DirectX;
 
 Camera::Camera() {
@@ -192,6 +193,13 @@ void Camera::update_view_matrix() {
 		m_view_dirty = false;
 	}*/
 }
+static float clamp(const float val, const float low, const float high) {
+	if (val > high) return high;
+	if (val < low) return low;
+	return val;
+}
+
+
 void Camera::update(float delta_t) {
 	// if (engine->input_manager->mouse_pos_changed()) {
 	// 	int x = engine->input_manager->get_mouse_x();
@@ -211,7 +219,9 @@ void Camera::update(float delta_t) {
 		m_yaw = engine->input_manager->get_mouse_delta_x() * 0.001f;
 		//m_yaw = 0.0f;
 		m_pitch = engine->input_manager->get_mouse_delta_y() * 0.001f;
-
+		// pitch should be clamped between -89 and 89 degrees
+		static constexpr float max_rads = 89 * 0.0174533;// radians per degree
+		m_pitch = clamp(m_pitch, -max_rads, max_rads);
 		XMMATRIX rotation = XMMatrixRotationRollPitchYaw(m_pitch, m_yaw, 0.0f);
 		XMVECTOR target = XMVector3Normalize(XMVector3TransformCoord(m_default_forward, rotation));
 		// XMFLOAT4 temp;

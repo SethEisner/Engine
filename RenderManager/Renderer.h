@@ -68,9 +68,8 @@ private:
 	void build_root_signature();
 	void build_shaders_and_input_layout();
 	void build_psos();
-	void build_frame_resources();
+	// void build_frame_resources();
 	void build_materials();
-	void build_render_item(Mesh& mesh);
 	void build_render_items();
 	void draw_render_items(ID3D12GraphicsCommandList*, const std::vector<RenderItem>&);
 	void animate_materials(const Timer&);
@@ -84,7 +83,7 @@ private:
 	uint32_t m_4xMSAA_quality = 0;
 	// dxgi is directx graphics infrastructure
 	Microsoft::WRL::ComPtr<IDXGIFactory4> m_dxgi_factory; // factory is for generating dxgi objects
-	Microsoft::WRL::ComPtr<IDXGISwapChain1> m_swap_chain;
+	Microsoft::WRL::ComPtr<IDXGISwapChain> m_swap_chain;
 	Microsoft::WRL::ComPtr<ID3D12Device> m_d3d_device;
 	Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
 	size_t m_current_fence = 0;
@@ -120,15 +119,6 @@ private:
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_input_layout;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pso = nullptr;
 	
-	// don't think i need these members
-	// DirectX::XMFLOAT4X4 m_world = MathHelper::identity_4x4();
-	// DirectX::XMFLOAT4X4 m_view = MathHelper::identity_4x4();
-	// DirectX::XMFLOAT4X4 m_proj = MathHelper::identity_4x4();
-	// float m_theta = 1.5f * DirectX::XM_PI;
-	// float m_phi = DirectX::XM_PIDIV4;
-	// float m_radius = 5.0f;
-	// POINT m_last_mouse_pos;
-
 	// chapter 15 specific items
 	std::queue<FrameResources*> m_frame_resources; // the frame resources ring buffer
 	// std::queue<std::unique_ptr<FrameResources>> m_frame_resources;

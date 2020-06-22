@@ -168,7 +168,8 @@ void Scene::create_mesh(const aiScene* scene) {
 bool Scene::init() {
 	// use the resource manager to load the items into memory
 	// then build each RenderItem and add it to the vector
-	std::string name = "Sword";
+	// std::string name = "Sword";
+	std::string name = "floor";
 	std::string zip_file = name + ".zip";
 	engine->resource_manager->load_resource(zip_file);
 	while (!engine->resource_manager->resource_loaded(zip_file)) { // wait until the zipfile is loaded
@@ -182,6 +183,7 @@ bool Scene::init() {
 	// 	m_object->m_sub_meshes[i].init(scene->mMeshes[i]);
 	// }
 
+	bool temp = scene->HasTextures();
 
 	m_mesh = new Mesh();
 	m_mesh->m_mesh_id = 0;
@@ -198,26 +200,29 @@ bool Scene::init() {
 
 	// replace 0 with the thread id to index into the array of command lists
 	engine->renderer->reset_command_list(0);
-	std::string tex_name = "base_color";
-	std::string filename = zip_file + "/Sting_Color.dds";
+	std::string tex_name = "checker";
+	std::string filename = zip_file + "/checkerboard.dds";
 	engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::COLOR);
-
-	tex_name = "sword_normal";
-	filename = zip_file + "/Sting_Normal.dds";
-	engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::NORMAL);
-
-	tex_name = "sword_roughness";
-	filename = zip_file + "/Sting_Roughness.dds";
-	engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::ROUGHNESS);
-
-	tex_name = "sword_metalness";
-	filename = zip_file + "/Sting_Roughness.dds";
-	engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::METALLIC);
-
-	tex_name = "sword_height";
-	filename = zip_file + "/Sting_Height.dds";
-	engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::HEIGHT);
-	engine->renderer->close_command_list(0);
+	// std::string tex_name = "base_color";
+	// std::string filename = zip_file + "/Sting_Color.dds";
+	// engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::COLOR);
+	// 
+	// tex_name = "sword_normal";
+	// filename = zip_file + "/Sting_Normal.dds";
+	// engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::NORMAL);
+	// 
+	// tex_name = "sword_roughness";
+	// filename = zip_file + "/Sting_Roughness.dds";
+	// engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::ROUGHNESS);
+	// 
+	// tex_name = "sword_metalness";
+	// filename = zip_file + "/Sting_Roughness.dds";
+	// engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::METALLIC);
+	// 
+	// tex_name = "sword_height";
+	// filename = zip_file + "/Sting_Height.dds";
+	// engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::HEIGHT);
+	// engine->renderer->close_command_list(0);
 
 
 	engine->renderer->add_mesh(*m_mesh); // add mesh at the end because we bind the textures it uses in this function

@@ -105,6 +105,7 @@ struct VertexOut
 {
     float4 pixel_position    : SV_POSITION;
     float3 position    : POSITION;
+    float3 normal       : NORMAL;
     float2 tex_coord    : TEXCOORD;
     float3x3 tangent_basis : TBASIS;
 
@@ -114,6 +115,7 @@ VertexOut VS(VertexIn vin)
 {
     VertexOut vout = (VertexOut)0.0f;
     vout.position = mul(float4(vin.position, 1.0f), gWorld).xyz;
+    vout.normal = mul(vin.normal, (float3x3)gWorld);
     vout.tex_coord = mul(float4(vin.tex_coord, 0.0f, 1.0f), gTexTransform); // can straight set it because we flip the v axis when inputting uv textures
     float3x3 tbn = float3x3(vin.tangent, vin.bitangent, vin.normal);
     vout.tangent_basis = mul(tbn, (float3x3)gWorld); //only use 3x3 to drop translation
@@ -157,21 +159,31 @@ float4 PS(VertexOut pin) : SV_Target
     
     float3 view = normalize(pin.position - gEyePosW);
     float2 tex = pin.tex_coord;
-    float height_scale = 0.001f;
+    float height_scale = 0.005f;
+    
+
     if (height_used) {
         float height = gTextures[HEIGHT_INDEX].Sample(gsamAnisotropicWrap, tex).r;
         float2 p = view.xy * (height * height_scale);
-        tex = tex - p;
+        tex = tex + p;
     }
+    float3 normal = { 0.0f, 0.0f, 0.0f };
+    if (normal_used) {
+        float3 normal_sample = normal_used * gTextures[NORMAL_INDEX].Sample(gsamAnisotropicWrap, tex).rgb;
+        normal = normal_used * normalize(2.0f * normal_sample - 1.0f);
+        normal = normalize(mul(normal, pin.tangent_basis));
+    }
+    else { // use interpolated normal if not normal mapping
+        normal = normalize(pin.normal);
+    }
+
     float3 albedo = color_used * gTextures[COLOR_INDEX].Sample(gsamAnisotropicWrap, tex).rgb;
     float metalness = metallic_used * gTextures[METALLIC_INDEX].Sample(gsamAnisotropicWrap, tex).r;
     float roughness = roughness_used * gTextures[ROUGHNESS_INDEX].Sample(gsamAnisotropicWrap, tex).r;
-    float3 normal_sample = normal_used * gTextures[NORMAL_INDEX].Sample(gsamAnisotropicWrap, tex).rgb;
+    
 
     float3 lo = normalize(gEyePosW - pin.position); // outgoing light vector from surface position to eye
-
-    float3 normal = normal_used * normalize(2.0f * normal_sample - 1.0f);
-    normal = normalize(mul(normal, pin.tangent_basis)); // convert normal to be in tangent space
+     // convert normal to be in tangent space
 
     // angle between the surface normal and outgoing light direction
     // dot alculated the cos for us because the magnitude of the vectors are both 1
@@ -203,6 +215,7 @@ float4 PS(VertexOut pin) : SV_Target
         float3 specular_bdrf = (f * d * g) / max(Epsilon, 4.0 * cos_li * cos_lo);
         direct_lighting += (diffuse_bdrf + specular_bdrf) * l_radiance * cos_li;
     }
+    // return float4(albedo, 1.0f);
     // return float4(albedo, 1.0f);
     return float4(direct_lighting + gAmbientLight, 1.0f);
 }
