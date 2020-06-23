@@ -81,7 +81,7 @@ cbuffer cbPass : register(b1)
     Light gLights[MaxLights];
 };
 
-#define NUM_TEXTURES 4
+#define NUM_TEXTURES 5
 Texture2D gTextures[NUM_TEXTURES] : register(t0);
 
 SamplerState gsamPointWrap        : register(s0);
@@ -177,7 +177,7 @@ float4 PS(VertexOut pin) : SV_Target
         normal = normalize(pin.normal);
     }
 
-    float3 albedo = color_used * gTextures[COLOR_INDEX].Sample(gsamAnisotropicWrap, tex).rgb;
+    float3 albedo = gTextures[COLOR_INDEX].Sample(gsamAnisotropicWrap, tex).rgb;
     float metalness = metallic_used * gTextures[METALLIC_INDEX].Sample(gsamAnisotropicWrap, tex).r;
     float roughness = roughness_used * gTextures[ROUGHNESS_INDEX].Sample(gsamAnisotropicWrap, tex).r;
     
@@ -215,8 +215,6 @@ float4 PS(VertexOut pin) : SV_Target
         float3 specular_bdrf = (f * d * g) / max(Epsilon, 4.0 * cos_li * cos_lo);
         direct_lighting += (diffuse_bdrf + specular_bdrf) * l_radiance * cos_li;
     }
-    // return float4(albedo, 1.0f);
-    // return float4(albedo, 1.0f);
     return float4(direct_lighting + gAmbientLight, 1.0f);
 }
 

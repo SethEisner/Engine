@@ -59,6 +59,7 @@ private:
 	void create_command_objects();
 	void create_swap_chain();
 	void create_rtv_and_dsv_descriptor_heaps();
+	void create_dummy_texture();
 	void flush_command_queue();
 	ID3D12Resource* current_back_buffer() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE current_back_buffer_view() const;
@@ -127,7 +128,7 @@ private:
 	FrameResources* m_curr_frame_resource = nullptr; // the frame resoures structure for the current frame
 	int m_curr_frame_resources_index = -1; // start at -1 because we add to it immediately (allows us to start from 0)
 	uint32_t m_cbv_srv_descriptor_size = 0;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_descriptor_heap = nullptr;
+	// Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_descriptor_heap = nullptr;
 	// std::unordered_map<std::string, const Mesh*> m_geometries;
 	std::unordered_map<std::string, Material*> m_materials;
 	// std::unordered_map<std::string, Texture*> m_textures; // textures store the material data
@@ -142,9 +143,10 @@ private:
 
 	// texture system members
 	std::unordered_map<size_t, std::array<Texture*, NUM_TEXTURES>> m_texture_map; // map from mesh pointer to the array of textures it uses, use the Mesh pointer to get the texture flags and set the constants
+	// std::unordered_map<size_t, std::vector<std::pair<TextureFlags, Texture*>>> m_texture_map; // map from mesh id to the contiguous vector of tectures it uses, where each texture has it's corresponding type
 	// will use the flags in the shader code to get a 0 or 1 which controls whether or not we use the result of the calculation
 	std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> m_descriptor_heap_map; // map from the mesh to the descritor heaps for the textures it uses
-
+	Texture* m_dummy_texture = nullptr;
 	bool m_added_textures = false;
 	bool m_scene_ready = false;
 	bool m_created_frame_resources = false;

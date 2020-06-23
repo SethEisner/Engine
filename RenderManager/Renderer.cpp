@@ -58,8 +58,8 @@ void Renderer::create_and_add_texture(const std::string& name, const std::string
 	int index = get_texture_index(flag);
 	assert(m_texture_map[corresponding_mesh.m_mesh_id][index] == nullptr); // assert that we are not overwriting the data
 	m_texture_map[corresponding_mesh.m_mesh_id][index] = texture;
-	// update the mesh to mark the texture it is using
 	corresponding_mesh.m_textures_used = corresponding_mesh.m_textures_used | flag;
+
 }
 bool Renderer::init() {
 
@@ -91,10 +91,11 @@ bool Renderer::init() {
 	create_command_objects();
 	create_swap_chain();
 	create_rtv_and_dsv_descriptor_heaps(); // for the render target and depth stencil view
+	create_dummy_texture();
 	m_cbv_srv_descriptor_size = m_d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	// m_frame_resources.resize(g_num_frame_resources);
 	// camera position can be set anywhere
-	engine->camera->set_position(0.0f, 20.0f, -10.0f);
+	engine->camera->set_position(0.0f, 2.0f, -10.0f);
 	// build the basic structures the rending pipeline can use to render our objects
 	build_root_signature();
 	build_shaders_and_input_layout();
@@ -315,6 +316,20 @@ void Renderer::create_rtv_and_dsv_descriptor_heaps() {
 	dsv_heap_desc.NodeMask = 0;
 	m_d3d_device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(m_dsv_heap.GetAddressOf())); // ThrowIfFailed(m_d3d_device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(m_dsv_heap.GetAddressOf())));
 }
+void Renderer::create_dummy_texture() {
+	std::string name = "default";
+	std::string zip_file = name + ".zip";
+	std::string filename = zip_file + "/black.dds";
+	engine->resource_manager->load_resource(zip_file);
+	//engine->resource_manager->load_resource("Sword.zip");
+	while (!engine->resource_manager->resource_loaded(zip_file)) {} // wait until the zipfile is loaded (super fast because we 
+	m_dummy_texture = new Texture();
+	m_dummy_texture->m_name = "dummy_texture";
+	m_dummy_texture->m_filename = filename;
+	CreateDDSTextureFromMemory12(m_d3d_device.Get(), m_command_list.Get(),
+		engine->resource_manager->get_data_pointer(m_dummy_texture->m_filename),
+		engine->resource_manager->get_data_size(m_dummy_texture->m_filename), m_dummy_texture->m_resource, m_dummy_texture->m_upload_heap);
+}
 void Renderer::flush_command_queue() {
 	m_current_fence++;
 	// add a fence to the command queue, and wait until the fence is reached. waits for the command queue to become empty
@@ -362,16 +377,19 @@ void Renderer::build_descriptor_heaps(const Mesh& mesh) { // create heaps to hol
 
 	uint32_t supported_textures = static_cast<uint32_t>(mesh.m_textures_used);
 	static const uint32_t mask = 0x1;
-	for (size_t i = 0; i != NUM_TEXTURES; ++i, supported_textures >>= 1, offset = 1) { // for each texture type the mesh could support
+	Texture* tex = nullptr;
+	for (size_t i = 0; i != NUM_TEXTURES; ++i, supported_textures >>= 1){//, offset = 1) { // for each texture type the mesh could support
 		// if it is supported, create the view
-		if (supported_textures & mask) {
-			h_desc.Offset(offset, m_cbv_srv_descriptor_size);
-			Texture* tex = m_texture_map[mesh.m_mesh_id][i]; // get the corresponding texture pointer
-			//assert(tex != nullptr); // assert that we loaded and created the texture to bind
-			srv_desc.Format = tex->m_resource->GetDesc().Format;
-			srv_desc.Texture2D.MipLevels = tex->m_resource->GetDesc().MipLevels;
-			m_d3d_device->CreateShaderResourceView(tex->m_resource.Get(), &srv_desc, h_desc);
+		Texture* tex = m_dummy_texture;
+		h_desc.Offset(offset, m_cbv_srv_descriptor_size);
+		if (supported_textures & mask) { // bind the real texture
+			tex = m_texture_map[mesh.m_mesh_id][i]; // get the corresponding texture pointer
+			
 		}
+		srv_desc.Format = tex->m_resource->GetDesc().Format;
+		srv_desc.Texture2D.MipLevels = tex->m_resource->GetDesc().MipLevels;
+		m_d3d_device->CreateShaderResourceView(tex->m_resource.Get(), &srv_desc, h_desc);
+		offset = 1;
 	}
 }
 void Renderer::build_root_signature() {
