@@ -5,10 +5,12 @@
 // the player / rotatable, which prevents the body from rotating, can
 // contact should use a pair of body pointers, doing it this way allows us to use RTTI and a single contact type
 
+// using polymorphism
+
 class Body {
 public:
 	virtual void calculate_derived_data(); // a rigid body will need to calculate different values
-	virtual void integrate(float); // virtual because a rigidbody would integrate differently
+	virtual void integrate(double duration); // virtual because a rigidbody would integrate differently
 	void set_mass(const float);
 	float get_mass() const;
 	void set_inverse_mass(const float);
@@ -20,7 +22,7 @@ public:
 	void set_position(const float x, const float y, const float z);
 	void get_position(DirectX::XMFLOAT3*) const;
 	DirectX::XMFLOAT3 get_position() const;
-	void get_transform(DirectX::XMFLOAT4X4& transform) const;
+	void get_transform(DirectX::XMFLOAT4X4* transform) const;
 	DirectX::XMFLOAT4X4 get_transform() const;
 	DirectX::XMFLOAT3 get_point_in_local_space(const DirectX::XMFLOAT3& pos) const;
 	DirectX::XMFLOAT3 get_point_in_world_space(const DirectX::XMFLOAT3& pos) const;
@@ -45,15 +47,19 @@ public:
 	// should have the virtual functions needed by the rigid body but they should be inlined and do nothing so that the contact code can work with the parent or child class
 	
 protected:
-	DirectX::XMFLOAT4X4 m_transform; // convert from body space to world space;
+	DirectX::XMFLOAT4X4 m_transform; // convert from body space to world space; // use the inverse to go from world space to body space
+	DirectX::XMFLOAT4X4 m_inverse_transform; // converts from world space to body space, inverse of m_transform
 	float m_inverse_mass; // holds the inverse mass of the body
 	float m_linear_damping; // holds the amound of dampening applied to linear motion, for the player we want high damping so we dont get pushed super far
+	DirectX::XMFLOAT3 m_position;
 	DirectX::XMFLOAT3 m_position; // holds the position of the body
 	DirectX::XMFLOAT3 m_velocity; // holds the linear velocity of the body
-	
+	DirectX::XMFLOAT3 m_force_accum;
+	DirectX::XMFLOAT3 m_acceleration;
+	DirectX::XMFLOAT3 m_last_frame_accleration;
 	// optimizations that may not be needed yet
-	// bool m_is_awake; // can sleep the body so it doesnt get updated by the integration nor can it collide with the world
-	// bool m_can_sleep; // mark whether the body is allowed to fall asleep
+	bool m_is_awake; // can sleep the body so it doesnt get updated by the integration nor can it collide with the world
+	bool m_can_sleep; // mark whether the body is allowed to fall asleep
 
 };
 class RigidBody : protected Body { // allows for rotation

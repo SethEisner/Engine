@@ -20,6 +20,17 @@ struct BoundingSphere {
 		return four_pi * m_sphere.Radius * m_sphere.Radius;
 	}
 };
+struct BoundingBox {
+	DirectX::BoundingBox m_box;
+	BoundingBox();
+	BoundingBox(const BoundingBox& first, const BoundingBox& second);
+	bool overlaps(const BoundingBox& other) const;
+	float get_growth(const BoundingBox& other) const;
+	inline float get_size() const { // volume of the box, can determine growth from the volume delta
+		return m_box.Extents.x * m_box.Extents.y * m_box.Extents.z;
+	}
+};
+
 
 // holds two bodies that might be in contact
 struct PotentialContact {
@@ -111,7 +122,7 @@ BVHNode<BoundingVolume>::~BVHNode() {
 		delete m_children[1];
 	}
 }
-// recuse is not used...
+// recurse is not used...
 template<class BoundingVolume>
 void BVHNode<BoundingVolume>::recalculate_bounding_volume(bool recurse) { // O(log(n)) 
 	if (is_leaf()) return;
