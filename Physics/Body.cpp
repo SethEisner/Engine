@@ -4,6 +4,7 @@
 #include <math.h>
 #include <limits>
 
+void Body::calculate_derived_data() { return; }
 void Body::integrate(double duration) {
 	// if (!m_is_awake) return; // do not integrate sleeping bodies
 	using namespace DirectX;
