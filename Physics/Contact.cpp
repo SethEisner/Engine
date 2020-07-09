@@ -2,14 +2,13 @@
 #include <memory>
 #include <assert.h>
 
+// Contact implementation
 void Contact::set_body_data(Body* first, Body* second, float friction, float restitution) {
 	m_body[0] = first;
 	m_body[1] = second;
 	m_friction = friction;
 	m_restitution = restitution;
 }
-
-
 void Contact::calculate_internals(double duration) {
 	if (!m_body[0]) swap_bodies(); // the first body in the collision must have a valid pointer, the second can be a nullptr to mark it as unmovable scenery 
 	assert(m_body[0]);
@@ -90,7 +89,7 @@ void Contact::calculate_contact_basis() { // calulates an orthonormal basis for 
 void apply_impulse(const DirectX::XMFLOAT3& impulse, Body* body, DirectX::XMFLOAT3* velocity_change, DirectX::XMFLOAT3* rotation_change); // apply an impulse to the given body, returning a velocity
 
 // dont perform rotation so shouldnt have rotation change
-void Contact::apply_velocity_change(DirectX::XMFLOAT3 velocity_change[2], DirectX::XMFLOAT3 rotation_change[2]) { // perform an inertia-weighted impulse based resolution of this contact alone
+void Contact::apply_velocity_change(DirectX::XMFLOAT3 velocity_change[2]) { // perform an inertia-weighted impulse based resolution of this contact alone
 	// get the inverse mass
 	using namespace DirectX;
 	XMFLOAT3 impulse_contact;
@@ -111,7 +110,7 @@ void Contact::apply_velocity_change(DirectX::XMFLOAT3 velocity_change[2], Direct
 		m_body[1]->add_velocity(velocity_change[1]);
 	}
 }
-void Contact::apply_position_change(DirectX::XMFLOAT3 linear_change[2], DirectX::XMFLOAT3 anglular_change[2], float penetration) {
+void Contact::apply_position_change(DirectX::XMFLOAT3 linear_change[2], float penetration) {
 	float linear_move[g_num_bodies];
 	float total_inertia = 0;
 	float linear_inertia[g_num_bodies];
@@ -185,4 +184,104 @@ inline DirectX::XMFLOAT3 Contact::calculate_friction_impulse(/*DirectX::XMFLOAT3
 		impulse_contact.z *= impulse_contact.y; //isotropic friction so the friction we apply is the same for the y and z direction
 	}
 	return impulse_contact;
+}
+
+//ContactResolver implementation
+ContactResolver::ContactResolver(size_t iterations, float velocity_epsilon = 0.01f, float position_epsilon = 0.01f) {
+	set_iterations(iterations, iterations);
+	set_epsilon(velocity_epsilon, position_epsilon);
+}
+ContactResolver::ContactResolver(size_t velocity_iterations, size_t position_iterations, float velocity_epsilon = 0.01f, float position_epsilon = 0.01f) {
+	set_iterations(velocity_iterations, position_iterations);
+	set_epsilon(velocity_epsilon, position_epsilon);
+}
+void ContactResolver::set_iterations(size_t iterations) {
+	set_iterations(iterations, iterations);
+}
+void ContactResolver::set_iterations(size_t velocity_iterations, size_t position_iterations) {
+	m_velocity_iterations = velocity_iterations;
+	m_position_iterations = position_iterations;
+}
+void ContactResolver::set_epsilon(float velocity_epsilon, float position_epsilon) {
+	m_velocity_epsilon = velocity_epsilon;
+	m_position_epsilon = position_epsilon;
+}
+void ContactResolver::resolve_contacts(Contact* contact_array, size_t contact_count, double duration) {
+	// for each contact, preprocess it, resolve interpenetration, calculate and apply exit velocity
+	if (contact_count == 0) return; // no contacts found
+	if (!this->is_valid()) return; // out of iterations or the epsilons are wrong
+	// preprocess the contacts so all the data is there when we start
+	preprocess_contacts(contact_array, contact_count, duration);
+	// resolve interpenetration of contacting objects
+	adjust_positions(contact_array, contact_count, duration);
+	// resolve the velocity of the contact
+	adjust_velocities(contact_array, contact_count, duration);
+}
+void ContactResolver::preprocess_contacts(Contact* contact_array, size_t contact_count, double duration) { //readies all contacts in the array for processing, ensures internal data is correct and appropriate objects are alive
+	const Contact* end = contact_array + contact_count;
+	for (Contact* current = contact_array; current != end; ++current) {
+		current->calculate_internals(duration);
+	}
+}
+void ContactResolver::adjust_velocities(Contact* contact_array, size_t contact_count, double duration) { // resolves velocity issues constrained by velocity iterations
+	using namespace DirectX;
+	XMFLOAT3 velocity_change[g_num_bodies];
+	assert(g_num_bodies == 2);
+	const Contact* end = contact_array + contact_count;
+	for (m_velocity_iterations_used = 0; m_velocity_iterations_used != m_max_velocity_iterations; ++m_velocity_iterations_used) { // keep processing until we run out of allowed iterations
+		float max = m_velocity_epsilon; // only look for contacts whose velocity is above the threshold
+		Contact* max_contact = nullptr;
+		for (Contact* current = contact_array; current != end; ++current) {  // find the contact with the largest contact velocity
+			if (current->m_desired_delta_velocity > max) {
+				max = current->m_desired_delta_velocity;
+				max_contact = current;
+			}
+		}
+		if (!max_contact) return; // return if we didnt find a contact with velocity greater than epsilon
+		// perform velocity compinent of collsiion resolution for the biggest collision
+		max_contact->apply_velocity_change(velocity_change);
+		// the update we performed changed some of the relative closing velocities for contacts involcing either one of our objects, and so need to be recomputed
+		for (Contact* current = contact_array; current != end; ++current) { // for each contact
+			for (size_t i = 0; i != g_num_bodies && current->m_body[i]; ++i) {// for each body in the contact
+				for (size_t j = 0; j != g_num_bodies; ++j) { // check if either body in the current contact is one of the bodies we just updated
+					if (current->m_body[i] == max_contact->m_body[j]) { // found matching Body pointers, dont want to run this code if m_body[i] is nullptr, because if both are nullptrs then we cant do anything
+						XMStoreFloat3(&current->m_contact_velocity, 
+							(i?-1:1) * XMLoadFloat3(&current->m_contact_velocity) + 
+							XMVector3Transform(XMLoadFloat3(&velocity_change[j]), XMMatrixTranspose(XMLoadFloat3x3(&current->m_contact_to_world))));
+						current->calculate_desired_delta_velocity(duration);
+					}
+				}
+			}
+		}
+	}
+}
+void ContactResolver::adjust_positions(Contact* contact_array, size_t contact_count, double duration) { // resolves position issues constrained by velocity iterations
+	using namespace DirectX;
+	XMFLOAT3 linear_change[g_num_bodies];
+	float max_penetration;
+	const Contact* end = contact_array + contact_count;
+	for (m_position_iterations_used = 0; m_position_iterations_used != m_max_position_iterations; ++m_position_iterations_used) {
+		// find the most severe penetration
+		max_penetration = m_position_epsilon; // only consider penetrations greater than the epsilon, allows objects to interpenetrate slightly
+		Contact* max_contact = nullptr;
+		for (Contact* current = contact_array; current != end; ++current) {
+			if (current->m_penetration > max_penetration) {
+				max_penetration = current->m_penetration; // update the max
+				max_contact = current;
+			}
+		}
+		if (!max_contact) return;
+		max_contact->apply_position_change(linear_change, max_penetration);
+		// resolving penetration may have changed the current body's penetration into other bodies
+		for (Contact* current = contact_array; current != end; ++current) {
+			for (size_t i = 0; i != g_num_bodies && current->m_body[i]; ++i) {// for each body in the contact
+				for (size_t j = 0; j != g_num_bodies; ++j) { // check if either body in the current contact is one of the bodies we just updated
+					if (current->m_body[i] == max_contact->m_body[j]) { // found mathcing body pointers
+						current->m_penetration += (i?1:-1) * XMVector3Dot(XMLoadFloat3(&linear_change[j]), XMLoadFloat3(&current->m_contact_normal));
+						// the sign of the change is positive if we're dealing with the second body in a contact and negative otherwise 
+					}
+				}
+			}
+		}
+	}
 }

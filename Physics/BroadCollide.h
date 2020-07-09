@@ -4,40 +4,36 @@
 #include <DirectXCollision.h>
 // broad-phase collision detection using a BVH of spheres because it's super fast
 
-
-static constexpr double four_pi = 2.566370614359172953850573533118;
-static constexpr double four_over_three_pi = 4.1887902047863909846168578443727;
+// float because DirectX collision volumes store their geometric attributes in floats
+static constexpr float four_pi = 2.566370614359172953850573533118;
+static constexpr float four_over_three_pi = 4.1887902047863909846168578443727;
 struct BoundingSphere {
 	DirectX::BoundingSphere m_sphere;
 	BoundingSphere(const DirectX::XMFLOAT3& center, float radius);
 	BoundingSphere(const BoundingSphere& first, const BoundingSphere& second);
 	bool overlaps(const BoundingSphere& other) const;
 	float get_growth(const BoundingSphere& other) const; // returns how much the bs would have to grow to incorporate the given bounding sphere , should be percentage growth in surface area
-	inline float get_volume() const {
+	inline float get_size() const { // size is the volume
 		return four_over_three_pi * m_sphere.Radius * m_sphere.Radius * m_sphere.Radius;
-	}
-	inline float get_size() const { // calculate the surface area of the sphere
-		return four_pi * m_sphere.Radius * m_sphere.Radius;
 	}
 };
 struct BoundingBox {
 	DirectX::BoundingBox m_box;
-	BoundingBox();
+	BoundingBox(const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT3& extents);
 	BoundingBox(const BoundingBox& first, const BoundingBox& second);
-	bool overlaps(const BoundingBox& other) const;
+	inline bool overlaps(const BoundingBox& other) const {
+		return m_box.Intersects(other.m_box);
+	}
 	float get_growth(const BoundingBox& other) const;
 	inline float get_size() const { // volume of the box, can determine growth from the volume delta
-		return m_box.Extents.x * m_box.Extents.y * m_box.Extents.z;
+		return m_box.Extents.x * m_box.Extents.y * m_box.Extents.z; 
 	}
 };
-
 
 // holds two bodies that might be in contact
 struct PotentialContact {
 	Body* m_body[2];
 };
-
-
 
 // change the hierarchy to use an AABB instead of a sphere hierarchy
 template<class BoundingVolume>
@@ -145,24 +141,16 @@ size_t BVHNode<BoundingVolume>::get_potential_contacts_with(const BVHNode<Boundi
 		contacts->m_body[1] = other->m_body;
 		return 1;
 	}
-	// determine which brach to descend into, if wither is a leaf then descend into the other, otherwise descend into the larger one
+	// determine which brach to descend into, if either is a leaf then descend into the other, otherwise descend into the larger one
 	// descend into the larger one incase we pass the limit from it
 	if (other->is_leaf() || (!is_leaf() && m_volume->get_size() >= other->m_volume->get_size())) {
 		size_t count = m_children[0]->get_potential_contacts_with(other, contacts, limit);
-		if (limit > count) {
-			return count + m_children[1]->get_potential_contacts_with(other, contacts + count, limit - count);
-		}
-		else {
-			return count;
-		}
+		if (limit > count) return count + m_children[1]->get_potential_contacts_with(other, contacts + count, limit - count);
+		return count;
 	}
 	else {
 		size_t count = get_potential_contacts_with(other->m_children[0], contacts, limit);
-		if (limit > count) {
-			return count + get_potential_contacts_with(other->m_children[1], contacts + count, limit - count);
-		}
-		else {
-			return count;
-		}
+		if (limit > count) return count + get_potential_contacts_with(other->m_children[1], contacts + count, limit - count);
+		return count;
 	}
 }

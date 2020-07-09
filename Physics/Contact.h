@@ -29,16 +29,16 @@ protected:
 	DirectX::XMFLOAT3 calculate_local_velocity(uint32_t body_index, double duration);
 	void calculate_contact_basis(); // calulates an orthonormal basis for the contact point, based on the friction direction
 	void apply_impulse(const DirectX::XMFLOAT3& impulse, Body* body, DirectX::XMFLOAT3* velocity_change, DirectX::XMFLOAT3* rotation_change); // apply an impulse to the given body, returning a velocity
-	void apply_velocity_change(DirectX::XMFLOAT3 velocity_change[2], DirectX::XMFLOAT3 rotation_change[2]); // perform an inertia-weighted impulse based resolution of this contact alone
-	void apply_position_change(DirectX::XMFLOAT3 linear_change[2], DirectX::XMFLOAT3 anglular_change[2], float penetration);
+	void apply_velocity_change(DirectX::XMFLOAT3 velocity_change[2]); // perform an inertia-weighted impulse based resolution of this contact alone
+	void apply_position_change(DirectX::XMFLOAT3 linear_change[2], float penetration);
 	DirectX::XMFLOAT3 calculate_frictionless_impulse(/*DirectX::XMFLOAT3X3* inverse_inertia_tensor*/); // calculates the impulse needed to resolve the contact given that the contact has no friction
 	DirectX::XMFLOAT3 calculate_friction_impulse(/*DirectX::XMFLOAT3X3* inverse_inertia_tensor*/); // impulse to solve the contact die to a non-zero coefficient of friction
 };
 
 class ContactResolver {
 protected:
-	size_t m_velocity_iterations;
-	size_t m_position_iterations;
+	size_t m_max_velocity_iterations
+	size_t m_max_position_iterations;
 	float m_velocity_epsilon; // velocities smaller than this are considered zero
 	float m_position_epsilon; // penetrations smaller than this value are considered to be not penetrating (usually 0.01 is okay)
 public:
@@ -49,15 +49,16 @@ private:
 
 public:
 	ContactResolver(size_t iterations, float velocity_epsilon = 0.01f, float position_epsilon = 0.01f);
+	ContactResolver(size_t velocity_iterations, size_t position_iterations, float velocity_epsilon = 0.01f, float position_epsilon = 0.01f);
 	inline bool is_valid() {
-		return (m_velocity_iterations > 0) && (m_position_iterations > 0) && (m_position_epsilon >= 0.0f) && (m_velocity_epsilon >= 0.0f);
+		return (m_max_velocity_iterations > 0) && (m_max_position_iterations > 0) && (m_position_epsilon >= 0.0f) && (m_velocity_epsilon >= 0.0f);
 	}
 	void set_iterations(size_t velocity_iterations, size_t position_iterations);
 	void set_iterations(size_t iterations);
 	void set_epsilon(float velocity_epsilon, float position_epsilon);
 	void resolve_contacts(Contact* contact_array, size_t contact_count, double duration);
 protected:
-	void prepare_contacts(Contact* contact_array, size_t contact_count, double duration); //readies all contacts in the array for processing, ensures internal data is correct and appropriate objects are alive
+	void preprocess_contacts(Contact* contact_array, size_t contact_count, double duration); //readies all contacts in the array for processing, ensures internal data is correct and appropriate objects are alive
 	void adjust_velocities(Contact* contact_array, size_t contact_count, double duration); // resolves velocity issues constrained by velocity iterations
 	void adjust_positions(Contact* contact_array, size_t contact_count, double duration); // resolves position issues constrained by velocity iterations
 };
