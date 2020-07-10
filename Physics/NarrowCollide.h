@@ -14,10 +14,10 @@ public:
 	friend class CollisionDetector;
 
 	Body* m_body; // the rigid body of the primitive
-	DirectX::XMFLOAT4X4 m_offset; // the offset of this fromotove from the given rigid body
+	DirectX::XMFLOAT4X4 m_offset; // the offset of this primitive from the given rigid body
 	void calculate_internals();
 	DirectX::XMFLOAT3 get_axis(uint32_t index) const {
-		// get's a row of the transformation matrix without the translation component
+		// get's a row of the transformation matrix, return a row because if we want the translation of the transformation matrix, that would be the last row of the column matrix
 		return DirectX::XMFLOAT3(m_transform.m[index][0], m_transform.m[index][1], m_transform.m[index][2]);
 	}
 	const DirectX::XMFLOAT4X4& get_transform() const {
@@ -27,7 +27,7 @@ protected:
 	DirectX::XMFLOAT4X4 m_transform; //the resultant transform of the primitive. calculated by combining the offset of the primitive with the transform of the rigid body;
 };
 
-class CollisionOrientedBox : public CollisionPrimitive {
+struct CollisionOrientedBox : public CollisionPrimitive {
 	DirectX::BoundingOrientedBox m_oriented_box; // use an oriented bounding box for narrow phase collision
 };
 
@@ -40,7 +40,7 @@ public:
 struct CollisionData {
 	// should probably use a vector of Contact* so we can use iterators...
 	Contact* m_contact_base; // holds the base of the collision data
-	Contact* m_contacts; // holds the contact array to write into
+	Contact* m_contacts; // holds the pointer to the next contact struct we can write into
 	int m_contacts_left;
 	uint32_t m_contact_count; // the number of contacts in the contact array
 	float m_friction; // should probably not use friction for now
@@ -61,8 +61,7 @@ struct CollisionData {
 	}
 };
 
-class CollisionDetector {
-public:
+struct CollisionDetector {
 	// does a collision test between two oriented boxes and 
 	static uint32_t collides(const CollisionOrientedBox& first, const CollisionOrientedBox& second, CollisionData* data);
 };

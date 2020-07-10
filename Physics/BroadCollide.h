@@ -26,7 +26,7 @@ struct BoundingBox {
 	}
 	float get_growth(const BoundingBox& other) const;
 	inline float get_size() const { // volume of the box, can determine growth from the volume delta
-		return m_box.Extents.x * m_box.Extents.y * m_box.Extents.z; 
+		return fabsf(8.0f * m_box.Extents.x * m_box.Extents.y * m_box.Extents.z); // extents is distance from center to edge, so need to multiply by 8
 	}
 };
 

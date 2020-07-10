@@ -37,7 +37,7 @@ protected:
 
 class ContactResolver {
 protected:
-	size_t m_max_velocity_iterations
+	size_t m_max_velocity_iterations;
 	size_t m_max_position_iterations;
 	float m_velocity_epsilon; // velocities smaller than this are considered zero
 	float m_position_epsilon; // penetrations smaller than this value are considered to be not penetrating (usually 0.01 is okay)

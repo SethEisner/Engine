@@ -199,8 +199,8 @@ void ContactResolver::set_iterations(size_t iterations) {
 	set_iterations(iterations, iterations);
 }
 void ContactResolver::set_iterations(size_t velocity_iterations, size_t position_iterations) {
-	m_velocity_iterations = velocity_iterations;
-	m_position_iterations = position_iterations;
+	m_max_velocity_iterations = velocity_iterations;
+	m_max_position_iterations = position_iterations;
 }
 void ContactResolver::set_epsilon(float velocity_epsilon, float position_epsilon) {
 	m_velocity_epsilon = velocity_epsilon;
@@ -277,7 +277,7 @@ void ContactResolver::adjust_positions(Contact* contact_array, size_t contact_co
 			for (size_t i = 0; i != g_num_bodies && current->m_body[i]; ++i) {// for each body in the contact
 				for (size_t j = 0; j != g_num_bodies; ++j) { // check if either body in the current contact is one of the bodies we just updated
 					if (current->m_body[i] == max_contact->m_body[j]) { // found mathcing body pointers
-						current->m_penetration += (i?1:-1) * XMVector3Dot(XMLoadFloat3(&linear_change[j]), XMLoadFloat3(&current->m_contact_normal));
+						current->m_penetration += (i?1:-1) * XMVectorGetX(XMVector3Dot(XMLoadFloat3(&linear_change[j]), XMLoadFloat3(&current->m_contact_normal)));
 						// the sign of the change is positive if we're dealing with the second body in a contact and negative otherwise 
 					}
 				}
