@@ -1,7 +1,6 @@
 #include "NarrowCollide.h"
-#include <memory>
 #include <assert.h>
-#include <cstdlib>
+#include <limits>
 
 // should use iterators and stl ADTs for searching
 
