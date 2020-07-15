@@ -8,12 +8,12 @@
 class IntersectionTests;
 class CollisionDetector;
 
-class CollisionPrimitive { // base class for primitive to detect collisions against
+class OrientedBoundingBox { // base class for primitive to detect collisions against
 public:
 	friend class IntersectionTests;
 	friend class CollisionDetector;
-
-	Body* m_body; // the rigid body of the primitive
+	DirectX::BoundingOrientedBox m_oriented_box;
+	RigidBody* m_body; // the rigid body of the primitive
 	DirectX::XMFLOAT4X4 m_offset; // the offset of this primitive from the given rigid body
 	void calculate_internals();
 	DirectX::XMFLOAT3 get_axis(uint32_t index) const {
@@ -27,13 +27,13 @@ protected:
 	DirectX::XMFLOAT4X4 m_transform; //the resultant transform of the primitive. calculated by combining the offset of the primitive with the transform of the rigid body;
 };
 
-struct CollisionOrientedBox : public CollisionPrimitive {
-	DirectX::BoundingOrientedBox m_oriented_box; // use an oriented bounding box for narrow phase collision
-};
+// struct OrientedBoundingBox : public CollisionPrimitive {
+// 	DirectX::BoundingOrientedBox m_oriented_box; // use an oriented bounding box for narrow phase collision
+// };
 
 class IntersectionTests {
 public:
-	static bool intersects(const CollisionOrientedBox& first, const CollisionOrientedBox& second); // only determine if two OBBs intersect
+	static bool intersects(const OrientedBoundingBox& first, const OrientedBoundingBox& second); // only determine if two OBBs intersect
 };
 
 // structure that contains data the collision detector will use to build the contacts
@@ -63,5 +63,5 @@ struct CollisionData {
 
 struct CollisionDetector {
 	// does a collision test between two oriented boxes and 
-	static uint32_t collides(const CollisionOrientedBox& first, const CollisionOrientedBox& second, CollisionData* data);
+	static uint32_t collides(const OrientedBoundingBox& first, const OrientedBoundingBox& second, CollisionData* data);
 };

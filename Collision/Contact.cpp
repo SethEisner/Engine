@@ -3,7 +3,7 @@
 #include <assert.h>
 
 // Contact implementation
-void Contact::set_body_data(Body* first, Body* second, float friction, float restitution) {
+void Contact::set_body_data(RigidBody* first, RigidBody* second, float friction, float restitution) {
 	m_body[0] = first;
 	m_body[1] = second;
 	m_friction = friction;
@@ -52,7 +52,7 @@ void Contact::calculate_desired_delta_velocity(double duration) {
 	m_desired_delta_velocity = -m_contact_velocity.x - this_restitution * (m_contact_velocity.x - velocity_from_acc);
 }
 DirectX::XMFLOAT3 Contact::calculate_local_velocity(uint32_t body_index, double duration) {
-	Body* this_body = m_body[body_index];
+	RigidBody* this_body = m_body[body_index];
 	using namespace DirectX;
 	// XMFLOAT3 velocity = this_body->get_velocity();
 	XMVECTOR velocity = XMLoadFloat3(&this_body->get_velocity());
@@ -86,7 +86,7 @@ void Contact::calculate_contact_basis() { // calulates an orthonormal basis for 
 	memcpy(m_contact_to_world.m[1], &contact_tangent[0], 3 * sizeof(float));
 	memcpy(m_contact_to_world.m[2], &contact_tangent[1], 3 * sizeof(float));
 }
-void apply_impulse(const DirectX::XMFLOAT3& impulse, Body* body, DirectX::XMFLOAT3* velocity_change, DirectX::XMFLOAT3* rotation_change); // apply an impulse to the given body, returning a velocity
+void apply_impulse(const DirectX::XMFLOAT3& impulse, RigidBody* body, DirectX::XMFLOAT3* velocity_change, DirectX::XMFLOAT3* rotation_change); // apply an impulse to the given body, returning a velocity
 
 // dont perform rotation so shouldnt have rotation change
 void Contact::apply_velocity_change(DirectX::XMFLOAT3 velocity_change[2]) { // perform an inertia-weighted impulse based resolution of this contact alone
@@ -244,7 +244,7 @@ void ContactResolver::adjust_velocities(Contact* contact_array, size_t contact_c
 		for (Contact* current = contact_array; current != end; ++current) { // for each contact
 			for (size_t i = 0; i != g_num_bodies && current->m_body[i]; ++i) {// for each body in the contact
 				for (size_t j = 0; j != g_num_bodies; ++j) { // check if either body in the current contact is one of the bodies we just updated
-					if (current->m_body[i] == max_contact->m_body[j]) { // found matching Body pointers, dont want to run this code if m_body[i] is nullptr, because if both are nullptrs then we cant do anything
+					if (current->m_body[i] == max_contact->m_body[j]) { // found matching RigidBody pointers, dont want to run this code if m_body[i] is nullptr, because if both are nullptrs then we cant do anything
 						XMStoreFloat3(&current->m_contact_velocity, 
 							(i?-1:1) * XMLoadFloat3(&current->m_contact_velocity) + 
 							XMVector3Transform(XMLoadFloat3(&velocity_change[j]), XMMatrixTranspose(XMLoadFloat3x3(&current->m_contact_to_world))));

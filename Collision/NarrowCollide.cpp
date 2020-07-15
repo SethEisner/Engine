@@ -9,10 +9,10 @@ void CollisionPrimitive::calculate_internals() {
 	XMStoreFloat4x4(&m_transform, XMMatrixMultiply(XMLoadFloat4x4(&m_offset), XMLoadFloat4x4(&m_body->get_transform())));
 }
 
-inline bool IntersectionTests::intersects(const CollisionOrientedBox& first, const CollisionOrientedBox& second) {
+inline bool IntersectionTests::intersects(const OrientedBoundingBox& first, const OrientedBoundingBox& second) {
 	return first.m_oriented_box.Intersects(second.m_oriented_box); // call the DirectX Collision function so it does the hardwork for us
 }
-static inline float transform_to_axis(const CollisionOrientedBox& box, const DirectX::XMFLOAT3& axis) {
+static inline float transform_to_axis(const OrientedBoundingBox& box, const DirectX::XMFLOAT3& axis) {
 	using namespace DirectX;
 	XMVECTOR axis_ = XMLoadFloat3(&axis);
 	float x_dot = fabs(XMVectorGetX(XMVector3Dot(axis_, XMLoadFloat3(&box.get_axis(0)))));
@@ -24,7 +24,7 @@ static inline float transform_to_axis(const CollisionOrientedBox& box, const Dir
 }
 // check if the boxes overlap along the given axis, and returns the amount of overlap
 // to_center is the vector between the boxes' center points
-static inline float penetration_on_axis(const CollisionOrientedBox& first, const CollisionOrientedBox& second, const DirectX::XMFLOAT3& axis, const DirectX::XMFLOAT3& to_center) {
+static inline float penetration_on_axis(const OrientedBoundingBox& first, const OrientedBoundingBox& second, const DirectX::XMFLOAT3& axis, const DirectX::XMFLOAT3& to_center) {
 	// project the half-size of each box onto the axis
 	float first_projection = transform_to_axis(first, axis);
 	float second_projection = transform_to_axis(second, axis);
@@ -37,7 +37,7 @@ static inline float penetration_on_axis(const CollisionOrientedBox& first, const
 }
 // returns true if the boxes overlap on the axis
 // updates value of smallest penetration and smallest case if the returned penetration is less than the given penetration value
-static inline bool try_axis(const CollisionOrientedBox& first, const CollisionOrientedBox& second, DirectX::XMFLOAT3& axis, const DirectX::XMFLOAT3& to_center, size_t index, float& smallest_penetration, int& smallest_case) {
+static inline bool try_axis(const OrientedBoundingBox& first, const OrientedBoundingBox& second, DirectX::XMFLOAT3& axis, const DirectX::XMFLOAT3& to_center, size_t index, float& smallest_penetration, int& smallest_case) {
 	using namespace DirectX;
 	XMVECTOR axis_ = XMLoadFloat3(&axis);
 	float magnitude = XMVectorGetX(XMVector3Dot(axis_, axis_)); // dont needs abs because dot with itself will always be positive
@@ -86,7 +86,7 @@ static inline DirectX::XMFLOAT3 contact_point(const DirectX::XMFLOAT3& p_one, co
 	XMStoreFloat3(&ret, c_one * 0.5 + c_two * 0.5f);
 	return ret;
 }
-void fill_point_face_box_box(const CollisionOrientedBox& first, const CollisionOrientedBox& second, const DirectX::XMFLOAT3& to_center, CollisionData* data, int best, float penetration) {
+void fill_point_face_box_box(const OrientedBoundingBox& first, const OrientedBoundingBox& second, const DirectX::XMFLOAT3& to_center, CollisionData* data, int best, float penetration) {
 	// called when we know that a vertex from box two is in contact with a face on box one
 	Contact* contact = data->m_contacts;
 	using namespace DirectX;
@@ -104,7 +104,7 @@ void fill_point_face_box_box(const CollisionOrientedBox& first, const CollisionO
 	XMStoreFloat3(&contact->m_contact_point, XMVector3Transform(XMLoadFloat3(&vertex), XMLoadFloat4x4(&second.get_transform()))); // convert the vertex to world space
 	contact->set_body_data(first.m_body, second.m_body, data->m_friction, data->m_restitution);
 }
-uint32_t CollisionDetector::collides(const CollisionOrientedBox& first, const CollisionOrientedBox& second, CollisionData* data) {
+uint32_t CollisionDetector::collides(const OrientedBoundingBox& first, const OrientedBoundingBox& second, CollisionData* data) {
 	using namespace DirectX;
 	XMVECTOR axes[6];
 	// XMFLOAT3 second_axes[3];

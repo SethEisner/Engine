@@ -7,7 +7,7 @@
 
 // using polymorphism
 
-class Body {
+class RigidBody {
 public:
 	virtual void calculate_derived_data(); // a rigid body will need to calculate different values
 	virtual void integrate(double duration); // virtual because a rigidbody would integrate differently
@@ -60,8 +60,8 @@ protected:
 	// optimizations that may not be needed yet
 	bool m_is_awake; // can sleep the body so it doesnt get updated by the integration nor can it collide with the world
 	bool m_can_sleep; // mark whether the body is allowed to fall asleep
-
 };
-class RigidBody : protected Body { // allows for rotation
-
-};
+// should use a flag to determine if an object is rotatable, and if it is, we can do rotation calculations from that (we have no rotations as of yet though)
+// class RigidBody : protected Body { // allows for rotation
+// 
+// };

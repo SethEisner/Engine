@@ -1,5 +1,5 @@
 #pragma once
-#include "Body.h"
+#include "RigidBody.h"
 #include <DirectXMath.h>
 
 class ContactResolver;
@@ -9,14 +9,14 @@ static const size_t g_num_bodies = 2;
 class Contact {
 	friend class ContactResolver;
 public:
-	Body* m_body[g_num_bodies]; // pair of bodies involved in the contact
+	RigidBody* m_body[g_num_bodies]; // pair of bodies involved in the contact
 	float m_friction; // lateral friction at contact
 	float m_restitution; // the normal resitution coefficient at the contact, affects how much energy is lost from the collision
 	float m_penetration; // the depth of penetration at the contact point;
 	DirectX::XMFLOAT3 m_contact_point;
 	DirectX::XMFLOAT3 m_contact_normal;
 	
-	void set_body_data(Body* first, Body* second, float friction, float restitution);
+	void set_body_data(RigidBody* first, RigidBody* second, float friction, float restitution);
 protected:
 	DirectX::XMFLOAT3X3 m_contact_to_world;
 	DirectX::XMFLOAT3 m_contact_velocity;
@@ -28,7 +28,7 @@ protected:
 	void calculate_desired_delta_velocity(double duration);
 	DirectX::XMFLOAT3 calculate_local_velocity(uint32_t body_index, double duration);
 	void calculate_contact_basis(); // calulates an orthonormal basis for the contact point, based on the friction direction
-	void apply_impulse(const DirectX::XMFLOAT3& impulse, Body* body, DirectX::XMFLOAT3* velocity_change, DirectX::XMFLOAT3* rotation_change); // apply an impulse to the given body, returning a velocity
+	void apply_impulse(const DirectX::XMFLOAT3& impulse, RigidBody* body, DirectX::XMFLOAT3* velocity_change, DirectX::XMFLOAT3* rotation_change); // apply an impulse to the given body, returning a velocity
 	void apply_velocity_change(DirectX::XMFLOAT3 velocity_change[2]); // perform an inertia-weighted impulse based resolution of this contact alone
 	void apply_position_change(DirectX::XMFLOAT3 linear_change[2], float penetration);
 	DirectX::XMFLOAT3 calculate_frictionless_impulse(/*DirectX::XMFLOAT3X3* inverse_inertia_tensor*/); // calculates the impulse needed to resolve the contact given that the contact has no friction
@@ -65,6 +65,7 @@ protected:
 // fills the contact structure with the generated contact, the contact pointer should always point to the first available contact in a contact array, 
 // where limit is the max number of contacts the array can hold, 
 // returns the number of contacts that have been created
+// seems like a useless class, and we should instead read the BVH for collisions
 class ContactGenerator {
 public:
 	virtual size_t add_contact(Contact* contact, size_t limit) const = 0;

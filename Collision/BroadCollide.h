@@ -1,5 +1,5 @@
 #pragma once
-#include "Body.h"
+#include "RigidBody.h"
 #include "Contact.h"
 #include <DirectXCollision.h>
 // broad-phase collision detection using a BVH of spheres because it's super fast
@@ -32,7 +32,7 @@ struct BoundingBox {
 
 // holds two bodies that might be in contact
 struct PotentialContact {
-	Body* m_body[2];
+	RigidBody* m_body[2];
 };
 
 // change the hierarchy to use an AABB instead of a sphere hierarchy
@@ -41,9 +41,9 @@ class BVHNode { // node of the bounding volume hierarchy, hierarchy is a binary 
 public:
 	BVHNode* m_children[2]; // if leaf then both children will be NULL
 	BoundingVolume m_volume; // volume that encompases all children
-	Body* m_body; // only leaf nodes have a rigid body
+	RigidBody* m_body; // only leaf nodes have a rigid body
 	BVHNode* m_parent; // parent node useful for tree manipulation operations
-	BVHNode(BVHNode* parent, const BoundingVolume& volume, Body* bode = nullptr)
+	BVHNode(BVHNode* parent, const BoundingVolume& volume, RigidBody* body = nullptr)
 		: m_parent(parent), m_volume(volume), m_body(body), m_children({ nullptr, nullptr }) {
 	}
 	~BVHNode();
@@ -51,7 +51,7 @@ public:
 		return m_body != nullptr;
 	}
 	size_t get_potential_contacts(PotentialContact* contacts, size_t limit) const; // build the array of potential contacts
-	void insert(Body* body, const BoundingVolume& volume);
+	void insert(RigidBody* body, const BoundingVolume& volume);
 protected:
 	bool overlaps(const BVHNode<BoundingVolume>* other) const; // checks if two nodes overlap, should call the overlaps method of the BoundingVolume
 	size_t get_potential_contacts_with(const BVHNode<BoundingVolume>* other, PotentialContact* contacts, size_t limit) const;
@@ -64,7 +64,7 @@ bool BVHNode<BoundingVolume>::overlaps(const BVHNode<BoundingVolume>* other) con
 }
 
 template<class BoundingVolume>
-void BVHNode<BoundingVolume>::insert(Body* body, const BoundingVolume& volume) {
+void BVHNode<BoundingVolume>::insert(RigidBody* body, const BoundingVolume& volume) {
 	if (is_leaf()) { // if we are a leaf then we must create two new children and make ourselves an internal node
 		// create two new children with ourselves as the parent
 		// the first child has our volume and body
