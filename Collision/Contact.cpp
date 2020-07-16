@@ -187,11 +187,11 @@ inline DirectX::XMFLOAT3 Contact::calculate_friction_impulse(/*DirectX::XMFLOAT3
 }
 
 //ContactResolver implementation
-ContactResolver::ContactResolver(size_t iterations, float velocity_epsilon = 0.01f, float position_epsilon = 0.01f) {
+ContactResolver::ContactResolver(size_t iterations, float velocity_epsilon, float position_epsilon) {
 	set_iterations(iterations, iterations);
 	set_epsilon(velocity_epsilon, position_epsilon);
 }
-ContactResolver::ContactResolver(size_t velocity_iterations, size_t position_iterations, float velocity_epsilon = 0.01f, float position_epsilon = 0.01f) {
+ContactResolver::ContactResolver(size_t velocity_iterations, size_t position_iterations, float velocity_epsilon, float position_epsilon) {
 	set_iterations(velocity_iterations, position_iterations);
 	set_epsilon(velocity_epsilon, position_epsilon);
 }

@@ -12,6 +12,7 @@
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
 #include "MathHelper.h"
+#include "../Gameplay/GameObject.h"
 //#include "FrameResources.h"
 
 
@@ -126,8 +127,9 @@ struct SubMeshBufferData {
 	size_t m_base_vertex = 0;
 };
 
-
+class GameObject;
 struct Mesh { // contains the buffers for a single object. combines all the submeshes into buffers (for vertex and index and cpu and gpu)
+	GameObject* m_game_object; // the gameobject that owns this mesh
 	std::string name; // look up by name
 	size_t m_mesh_id;
 	//uint64_t hash_name; // look up by hashed string name

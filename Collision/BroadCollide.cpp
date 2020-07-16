@@ -1,13 +1,6 @@
 #include "BroadCollide.h"
 
-BoundingBox::BoundingBox(const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT3& extents) : m_box(center, extents) {}
-BoundingBox::BoundingBox(const BoundingBox& first, const BoundingBox& second) : m_box() {
-	m_box.CreateMerged(m_box, first.m_box, second.m_box); // because we call member function of this->m_box and use it to edit this->m_box, this may not work...
-}
-inline bool BoundingBox::overlaps(const BoundingBox& other) const {
-	return m_box.Intersects(other.m_box);
-}
-// find a way to calculate get growth without allocating a BoundingBox
+//is there a way to calculate get growth without allocating a BoundingBox
 float BoundingBox::get_growth(const BoundingBox& other) const {
 	BoundingBox box(*this, other); // create a box that contains both of the boxes
 	// entents is half size so need to multiply each extent by 2

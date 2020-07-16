@@ -51,7 +51,6 @@ protected:
 	DirectX::XMFLOAT4X4 m_inverse_transform; // converts from world space to body space, inverse of m_transform
 	float m_inverse_mass; // holds the inverse mass of the body
 	float m_linear_damping; // holds the amound of dampening applied to linear motion, for the player we want high damping so we dont get pushed super far
-	DirectX::XMFLOAT3 m_position;
 	DirectX::XMFLOAT3 m_position; // holds the position of the body
 	DirectX::XMFLOAT3 m_velocity; // holds the linear velocity of the body
 	DirectX::XMFLOAT3 m_force_accum;

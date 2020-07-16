@@ -19,8 +19,10 @@ struct BoundingSphere {
 };
 struct BoundingBox {
 	DirectX::BoundingBox m_box;
-	BoundingBox(const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT3& extents);
-	BoundingBox(const BoundingBox& first, const BoundingBox& second);
+	BoundingBox(const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT3& extents) : m_box(center, extents) {}
+	BoundingBox(const BoundingBox& first, const BoundingBox& second) : m_box() {
+		m_box.CreateMerged(m_box, first.m_box, second.m_box); // because we call member function of this->m_box and use it to edit this->m_box, this may not work...
+	}
 	inline bool overlaps(const BoundingBox& other) const {
 		return m_box.Intersects(other.m_box);
 	}
@@ -69,7 +71,7 @@ void BVHNode<BoundingVolume>::insert(RigidBody* body, const BoundingVolume& volu
 		// create two new children with ourselves as the parent
 		// the first child has our volume and body
 		// the second child will have the volume and body we want to insert
-		m_children[0] = new BNHNode<BoundingVolume>(this, m_volume, m_body);
+		m_children[0] = new BVHNode<BoundingVolume>(this, m_volume, m_body);
 		m_children[1] = new BVHNode<BoundingVolume>(this, volume, body);
 		this->m_body = nullptr; // set to nullptr so we can be classified as an internal node
 		recalculate_bounding_volume(); // reclaculate our bounding volume using our children's bounding volumes
@@ -90,8 +92,8 @@ BVHNode<BoundingVolume>::~BVHNode() {
 	if (m_parent) {
 		BVHNode<BoundingVolume>* sibling;
 		// if we are the first child then the second child is our sibling and vice-versa
-		if (parent->children[0] == this) sibling = parent->children[1];
-		else sibling = parent->children[0];
+		if (m_parent->children[0] == this) sibling = m_parent->children[1];
+		else sibling = m_parent->children[0];
 
 		// our sibling needs to become our parent
 		// write its data to our parent
@@ -123,14 +125,14 @@ template<class BoundingVolume>
 void BVHNode<BoundingVolume>::recalculate_bounding_volume(bool recurse) { // O(log(n)) 
 	if (is_leaf()) return;
 	// create a new bounding volume that encompases our children
-	m_volume = BoundingVolume(children[0]->m_volume, children[1]->m_volume);
-	if (parent) m_parent->recalculate_bounding_volume(true); // recalculate the bounding volume up the tree
+	m_volume = BoundingVolume(m_children[0]->m_volume, m_children[1]->m_volume);
+	if (m_parent) m_parent->recalculate_bounding_volume(true); // recalculate the bounding volume up the tree
 }
 
 template<class BoundingVolume>
 size_t BVHNode<BoundingVolume>::get_potential_contacts(PotentialContact* contacts, size_t limit) const {
 	if (is_leaf() || limit == 0) return 0; // return if we dont have any more room for contacts or we are a leaf ( if root is a leaf then we could never have any contacts)
-	return children[0]->get_potential_contacts_with(m_children[1], contacts, limit);
+	return m_children[0]->get_potential_contacts_with(m_children[1], contacts, limit);
 }
 
 template<class BoundingVolume>

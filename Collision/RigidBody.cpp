@@ -4,8 +4,10 @@
 #include <math.h>
 #include <limits>
 
-inline void RigidBody::calculate_derived_data() { return; }
-void RigidBody::integrate(double duration) {
+inline void RigidBody::calculate_derived_data() { 
+	return; 
+}
+void RigidBody::integrate(double duration) { // called in run_frame of collision_engine
 	// if (!m_is_awake) return; // do not integrate sleeping bodies
 	using namespace DirectX;
 	// calculate linear accleration from force inputs

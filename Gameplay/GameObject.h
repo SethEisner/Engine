@@ -5,9 +5,27 @@
 #include "../RenderManager/Camera.h" // for the camera
 #include <vector>
 
+
+enum GameObjectComponents {
+	EMPTY = 0,
+	HAS_MESH = 1,
+	HAS_COLLISION = 2,
+	HAS_CAMERA = 4
+};
+inline GameObjectComponents operator|(GameObjectComponents a, GameObjectComponents b) {
+	return static_cast<GameObjectComponents>(static_cast<int>(a) | static_cast<int>(b));
+}
+inline GameObjectComponents operator&(GameObjectComponents a, GameObjectComponents b) {
+	return static_cast<GameObjectComponents>(static_cast<int>(a) & static_cast<int>(b));
+}
+inline GameObjectComponents operator~(GameObjectComponents a) {
+	return static_cast<GameObjectComponents>(~static_cast<int>(a));
+}
 // only holds data pointers, should not need any member functions
 // should never need to change the pointers it holds, but can use the pointers to change the objects they point to (e.g. to update a bounding box)
-
+class Mesh;
+class CollisionObject;
+class Camera;
 // remove functions return the pointer we set to null so we dont have a lost memory
 // DO THE ADD AND REMOVE AS TEMPLATED TYPES, CAN USE DECL TYPE TO COMPARE
 // game object has the ownership of the components, and thus controls their lifetime

@@ -4,7 +4,7 @@
 
 // should use iterators and stl ADTs for searching
 
-void CollisionPrimitive::calculate_internals() {
+void OrientedBoundingBox::calculate_internals() {
 	using namespace DirectX;
 	XMStoreFloat4x4(&m_transform, XMMatrixMultiply(XMLoadFloat4x4(&m_offset), XMLoadFloat4x4(&m_body->get_transform())));
 }

@@ -4,6 +4,10 @@
 #include "NarrowCollide.h" // for OBB
 #include "../Gameplay/GameObject.h"
 
+class BoundingBox;
+class RigidBody;
+class GameObject;
+
 struct CollisionObject {
 	GameObject* m_game_object = nullptr; // pointer to the gameobject that contains us
 	RigidBody* m_body = nullptr;
@@ -22,18 +26,3 @@ struct CollisionObject {
 		delete[] m_oriented_boxes;
 	}
 };
-enum GameObjectComponents {
-	EMPTY = 0,
-	HAS_MESH = 1,
-	HAS_COLLISION = 2,
-	HAS_CAMERA = 4
-};
-inline GameObjectComponents operator|(GameObjectComponents a, GameObjectComponents b) {
-	return static_cast<GameObjectComponents>(static_cast<int>(a) | static_cast<int>(b));
-}
-inline GameObjectComponents operator&(GameObjectComponents a, GameObjectComponents b) {
-	return static_cast<GameObjectComponents>(static_cast<int>(a) & static_cast<int>(b));
-}
-inline GameObjectComponents operator~(GameObjectComponents a) {
-	return static_cast<GameObjectComponents>(~static_cast<int>(a));
-}
