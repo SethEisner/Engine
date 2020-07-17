@@ -112,10 +112,11 @@ struct Texture {
 // eventually give each submesh a bounding box
 struct SubMesh {
 	size_t m_index_count = 0;
+	size_t m_vertex_count = 0;
 	size_t m_start_index = 0;
 	size_t m_base_vertex = 0;
 	D3D_PRIMITIVE_TOPOLOGY m_primitive = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
-	DirectX::XMMATRIX m_transform;
+	DirectX::XMFLOAT4X4 m_transform;
 	SubMesh& operator=(SubMesh&) = default;
 	//SubMesh& operator=(const SubMesh&) = default;
 	// bounding box for the mesh. change to sphere later
@@ -123,15 +124,15 @@ struct SubMesh {
 };
 struct SubMeshBufferData {
 	size_t m_index_count = 0;
+	size_t m_vertex_count = 0;
 	size_t m_start_index = 0;
 	size_t m_base_vertex = 0;
 };
 
 class GameObject;
 struct Mesh { // contains the buffers for a single object. combines all the submeshes into buffers (for vertex and index and cpu and gpu)
-	GameObject* m_game_object; // the gameobject that owns this mesh
-	std::string name; // look up by name
-	size_t m_mesh_id;
+	//std::string m_name; // look up by name
+	size_t m_mesh_id; // unique id of the mesh, that components can use to quickly identify the mesh, used in maps
 	//uint64_t hash_name; // look up by hashed string name
 	Microsoft::WRL::ComPtr<ID3DBlob> m_vertex_buffer_cpu = nullptr; // contains the Vertex vector we build up
 	Microsoft::WRL::ComPtr<ID3DBlob> m_index_buffer_cpu = nullptr; // contains the index buffer we build up for a model
@@ -142,14 +143,19 @@ struct Mesh { // contains the buffers for a single object. combines all the subm
 	// buffer meta data
 	TextureFlags m_textures_used = TextureFlags::NONE; // default to not using any textures, set with flags from TextureType
 	size_t m_vertex_stride = 0;
-	size_t m_vertex_buffer_size = 0;
+	size_t m_vertex_buffer_size = 0; // number of bytes of our vertex buffer/ can divide by the size of a buffer to get the number of vertices
+	size_t m_vertex_count = 0;
 	DXGI_FORMAT m_index_format = DXGI_FORMAT_R16_UINT; // indecis are unsigned, and 16 bits in size
 	size_t m_index_buffer_size = 0;
+	size_t m_index_count = 0;
 	// a mesh can contain multiple meshes in one vertex/index buffer
-	std::unordered_map<std::string, SubMesh> m_draw_args; // replace with hashtable in threadsafe containers
-	std::unordered_map<uint32_t, SubMeshBufferData> m_sub_mesh_helper; // map from sub mesh index to the submesh data we create while building the Mesh and traversing the node hierarchy
+	//std::unordered_map<std::string, SubMesh> m_draw_args; // replace with hashtable in threadsafe containers
+	std::vector<SubMesh> m_submeshes;
+	std::vector<SubMeshBufferData> m_submesh_helper;
+	//std::unordered_map<uint32_t, SubMeshBufferData> m_sub_mesh_helper; // map from sub mesh index to the submesh data we create while building the Mesh and traversing the node hierarchy
 	// std::vector<SubMesh> m_sub_meshes;
 	// DirectX::BoundingBox m_aabb; // axis-aligned bounding box for the mesh for collision detection
+	GameObject* m_game_object = nullptr; // the gameobject that owns this mesh
 	bool initialized = false;
 	D3D12_VERTEX_BUFFER_VIEW get_vertex_buffer_view() const {
 		D3D12_VERTEX_BUFFER_VIEW vbv;

@@ -2,6 +2,7 @@
 #include "../Engine.h"
 #include "../ResourceManager/ResourceManager.h"
 #include "Renderer.h"
+#include "../Gameplay/GameObject.h"
 
 // Scene::Scene() : m_items(new std::vector<RenderItem>()) {}\
 // Scene::~Scene() {
@@ -14,7 +15,7 @@ Scene::~Scene() {
 	//delete m_root;
 }
 
-void Scene::process_node(const DirectX::XMMATRIX& parent_transform, aiNode* ai_node, const aiScene* scene) {
+void Scene::process_node(const DirectX::XMMATRIX& parent_transform, aiNode* ai_node, const aiScene* scene, Mesh* mesh) {
 	// only need to set the transform and the primitive type of submesh using the mesh index
 
 
@@ -35,10 +36,11 @@ void Scene::process_node(const DirectX::XMMATRIX& parent_transform, aiNode* ai_n
 
 		uint32_t scene_mesh_index = ai_node->mMeshes[i];
 
-		sub_mesh.m_index_count = m_mesh->m_sub_mesh_helper.at(scene_mesh_index).m_index_count;
-		sub_mesh.m_base_vertex = m_mesh->m_sub_mesh_helper.at(scene_mesh_index).m_base_vertex;
-		sub_mesh.m_start_index = m_mesh->m_sub_mesh_helper.at(scene_mesh_index).m_start_index;
-		sub_mesh.m_transform = transform;
+		sub_mesh.m_index_count = mesh->m_submesh_helper[scene_mesh_index].m_index_count;
+		sub_mesh.m_vertex_count = mesh->m_submesh_helper[scene_mesh_index].m_vertex_count;
+		sub_mesh.m_base_vertex = mesh->m_submesh_helper[scene_mesh_index].m_base_vertex;
+		sub_mesh.m_start_index = mesh->m_submesh_helper[scene_mesh_index].m_start_index;
+		DirectX::XMStoreFloat4x4(&sub_mesh.m_transform, transform);
 		switch (scene->mMeshes[scene_mesh_index]->mPrimitiveTypes) {
 		case aiPrimitiveType_LINE:
 			primitive = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
@@ -55,58 +57,20 @@ void Scene::process_node(const DirectX::XMMATRIX& parent_transform, aiNode* ai_n
 		std::string node_name(ai_node->mName.C_Str());
 		std::string mesh_name(scene->mMeshes[scene_mesh_index]->mName.C_Str());
 		name = node_name + "_" + mesh_name;
-		m_mesh->m_draw_args[name] = sub_mesh; // copies the sub_mesh into the unordered map
+		mesh->m_submeshes.emplace_back(sub_mesh); // copies the sub_mesh into the unordered map
 	}
 	for (size_t i = 0; i != ai_node->mNumChildren; ++i) { // process all the child node and give our transform because we are their parent
-		process_node(transform, ai_node->mChildren[i], scene);
+		process_node(transform, ai_node->mChildren[i], scene, mesh);
 	}
-
-	/*
-	// fill out the current_node members from the aiNode
-	current_node->m_parent = parent;
-	current_node->m_children_count = ai_node->mNumChildren;
-	current_node->m_children = new Node[current_node->m_children_count];
-	aiMatrix4x4 temp = ai_node->mTransformation.Transpose(); // transpose because we are using directx
-	DirectX::XMMATRIX temp_transform = DirectX::XMLoadFloat4x4(&DirectX::XMFLOAT4X4(temp.a1, temp.a2, temp.a3, temp.a4,
-															 temp.b1, temp.b2, temp.b3, temp.b4,
-															 temp.c1, temp.c2, temp.c3, temp.c4,
-															 temp.d1, temp.d2, temp.d3, temp.d4));
-	// make the node transform be the multiplication of the current node transform and the parent node so it is in world space
-	DirectX::XMMATRIX parent_transform = DirectX::XMMatrixIdentity();
-	if(parent) {
-		parent_transform = parent->m_node_transform;
-	}
-	current_node->m_node_transform = DirectX::XMMatrixMultiply(temp_transform, parent_transform);
-	//current_node->m_node_transform = DirectX::XMMatrixMultiply(temp_transform, DirectX::XMLoadFloat4x4(&parent->m_node_transform));
-	// create an object that holds zero or more meshes
-	//current_node->m_object = new Object(ai_node->mNumMeshes);
-	current_node->m_sub_mesh_count = ai_node->mNumMeshes;
-	current_node->m_sub_meshes = new SubMesh[current_node->m_sub_mesh_count];
-	//for (size_t i = 0; i != current_node->m_object->m_mesh_count; ++i) {
-	for(size_t i = 0; i != current_node->m_sub_mesh_count; ++i) {
-		uint32_t scene_mesh_index = ai_node->mMeshes[i]; // each mesh has an index into the scene structure array of meshes
-		// process the mesh...
-		// current_node->m_object->m_sub_meshes[i].init(scene->mMeshes[scene_mesh_index]);
-
-
-		//current_node->m_object[i].init(scene->mMeshes[i]);
-	}
-	for (size_t i = 0; i != current_node->m_children_count; ++i) {
-		process_node((current_node->m_children + i), current_node, ai_node->mChildren[i], scene);
-		//m_object->m_sub_meshes[i].init(scene->mMeshes[i]);
-	}
-	// and then call this function recursively on the child nodes
-	return;
-	*/
 }
-void Scene::create_mesh(const aiScene* scene) {
+void Scene::create_mesh(const aiScene* scene, Mesh* mesh) {
 	std::vector<Vertex> vertices;
 	std::vector<uint16_t> indices;
 
-	size_t base_vertex = vertices.size();
+	size_t base_vertex = vertices.size(); // size is zero because we have not added anything
 	size_t start_index = indices.size();
-
 	for (size_t i = 0; i != scene->mNumMeshes; ++i) { // for each aiMesh
+		size_t num_vertices = 0;
 		for (size_t j = 0; j != scene->mMeshes[i]->mNumVertices; ++j) { // for each vertex in an aiMesh
 			Vertex temp;
 			float pos[3] = { scene->mMeshes[i]->mVertices[j].x, scene->mMeshes[i]->mVertices[j].y, scene->mMeshes[i]->mVertices[j].z };
@@ -120,7 +84,7 @@ void Scene::create_mesh(const aiScene* scene) {
 			temp.m_bitangent = DirectX::XMFLOAT3(bitang);
 			temp.m_text_coord = DirectX::XMFLOAT2(tex);
 
-
+			num_vertices++;
 			vertices.push_back(std::move(temp));
 		}
 		size_t num_indices = 0;
@@ -132,37 +96,40 @@ void Scene::create_mesh(const aiScene* scene) {
 		}
 		SubMeshBufferData temp_sub_mesh = { };
 		temp_sub_mesh.m_index_count = num_indices;
+		temp_sub_mesh.m_vertex_count = num_vertices;
 		temp_sub_mesh.m_base_vertex = base_vertex;
 		temp_sub_mesh.m_start_index = start_index;
 		// will set the primitive topology and the transform whhile traversing the node hierarchy
-		m_mesh->m_sub_mesh_helper[i] = temp_sub_mesh;
+		//mesh->m_sub_mesh_helper[i] = temp_sub_mesh;
+		mesh->m_submesh_helper.emplace_back(temp_sub_mesh); // can emplace back, because i will be the index that it is placed at, making it a much faster map
 		base_vertex = vertices.size();
 		start_index = indices.size();
 	}
-
+	mesh->m_vertex_count = vertices.size();
+	mesh->m_index_count = indices.size();
 	const size_t vb_byte_size = vertices.size() * sizeof(Vertex);
 	const size_t ib_byte_size = indices.size() * sizeof(uint16_t);
 	
 	
-	m_mesh->name = m_name;
+	//mesh->m_name = std::string(scene->mRootNode->mName.C_Str());//m_name; // change to not use the name in the Scene
 
 	engine->renderer->reset_command_list(0);
 
-	ThrowIfFailed(D3DCreateBlob(vb_byte_size, &m_mesh->m_vertex_buffer_cpu));
-	CopyMemory(m_mesh->m_vertex_buffer_cpu->GetBufferPointer(), vertices.data(), vb_byte_size);
-	ThrowIfFailed(D3DCreateBlob(ib_byte_size, &m_mesh->m_index_buffer_cpu));
-	CopyMemory(m_mesh->m_index_buffer_cpu->GetBufferPointer(), indices.data(), ib_byte_size);
+	ThrowIfFailed(D3DCreateBlob(vb_byte_size, &mesh->m_vertex_buffer_cpu));
+	CopyMemory(mesh->m_vertex_buffer_cpu->GetBufferPointer(), vertices.data(), vb_byte_size);
+	ThrowIfFailed(D3DCreateBlob(ib_byte_size, &mesh->m_index_buffer_cpu));
+	CopyMemory(mesh->m_index_buffer_cpu->GetBufferPointer(), indices.data(), ib_byte_size);
 	
-	m_mesh->m_vertex_buffer_gpu = create_default_buffer(engine->renderer->get_device().Get(), engine->renderer->get_command_list(0).Get(), vertices.data(), vb_byte_size, m_mesh->m_vertex_buffer_uploader);
-	m_mesh->m_index_buffer_gpu = create_default_buffer(engine->renderer->get_device().Get(), engine->renderer->get_command_list(0).Get(), indices.data(), ib_byte_size, m_mesh->m_index_buffer_uploader);
+	mesh->m_vertex_buffer_gpu = create_default_buffer(engine->renderer->get_device().Get(), engine->renderer->get_command_list(0).Get(), vertices.data(), vb_byte_size, mesh->m_vertex_buffer_uploader);
+	mesh->m_index_buffer_gpu = create_default_buffer(engine->renderer->get_device().Get(), engine->renderer->get_command_list(0).Get(), indices.data(), ib_byte_size, mesh->m_index_buffer_uploader);
 	
 
 	engine->renderer->close_command_list(0);
 
-	m_mesh->m_vertex_stride = sizeof(Vertex);
-	m_mesh->m_vertex_buffer_size = vb_byte_size;
-	m_mesh->m_index_format = DXGI_FORMAT_R16_UINT;
-	m_mesh->m_index_buffer_size = ib_byte_size;
+	mesh->m_vertex_stride = sizeof(Vertex);
+	mesh->m_vertex_buffer_size = vb_byte_size;
+	mesh->m_index_format = DXGI_FORMAT_R16_UINT;
+	mesh->m_index_buffer_size = ib_byte_size;
 
 }
 bool Scene::init() {
@@ -186,13 +153,16 @@ bool Scene::init() {
 
 	bool temp = scene->HasTextures();
 
-	m_mesh = new Mesh();
-	m_mesh->m_mesh_id = 0;
-	create_mesh(scene);
+	m_floor = new GameObject();
+	m_floor->m_mesh = new Mesh();
+	m_floor->m_mesh->m_game_object = m_floor; // tell the mesh which GameObject owns it
+	m_floor->m_mesh->m_mesh_id = 0;
+	create_mesh(scene, m_floor->m_mesh);
+	
 
 
 	// m_root = new Node();
-	process_node(DirectX::XMMatrixIdentity(), scene->mRootNode, scene);
+	process_node(DirectX::XMMatrixIdentity(), scene->mRootNode, scene, m_floor->m_mesh);
 
 	
 
@@ -206,7 +176,7 @@ bool Scene::init() {
 	// engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::COLOR);
 	std::string tex_name = "base_color";
 	std::string filename = zip_file + "/checkerboard.dds";
-	engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::COLOR);
+	engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_floor->m_mesh, TextureFlags::COLOR);
 
 
 	// tex_name = "sword_normal";
@@ -227,7 +197,8 @@ bool Scene::init() {
 	engine->renderer->close_command_list(0);
 
 
-	engine->renderer->add_mesh(*m_mesh); // add mesh at the end because we bind the textures it uses in this function
+	engine->renderer->add_mesh(m_floor->m_mesh); // add mesh at the end because we bind the textures it uses in this function
+	CollisionObject* coll_obj = new CollisionObject(m_floor, m_floor->m_mesh);
 	return true;
 }
 void Scene::update() {

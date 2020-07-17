@@ -63,18 +63,18 @@
 
 
 // scene has a node hierarchy
-class Node {
-public:
-	Node* m_parent;
-	Node* m_children; // child nodes within the node
-	uint32_t m_children_count; // number of children at each node
-	DirectX::XMMATRIX m_node_transform; // world transform for the node
-	//Object* m_object; // meshes within the node each node contains 
-	SubMesh* m_sub_meshes;
-	uint32_t m_sub_mesh_count = 0;
-	~Node() {
-		if (m_sub_mesh_count > 0) delete[] m_sub_meshes;
-	}
-	// uint32_t m_objects_count; // number of objects within the node
-};
+// class Node {
+// public:
+// 	Node* m_parent;
+// 	Node* m_children; // child nodes within the node
+// 	uint32_t m_children_count; // number of children at each node
+// 	DirectX::XMMATRIX m_node_transform; // world transform for the node
+// 	//Object* m_object; // meshes within the node each node contains 
+// 	SubMesh* m_sub_meshes;
+// 	uint32_t m_sub_mesh_count = 0;
+// 	~Node() {
+// 		if (m_sub_mesh_count > 0) delete[] m_sub_meshes;
+// 	}
+// 	// uint32_t m_objects_count; // number of objects within the node
+// };
 

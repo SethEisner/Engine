@@ -23,7 +23,7 @@ public:
 	const DirectX::XMFLOAT4X4& get_transform() const {
 		return m_transform;
 	}
-protected:
+// protected:
 	DirectX::XMFLOAT4X4 m_transform; //the resultant transform of the primitive. calculated by combining the offset of the primitive with the transform of the rigid body;
 };
 

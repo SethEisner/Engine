@@ -2,7 +2,7 @@
 #include "RigidBody.h"
 #include "Contact.h"
 #include "NarrowCollide.h"
-// #include "BroadCollide.h"
+#include "BroadCollide.h"
 #include <vector>
 #include <array>
 #include "CollisionObject.h" // contains gameobject and collision object

@@ -31,8 +31,8 @@ void Renderer::close_command_list(size_t id) { // WRONG!!! funciton is used now 
 	m_command_queue->ExecuteCommandLists(_countof(cmd_lists), cmd_lists);
 	flush_command_queue();
 }
-void Renderer::add_mesh(Mesh& mesh) {
-	// m_geometries[mesh.name] = &mesh;
+void Renderer::add_mesh(const Mesh* mesh) {
+	m_geometries[mesh->m_mesh_id] = mesh;
 	build_descriptor_heaps(mesh); // build the descriptor heap for the mesh
 	//build_render_item(mesh);
 	m_scene_ready = true;
@@ -350,7 +350,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE Renderer::current_back_buffer_view() const {
 D3D12_CPU_DESCRIPTOR_HANDLE Renderer::depth_stencil_view() const {
 	return m_dsv_heap->GetCPUDescriptorHandleForHeapStart();
 }
-void Renderer::build_descriptor_heaps(const Mesh& mesh) { // create heaps to hold the textures (maybe dont create them every frame but only for new textures...
+void Renderer::build_descriptor_heaps(const Mesh* mesh) { // create heaps to hold the textures (maybe dont create them every frame but only for new textures...
 
 
 
@@ -363,10 +363,10 @@ void Renderer::build_descriptor_heaps(const Mesh& mesh) { // create heaps to hol
 	//srv_heap_desc.NodeMask = 0;
 	m_d3d_device->CreateDescriptorHeap(&srv_heap_desc, IID_PPV_ARGS(&srv_descriptor_heap)); // ThrowIfFailed(m_d3d_device->CreateDescriptorHeap(&srv_heap_desc, IID_PPV_ARGS(&srv_descriptor_heap)));
 
-	m_descriptor_heap_map[mesh.m_mesh_id] = std::move(srv_descriptor_heap);
+	m_descriptor_heap_map[mesh->m_mesh_id] = std::move(srv_descriptor_heap);
 
 	// fill out the heap with our NUM_TEXTURE descriptors
-	CD3DX12_CPU_DESCRIPTOR_HANDLE h_desc(m_descriptor_heap_map[mesh.m_mesh_id]->GetCPUDescriptorHandleForHeapStart());
+	CD3DX12_CPU_DESCRIPTOR_HANDLE h_desc(m_descriptor_heap_map[mesh->m_mesh_id]->GetCPUDescriptorHandleForHeapStart());
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
 	srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -375,7 +375,7 @@ void Renderer::build_descriptor_heaps(const Mesh& mesh) { // create heaps to hol
 	srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // only support 2d textures for now
 	size_t offset = 0;
 
-	uint32_t supported_textures = static_cast<uint32_t>(mesh.m_textures_used);
+	uint32_t supported_textures = static_cast<uint32_t>(mesh->m_textures_used);
 	static const uint32_t mask = 0x1;
 	Texture* tex = nullptr;
 	for (size_t i = 0; i != NUM_TEXTURES; ++i, supported_textures >>= 1){//, offset = 1) { // for each texture type the mesh could support
@@ -383,7 +383,7 @@ void Renderer::build_descriptor_heaps(const Mesh& mesh) { // create heaps to hol
 		Texture* tex = m_dummy_texture;
 		h_desc.Offset(offset, m_cbv_srv_descriptor_size);
 		if (supported_textures & mask) { // bind the real texture
-			tex = m_texture_map[mesh.m_mesh_id][i]; // get the corresponding texture pointer
+			tex = m_texture_map[mesh->m_mesh_id][i]; // get the corresponding texture pointer
 			
 		}
 		srv_desc.Format = tex->m_resource->GetDesc().Format;
@@ -469,24 +469,25 @@ void Renderer::build_psos() {
 }
 void Renderer::build_materials() {}
 void Renderer::build_render_items() { // can tranverse the meshes in the scene, cull them, and add what survives to the renderItem list
-	
+	// should use a scene hierarchy, could technically use the BVH we created for the physics
 	m_render_items.clear(); // .resize(engine->scene->m_mesh->m_draw_args.size());
 	m_opaque_render_items.clear(); // .resize(engine->scene->m_mesh->m_draw_args.size());
 	size_t i = 0;
-	for (auto& objs : engine->scene->m_mesh->m_draw_args) {
-		SubMesh sub_mesh = objs.second;
-		RenderItem ri = {};
-		XMStoreFloat4x4(&ri.m_world, sub_mesh.m_transform);
-		XMStoreFloat4x4(&ri.m_tex_transform, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
-		ri.m_textures_used = static_cast<int>(engine->scene->m_mesh->m_textures_used);
-		ri.m_obj_cb_index = i++;
-		ri.m_mesh = engine->scene->m_mesh;
-		ri.m_primitive_type = sub_mesh.m_primitive;
-		ri.m_index_count = sub_mesh.m_index_count;
-		ri.m_start_index_location = sub_mesh.m_start_index;
-		ri.m_base_vertex_location = sub_mesh.m_base_vertex;
-		m_render_items.emplace_back(std::move(ri));
-		m_opaque_render_items.emplace_back(std::move(ri));
+	for (std::pair<size_t, const Mesh*> geometry_pair : m_geometries) { // use the stored geometry pointers, instead of going through the scene. allows us to render only what the Scene has given us
+		for (const SubMesh& submesh : geometry_pair.second->m_submeshes) {
+			RenderItem ri = {};
+			ri.m_world = submesh.m_transform;
+			XMStoreFloat4x4(&ri.m_tex_transform, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
+			ri.m_textures_used = static_cast<int>(engine->scene->m_floor->m_mesh->m_textures_used);
+			ri.m_obj_cb_index = i++;
+			ri.m_mesh = geometry_pair.second; // engine->scene->m_floor->m_mesh;
+			ri.m_primitive_type = submesh.m_primitive;
+			ri.m_index_count = submesh.m_index_count;
+			ri.m_start_index_location = submesh.m_start_index;
+			ri.m_base_vertex_location = submesh.m_base_vertex;
+			m_render_items.emplace_back(std::move(ri));
+			m_opaque_render_items.emplace_back(std::move(ri));
+		}
 	}
 }
 void Renderer::draw_render_items(ID3D12GraphicsCommandList* cmd_list, const std::vector<RenderItem>& r_items) { // rename to draw_game_objects

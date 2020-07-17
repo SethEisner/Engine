@@ -53,7 +53,7 @@ public:
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> get_command_list(size_t id);
 	void reset_command_list(size_t id);
 	void close_command_list(size_t id);
-	void add_mesh(Mesh& mesh);
+	void add_mesh(const Mesh* mesh);
 	void create_and_add_texture(const std::string& name, const std::string& filename, size_t id, Mesh& corresponding_mesh, TextureFlags flag); // needs to edit the mesh
 private:
 	void create_command_objects();
@@ -64,7 +64,7 @@ private:
 	ID3D12Resource* current_back_buffer() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE current_back_buffer_view() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE depth_stencil_view() const;
-	void build_descriptor_heaps(const Mesh& mesh);
+	void build_descriptor_heaps(const Mesh* mesh);
 	//void build_constant_buffers();
 	void build_root_signature();
 	void build_shaders_and_input_layout();
@@ -129,7 +129,7 @@ private:
 	int m_curr_frame_resources_index = -1; // start at -1 because we add to it immediately (allows us to start from 0)
 	uint32_t m_cbv_srv_descriptor_size = 0;
 	// Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_descriptor_heap = nullptr;
-	// std::unordered_map<std::string, const Mesh*> m_geometries;
+	std::unordered_map<size_t, const Mesh*> m_geometries; // map from mesh id to the mesh pointer we have stored for it
 	std::unordered_map<std::string, Material*> m_materials;
 	// std::unordered_map<std::string, Texture*> m_textures; // textures store the material data
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>> m_shaders;

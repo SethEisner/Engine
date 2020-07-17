@@ -1,5 +1,5 @@
-#include "Object.h"
-#include <assimp/mesh.h>
+// #include "Object.h"
+// #include <assimp/mesh.h>
 // void SubMeshData::init(const aiMesh* mesh) {
 // 	int temp = 0;
 // 	// assuming only one mesh in the scene (true for cat.dae)

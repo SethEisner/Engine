@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="Collision\BroadCollide.cpp" />
     <ClCompile Include="Collision\CollisionEngine.cpp" />
+    <ClCompile Include="Collision\CollisionObject.cpp" />
     <ClCompile Include="Collision\Contact.cpp" />
     <ClCompile Include="Collision\NarrowCollide.cpp" />
     <ClCompile Include="Collision\RigidBody.cpp" />

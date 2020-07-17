@@ -15,7 +15,7 @@ struct RenderItem {
 	int m_textures_used = 0;
 	uint32_t m_obj_cb_index = -1; // index into the contant buffer array
 	Material* m_material = nullptr;
-	Mesh* m_mesh; // pointer to the geometry buffers that store all the beometry
+	const Mesh* m_mesh; // pointer to the geometry buffers that store all the beometry
 	// curently the Mesh structure has buffers that can hold multiple submeshes
 	// the submesh structure stores the index range for that spsecific submesh
 	D3D12_PRIMITIVE_TOPOLOGY m_primitive_type = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;

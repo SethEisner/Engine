@@ -42,7 +42,7 @@ struct GameObject {
 	CollisionObject* remove_collision_object();
 	void add_camera(Camera* camera);
 	Camera* remove_camera();
-	GameObject() = delete;
+	GameObject() = default;
 	~GameObject() {
 		delete m_camera;
 		delete m_collision_object;
