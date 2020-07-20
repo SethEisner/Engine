@@ -8,7 +8,7 @@
 #include <d3d12.h>
 #include <d3dcompiler.h>
 #include <comdef.h>
-#include <unordered_map>
+// #include <unordered_map>
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
 #include "MathHelper.h"
@@ -116,7 +116,7 @@ struct SubMesh {
 	size_t m_start_index = 0;
 	size_t m_base_vertex = 0;
 	D3D_PRIMITIVE_TOPOLOGY m_primitive = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
-	DirectX::XMFLOAT4X4 m_transform;
+	DirectX::XMFLOAT4X4 m_transform; // transform from submesh space to Mesh space
 	SubMesh& operator=(SubMesh&) = default;
 	//SubMesh& operator=(const SubMesh&) = default;
 	// bounding box for the mesh. change to sphere later
@@ -156,6 +156,7 @@ struct Mesh { // contains the buffers for a single object. combines all the subm
 	// std::vector<SubMesh> m_sub_meshes;
 	// DirectX::BoundingBox m_aabb; // axis-aligned bounding box for the mesh for collision detection
 	GameObject* m_game_object = nullptr; // the gameobject that owns this mesh
+	DirectX::XMFLOAT4X4 m_transform; // transfrom from Mesh space to gameobject space store the identity matrix for now
 	bool initialized = false;
 	D3D12_VERTEX_BUFFER_VIEW get_vertex_buffer_view() const {
 		D3D12_VERTEX_BUFFER_VIEW vbv;

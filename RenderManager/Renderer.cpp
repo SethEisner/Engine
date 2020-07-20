@@ -474,10 +474,13 @@ void Renderer::build_render_items() { // can tranverse the meshes in the scene, 
 	m_opaque_render_items.clear(); // .resize(engine->scene->m_mesh->m_draw_args.size());
 	size_t i = 0;
 	for (std::pair<size_t, const Mesh*> geometry_pair : m_geometries) { // use the stored geometry pointers, instead of going through the scene. allows us to render only what the Scene has given us
-		for (const SubMesh& submesh : geometry_pair.second->m_submeshes) {
+		const Mesh* mesh = geometry_pair.second;
+		for (const SubMesh& submesh : mesh->m_submeshes) {
 			RenderItem ri = {};
-			ri.m_world = submesh.m_transform;
-			XMStoreFloat4x4(&ri.m_tex_transform, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
+			// go from submesh vertices to mesh, to game object, to world space
+			// should do this multiplication in the vertex shader, as that's literally what it's for...
+			XMStoreFloat4x4(&ri.m_world, DirectX::XMMatrixMultiply(DirectX::XMMatrixMultiply(XMLoadFloat4x4(&submesh.m_transform), XMLoadFloat4x4(&mesh->m_transform)), XMLoadFloat4x4(&mesh->m_game_object->m_transform)));
+			XMStoreFloat4x4(&ri.m_tex_transform, DirectX::XMMatrixIdentity()); // DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
 			ri.m_textures_used = static_cast<int>(engine->scene->m_floor->m_mesh->m_textures_used);
 			ri.m_obj_cb_index = i++;
 			ri.m_mesh = geometry_pair.second; // engine->scene->m_floor->m_mesh;

@@ -3,6 +3,8 @@
 #include "../ResourceManager/ResourceManager.h"
 #include "Renderer.h"
 #include "../Gameplay/GameObject.h"
+#include "../Collision/CollisionEngine.h"
+#include "../Collision/CollisionObject.h"
 
 // Scene::Scene() : m_items(new std::vector<RenderItem>()) {}\
 // Scene::~Scene() {
@@ -15,17 +17,30 @@ Scene::~Scene() {
 	//delete m_root;
 }
 
-void Scene::process_node(const DirectX::XMMATRIX& parent_transform, aiNode* ai_node, const aiScene* scene, Mesh* mesh) {
-	// only need to set the transform and the primitive type of submesh using the mesh index
 
-
-	aiMatrix4x4 temp = ai_node->mTransformation.Transpose(); // transpose because we are using directx
-	DirectX::XMMATRIX temp_transform = DirectX::XMLoadFloat4x4(&DirectX::XMFLOAT4X4(temp.a1, temp.a2, temp.a3, temp.a4,
+DirectX::XMFLOAT4X4 assimp_matrix_to_directx(aiNode* ai_node) {
+	aiMatrix4x4 temp = ai_node->mTransformation.Transpose(); // DirectX uses column matrices
+	return DirectX::XMFLOAT4X4(temp.a1, temp.a2, temp.a3, temp.a4,
 		temp.b1, temp.b2, temp.b3, temp.b4,
 		temp.c1, temp.c2, temp.c3, temp.c4,
-		temp.d1, temp.d2, temp.d3, temp.d4));
+		temp.d1, temp.d2, temp.d3, temp.d4);
+	// make the node transform be the multiplication of the current node transform and the parent node so it is in world space
+}
+
+void Scene::process_node(const DirectX::XMMATRIX& parent_transform, aiNode* ai_node, const aiScene* scene, Mesh* mesh) {
+	// only need to set the transform and the primitive type of submesh using the mesh index
+	DirectX::XMMATRIX temp_transform = DirectX::XMLoadFloat4x4(&assimp_matrix_to_directx(ai_node));
 	// make the node transform be the multiplication of the current node transform and the parent node so it is in world space
 	DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(temp_transform, parent_transform);
+
+	// if (ai_node->mNumMeshes == 0) { // the node has no meshes, so we should skip this
+	// 	if (ai_node->mNumChildren == 0) return; // does this mesh do anything? can get here if the node is for a camera, should be okay to ignore for now
+	// 	for (size_t i = 0; i != ai_node->mNumChildren; ++i) { // process all the child node and give our transform because we are their parent
+	// 		process_node(transform, ai_node->mChildren[i], scene, mesh);
+	// 		return;
+	// 	}
+	// 	return;
+	// }
 
 	D3D_PRIMITIVE_TOPOLOGY primitive;
 
@@ -107,11 +122,10 @@ void Scene::create_mesh(const aiScene* scene, Mesh* mesh) {
 	}
 	mesh->m_vertex_count = vertices.size();
 	mesh->m_index_count = indices.size();
+	XMStoreFloat4x4(&mesh->m_transform, DirectX::XMMatrixIdentity());
+	// mesh->m_transform = assimp_matrix_to_directx(scene->mRootNode);
 	const size_t vb_byte_size = vertices.size() * sizeof(Vertex);
 	const size_t ib_byte_size = indices.size() * sizeof(uint16_t);
-	
-	
-	//mesh->m_name = std::string(scene->mRootNode->mName.C_Str());//m_name; // change to not use the name in the Scene
 
 	engine->renderer->reset_command_list(0);
 
@@ -119,7 +133,6 @@ void Scene::create_mesh(const aiScene* scene, Mesh* mesh) {
 	CopyMemory(mesh->m_vertex_buffer_cpu->GetBufferPointer(), vertices.data(), vb_byte_size);
 	ThrowIfFailed(D3DCreateBlob(ib_byte_size, &mesh->m_index_buffer_cpu));
 	CopyMemory(mesh->m_index_buffer_cpu->GetBufferPointer(), indices.data(), ib_byte_size);
-	
 	mesh->m_vertex_buffer_gpu = create_default_buffer(engine->renderer->get_device().Get(), engine->renderer->get_command_list(0).Get(), vertices.data(), vb_byte_size, mesh->m_vertex_buffer_uploader);
 	mesh->m_index_buffer_gpu = create_default_buffer(engine->renderer->get_device().Get(), engine->renderer->get_command_list(0).Get(), indices.data(), ib_byte_size, mesh->m_index_buffer_uploader);
 	
@@ -130,7 +143,10 @@ void Scene::create_mesh(const aiScene* scene, Mesh* mesh) {
 	mesh->m_vertex_buffer_size = vb_byte_size;
 	mesh->m_index_format = DXGI_FORMAT_R16_UINT;
 	mesh->m_index_buffer_size = ib_byte_size;
-
+	// for (size_t i = 0; i != scene->mRootNode->mNumChildren; ++i) { // for each child of the root node...
+	// 	process_node(DirectX::XMMatrixIdentity(), scene->mRootNode->mChildren[i], scene, m_floor->m_mesh); // build the submeshes based on how assimp has them, because we need their unique transforms
+	// }
+	process_node(DirectX::XMMatrixIdentity(), scene->mRootNode, scene, m_floor->m_mesh);
 }
 bool Scene::init() {
 	// use the resource manager to load the items into memory
@@ -154,7 +170,10 @@ bool Scene::init() {
 	bool temp = scene->HasTextures();
 
 	m_floor = new GameObject();
-	m_floor->m_mesh = new Mesh();
+	XMStoreFloat4x4(&m_floor->m_transform, DirectX::XMMatrixIdentity());
+	m_floor->m_position = { 0.0f, 0.0f, 0.0f };
+	// m_floor->m_mesh = new Mesh();
+	m_floor->add_mesh(new Mesh());
 	m_floor->m_mesh->m_game_object = m_floor; // tell the mesh which GameObject owns it
 	m_floor->m_mesh->m_mesh_id = 0;
 	create_mesh(scene, m_floor->m_mesh);
@@ -162,7 +181,6 @@ bool Scene::init() {
 
 
 	// m_root = new Node();
-	process_node(DirectX::XMMatrixIdentity(), scene->mRootNode, scene, m_floor->m_mesh);
 
 	
 
@@ -198,11 +216,21 @@ bool Scene::init() {
 
 
 	engine->renderer->add_mesh(m_floor->m_mesh); // add mesh at the end because we bind the textures it uses in this function
-	CollisionObject* coll_obj = new CollisionObject(m_floor, m_floor->m_mesh);
+	// CollisionObject* coll_obj = new CollisionObject(m_floor, m_floor->m_mesh);
+	m_floor->m_collision_object = new CollisionObject(m_floor, m_floor->m_mesh);
+	m_floor->m_collision_object->m_body->set_inverse_mass(0.0f); // set the inverse mass of the floor to be zero so it has infinite mass
+	// m_floor->m_collision_object->m_body->set_mass(1.0f);
+	m_floor->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
+	m_floor->m_collision_object->m_body->set_linear_damping(1.0f);
+	m_floor->m_collision_object->m_body->set_velocity({ 0.0f,0.0f,0.0f });
+	m_floor->m_collision_object->m_body->set_position(m_floor->m_position); // set the position of the rigid body to be that of the game object
+	// m_floor->m_collision_object->m_body->set_transform(&m_floor->m_mesh->m_transform); //rigidbody should have same transform as mesh as it takes us from Model space to world space
+	engine->collision_engine->add_object(m_floor->m_collision_object);
 	return true;
 }
-void Scene::update() {
-	// call the update method on each render item
+void Scene::update(double duration) {
+	// call the update method on each GameObject
+	m_floor->update(duration);
 }
 void Scene::shutdown() {
 	// tell the resource manager that we no longer need all the resources loaded

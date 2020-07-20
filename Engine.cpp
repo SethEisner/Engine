@@ -7,6 +7,7 @@
 #include "RenderManager/Timer.h"
 #include "RenderManager/Camera.h"
 #include "RenderManager/Scene.h"
+#include "Collision/CollisionEngine.h"
 
 Engine* engine = new Engine();
 
@@ -23,7 +24,9 @@ bool Engine::init(HINSTANCE hInstance) {
 
 
 	renderer = new Renderer();
+	collision_engine = new CollisionEngine();
 	scene = new Scene();
+
 	//renderer = new Renderer();	
 	try {
 		renderer->init();
@@ -36,7 +39,7 @@ bool Engine::init(HINSTANCE hInstance) {
 	}
 
 	// scene needs the renderer to have created command lists for it to use
-
+	global_timer->tick();
 	return true;
 }
 void Engine::run() {
@@ -71,15 +74,10 @@ void Engine::shutdown() {
 }
 void Engine::update() {
 	global_timer->tick();
-	window->update(global_timer->delta_time());
-	camera->update(global_timer->delta_time());
-	//try {
-		renderer->update();
-	// }
-	// catch (DxException& e) {
-	// 	MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
-	// 	OutputDebugStringW(e.ToString().c_str());
-	// 	exit(e.error_code);
-	// }
+	double duration = global_timer->delta_time();
+	window->update(duration);
+	camera->update(duration);
+	scene->update(duration);
+	collision_engine->update(duration);
+	renderer->update();
 }
-

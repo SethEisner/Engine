@@ -7,6 +7,8 @@
 // #include <D3DCommon.h>
 // #include "../RenderManager/d3dUtil.h" // for Mesh
 #include <stdint.h>
+#include <DirectXMath.h>
+#include <DirectXCollision.h>
 class BoundingBox;
 class RigidBody;
 class GameObject;
@@ -43,4 +45,5 @@ struct CollisionObject {
 		delete m_box;
 		delete[] m_oriented_boxes;
 	}
+	DirectX::XMFLOAT3 get_position();
 };

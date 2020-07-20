@@ -139,7 +139,7 @@ void Contact::apply_position_change(DirectX::XMFLOAT3 linear_change[2], float pe
 		m_body[i]->set_position(pos);
 		// dont need to change the orientation because we are not calculating rotation
 		// may not be necessary because original code only called this for sleeping objects
-		m_body[i]->calculate_derived_data(); // function only updates rotational data in the rigidbody
+		// m_body[i]->calculate_derived_data(); // function only updates rotational data in the rigidbody
 	}
 }
 inline DirectX::XMFLOAT3 Contact::calculate_frictionless_impulse(/*DirectX::XMFLOAT3X3* inverse_inertia_tensor*/) { // calculates the impulse needed to resolve the contact given that the contact has no friction

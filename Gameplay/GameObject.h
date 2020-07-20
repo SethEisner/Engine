@@ -32,10 +32,13 @@ class Camera;
 // the add functions assume ownership of the passed pointer
 // the remove functions relinquish ownership of the passed pointer
 struct GameObject {
+	DirectX::XMFLOAT4X4 m_transform; // transform from Model space to World Space
+	DirectX::XMFLOAT3 m_position; // use to build the transform's translation
 	Mesh* m_mesh = nullptr;
 	CollisionObject* m_collision_object = nullptr;
 	Camera* m_camera = nullptr; // may not want to have a camera in the game object
 	GameObjectComponents m_components = EMPTY;
+	void update(double duration); // call every frame with the frame duration, can adjust the transform for now
 	void add_mesh(Mesh* mesh);
 	Mesh* remove_mesh();
 	void add_collision_object(CollisionObject* collision_obj);

@@ -15,7 +15,7 @@ CollisionEngine::CollisionEngine(size_t max_contacts, size_t iterations) :
 void CollisionEngine::start_frame() {
 	for (auto& objs : *m_collision_objects) { // reset the forces on each body and calculate the necessary data
 		objs->m_body->clear_accumulators();
-		objs->m_body->calculate_derived_data();
+		// objs->m_body->calculate_derived_data();
 	}
 	
 }
@@ -24,7 +24,7 @@ void CollisionEngine::broad_phase() {
 	for (auto i = m_collision_objects->begin(); i != m_collision_objects->end(); ++i) {
 		for (auto j = i + 1; j != m_collision_objects->end(); ++j) {
 			if ((*i)->m_box->overlaps(*(*j)->m_box)) {
-				m_potential_contacts->emplace_back(PotentialCollision({ (*i), (*j) }));
+				m_potential_contacts->emplace_back(PotentialCollision((*i), (*j)));
 			}
 		}
 	}
@@ -64,6 +64,9 @@ void CollisionEngine::run_frame(double duration) {
 	// resolve the generated contacts
 	if (m_calculate_iterations) m_resolver->set_iterations(num_contacts * 4); // the number of iterations we perform is dependent on the nbumber of contacts
 	m_resolver->resolve_contacts(m_collision_data.m_contacts, num_contacts, duration);
+	for (auto& objs : *m_collision_objects) { // update all rigidbodies everyframe because we integrated all the bodies
+		objs->m_body->update();
+	}
 }
 void CollisionEngine::update(double duration) {
 	start_frame();

@@ -11,6 +11,7 @@
 //#include "RenderTypes.h"
 #include <vector>
 #include <array>
+#include <unordered_map>
 //#include "Mesh.h"
 #include "MathHelper.h"
 #include "UploadBuffer.h"

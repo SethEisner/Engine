@@ -17,8 +17,14 @@ struct BoundingSphere {
 		return four_over_three_pi * m_sphere.Radius * m_sphere.Radius * m_sphere.Radius;
 	}
 };
-struct BoundingBox {
+struct BoundingBox { // AABB
+private: // to be private should have an extents and center function
 	DirectX::BoundingBox m_box;
+public:
+	DirectX::XMFLOAT4X4* m_transform; // same transform as in Mesh and also RigidBody
+	BoundingBox() : m_box(DirectX::BoundingBox()) {
+	
+	}
 	BoundingBox(const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT3& extents) : m_box(center, extents) {}
 	BoundingBox(const BoundingBox& first, const BoundingBox& second) : m_box() {
 		m_box.CreateMerged(m_box, first.m_box, second.m_box); // because we call member function of this->m_box and use it to edit this->m_box, this may not work...
@@ -29,6 +35,12 @@ struct BoundingBox {
 	float get_growth(const BoundingBox& other) const;
 	inline float get_size() const { // volume of the box, can determine growth from the volume delta
 		return fabsf(8.0f * m_box.Extents.x * m_box.Extents.y * m_box.Extents.z); // extents is distance from center to edge, so need to multiply by 8
+	}
+	void create_from_points(size_t count, const DirectX::XMFLOAT3* points, size_t stride) {
+		m_box.CreateFromPoints(m_box, count, points, stride);
+	}
+	void create_merged(const BoundingBox& other) { // merge this BoundingBox with another bounding box, should be in the same space because we dont change the transform
+		m_box.CreateMerged(this->m_box, this->m_box, other.m_box);
 	}
 };
 

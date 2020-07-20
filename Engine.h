@@ -14,6 +14,7 @@ class InputManager;
 class Timer;
 class Camera;
 class Scene;
+class CollisionEngine;
 
 //namespace Engine {
 class Engine {
@@ -36,6 +37,7 @@ public:
 	Timer* global_timer;
 	Camera* camera;
 	Scene* scene;
+	CollisionEngine* collision_engine;
 };
 
 extern Engine* engine;

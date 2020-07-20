@@ -9,7 +9,8 @@
 
 class RigidBody {
 public:
-	virtual void calculate_derived_data(); // a rigid body will need to calculate different values
+	// virtual void calculate_derived_data(); // a rigid body will need to calculate different values
+	void update(); // currently updates the transform of the rigidbody/mesh to allow the CollisionEngine to control the mesh position
 	virtual void integrate(double duration); // virtual because a rigidbody would integrate differently
 	void set_mass(const float);
 	float get_mass() const;
@@ -24,6 +25,7 @@ public:
 	DirectX::XMFLOAT3 get_position() const;
 	void get_transform(DirectX::XMFLOAT4X4* transform) const;
 	DirectX::XMFLOAT4X4 get_transform() const;
+	void set_transform(DirectX::XMFLOAT4X4*);
 	DirectX::XMFLOAT3 get_point_in_local_space(const DirectX::XMFLOAT3& pos) const;
 	DirectX::XMFLOAT3 get_point_in_world_space(const DirectX::XMFLOAT3& pos) const;
 	DirectX::XMFLOAT3 get_vector_in_local_space(const DirectX::XMFLOAT3& pos) const;
@@ -47,8 +49,9 @@ public:
 	// should have the virtual functions needed by the rigid body but they should be inlined and do nothing so that the contact code can work with the parent or child class
 	
 protected:
-	DirectX::XMFLOAT4X4 m_transform; // convert from body space to world space; // use the inverse to go from world space to body space
-	DirectX::XMFLOAT4X4 m_inverse_transform; // converts from world space to body space, inverse of m_transform
+	// m_transform is a pointer to the transform in Mesh so we dont need to worry about when to update, updating one updates the other
+	DirectX::XMFLOAT4X4* m_transform; // convert from body space to world space; // use the inverse to go from world space to body space
+	DirectX::XMFLOAT4X4 m_inverse_transform;// = m_transform; // converts from world space to body space, inverse of m_transform. inverse of identity is identity
 	float m_inverse_mass; // holds the inverse mass of the body
 	float m_linear_damping; // holds the amound of dampening applied to linear motion, for the player we want high damping so we dont get pushed super far
 	DirectX::XMFLOAT3 m_position; // holds the position of the body

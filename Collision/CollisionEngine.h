@@ -10,6 +10,11 @@
 // eventually replace the PotentialContact structure in broad collide with this, and make the BVH use CollisionObjects in place of RigidBodies
 struct PotentialCollision { // a potential contact is a pair of two collisionobjects, use collision objects so it's easy to go get associated gameobject, rigidbody, AABB, and OBBs
 	CollisionObject* m_collision_object[2] = { nullptr, nullptr };
+	PotentialCollision(CollisionObject* first, CollisionObject* second) {
+		m_collision_object[0] = first;
+		m_collision_object[1] = second;
+	}
+
 };
 // represents an independent simulation of physics. it keeps track of a set of rigid bodies, and prvides the means to update them all
 // engine should keep a copy of the CollisionEngine pointer and should build the BVH from the objects in the scene
@@ -43,7 +48,7 @@ public:
 	void broad_phase(); // performs broadphase collision detection
 	void narrow_phase(); // performs narrow phase collision detection
 	size_t generate_contacts(); // eventually use the BVH, for now do O(n^2) search for collisions of CollisionObjects
-	void update_objects(); // could call a post physics update function. idk what would be in it because we only have RigidBody pointers
+	// void update_objects(); // could call a post physics update function. idk what would be in it because we only have RigidBody pointers
 	// update_objects function originally called integrate, and calculate
 	// just stores pointers, does not control ownership of any of the gameobject members
 	void add_object(CollisionObject*); // function to add collision objects to the array of bodies

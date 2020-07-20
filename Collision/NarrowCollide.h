@@ -14,7 +14,10 @@ public:
 	friend class CollisionDetector;
 	DirectX::BoundingOrientedBox m_oriented_box;
 	RigidBody* m_body; // the rigid body of the primitive
-	DirectX::XMFLOAT4X4 m_offset; // the offset of this primitive from the given rigid body
+	// offset is probably not needed at all, as the ribidbody should be in Mesh space
+	// DirectX::XMFLOAT4X4 m_offset; // the offset of this primitive from the given rigid body
+	DirectX::XMFLOAT4X4 m_transform; // transform from submesh (vertices) to mesh space. same as submesh transform
+	//the resultant transform of the primitive. calculated by combining the offset of the primitive with the transform of the rigid body;
 	void calculate_internals();
 	DirectX::XMFLOAT3 get_axis(uint32_t index) const {
 		// get's a row of the transformation matrix, return a row because if we want the translation of the transformation matrix, that would be the last row of the column matrix
@@ -23,8 +26,11 @@ public:
 	const DirectX::XMFLOAT4X4& get_transform() const {
 		return m_transform;
 	}
+	void get_corners(DirectX::XMFLOAT3* corners) {
+		m_oriented_box.GetCorners(corners); // get the corners of the OBB we are wrapping
+	}
 // protected:
-	DirectX::XMFLOAT4X4 m_transform; //the resultant transform of the primitive. calculated by combining the offset of the primitive with the transform of the rigid body;
+	
 };
 
 // struct OrientedBoundingBox : public CollisionPrimitive {
