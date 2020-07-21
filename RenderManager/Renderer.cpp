@@ -388,7 +388,6 @@ void Renderer::build_descriptor_heaps(const Mesh* mesh) { // create heaps to hol
 		h_desc.Offset(offset, m_cbv_srv_descriptor_size);
 		if (supported_textures & mask) { // bind the real texture
 			tex = m_texture_map[mesh->m_mesh_id][i]; // get the corresponding texture pointer
-			
 		}
 		srv_desc.Format = tex->m_resource->GetDesc().Format;
 		srv_desc.Texture2D.MipLevels = tex->m_resource->GetDesc().MipLevels;

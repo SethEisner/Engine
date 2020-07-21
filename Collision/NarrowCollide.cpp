@@ -191,7 +191,9 @@ uint32_t CollisionDetector::collides(const OrientedBoundingBox& first, const Ori
 		contact->m_penetration = penetration;
 		XMStoreFloat3(&contact->m_contact_normal, normal); // axis is perpendicular to both edges so we can use it as the contact normal
 		contact->m_contact_point = vertex;
-		contact->set_body_data(first.m_body, second.m_body, data->m_friction, data->m_restitution);
+		if (!first.m_body->has_finite_mass() && !second.m_body->has_finite_mass()) return 0; // if they both have infinite mass, dont consider it a collision
+		contact->set_body_data((first.m_body->has_finite_mass() ? first.m_body : nullptr), 
+							   (second.m_body->has_finite_mass() ? second.m_body : nullptr), data->m_friction, data->m_restitution);
 		data->add_contacts(1);
 		return 1;
 	}

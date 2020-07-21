@@ -9,6 +9,7 @@ CollisionEngine::CollisionEngine(size_t max_contacts, size_t iterations) :
 	// m_max_potential_contacts(max_contacts * 2), // allows for false positives
 	m_collision_objects(new std::vector<CollisionObject*>()),
 	m_resolver(new ContactResolver(iterations)),
+	m_collision_data(CollisionData(m_max_contacts)),
 	m_potential_contacts(new std::vector<PotentialCollision>()) {}
 	//m_potential_contacts_count(0)
 

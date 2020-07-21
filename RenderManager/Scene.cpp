@@ -222,7 +222,7 @@ bool Scene::init() {
 
 	engine->renderer->add_mesh(m_floor->m_mesh); // add mesh at the end because we bind the textures it uses in this function
 	// CollisionObject* coll_obj = new CollisionObject(m_floor, m_floor->m_mesh);
-	m_floor->m_collision_object = new CollisionObject(m_floor, m_floor->m_mesh);
+	m_floor->add_collision_object(new CollisionObject(m_floor, m_floor->m_mesh));
 	m_floor->m_collision_object->m_body->set_inverse_mass(0.0f); // set the inverse mass of the floor to be zero so it has infinite mass
 	// m_floor->m_collision_object->m_body->set_mass(1.0f);
 	m_floor->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
@@ -244,10 +244,16 @@ bool Scene::init() {
 	scene = engine->resource_manager->get_scene_pointer(zip_file1 + "/" + crate + ".dae");
 	create_mesh(scene, m_crate->m_mesh);
 	// std::string filename = "crate.zip/crate_diffuse.dds";
-	engine->renderer->create_and_add_texture("crate_color", "crate.zip/crate_diffuse.dds", 0, m_crate->m_mesh, TextureFlags::COLOR);
+	engine->renderer->create_and_add_texture("crate_color", "floor.zip/checkerboard.dds" /*"crate.zip/crate_diffuse.dds"*/, 0, m_crate->m_mesh, TextureFlags::COLOR);
 	engine->renderer->close_command_list(0);
 	engine->renderer->add_mesh(m_crate->m_mesh);
-	
+	m_crate->add_collision_object(new CollisionObject(m_crate, m_crate->m_mesh));
+	m_crate->m_collision_object->m_body->set_mass(1.0f);
+	m_crate->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
+	m_crate->m_collision_object->m_body->set_linear_damping(1.0f);
+	m_crate->m_collision_object->m_body->set_velocity({ 0.0f,0.0f,0.0f });
+	m_crate->m_collision_object->m_body->set_position(m_crate->m_position);
+	engine->collision_engine->add_object(m_crate->m_collision_object);
 	
 	return true;
 }

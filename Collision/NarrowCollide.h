@@ -45,13 +45,14 @@ public:
 // structure that contains data the collision detector will use to build the contacts
 struct CollisionData {
 	// should probably use a vector of Contact* so we can use iterators...
-	Contact* m_contact_base; // holds the base of the collision data
 	Contact* m_contacts; // holds the pointer to the next contact struct we can write into
+	Contact* m_contact_base; // holds the base of the collision data
 	int m_contacts_left;
 	uint32_t m_contact_count; // the number of contacts in the contact array
 	float m_friction; // should probably not use friction for now
 	float m_restitution; // 
 	float m_tolerance; // tolerance of a collision, allows us to mark nearly colliding objects as colliding so there isnt a large interpenetration on the next frame
+	explicit CollisionData(size_t max_contacts) : m_contacts(new Contact[max_contacts]), m_contact_base(m_contacts) {}
 	inline bool has_more_contacts() {
 		return m_contacts_left > 0;
 	}
