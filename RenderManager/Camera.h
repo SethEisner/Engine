@@ -1,6 +1,8 @@
 #pragma once
 #include "d3dUtil.h"
 
+class Engine;
+
 class Camera {
 public:
 	Camera();
@@ -30,6 +32,7 @@ public:
 	float get_far_window_height() const;
 	// create frustum
 	void set_lens(float fov_y, float aspect, float z_near, float z_far);
+	void set_lens(float aspect);
 	void look_at(DirectX::FXMVECTOR pos, DirectX::FXMVECTOR target, DirectX::FXMVECTOR world_up);
 	void look_at(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& target, const DirectX::XMFLOAT3& world_up);
 	// get view/proj matrices

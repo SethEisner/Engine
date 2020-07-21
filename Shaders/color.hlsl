@@ -48,6 +48,8 @@ StructuredBuffer<MaterialData> gMaterialData : register(t0, space1);
 
 cbuffer cbPerObject : register(b0)
 {
+    float4x4 gSubModel;
+    float4x4 gModel;
 	float4x4 gWorld;
 	float4x4 gTexTransform;
 	uint gMaterialIndex;
@@ -114,7 +116,9 @@ struct VertexOut
 VertexOut VS(VertexIn vin)
 {
     VertexOut vout = (VertexOut)0.0f;
-    vout.position = mul(float4(vin.position, 1.0f), gWorld).xyz;
+    float4 position = mul(float4(vin.position, 1.0f), gSubModel);
+    position = mul(position, gModel);
+    vout.position = mul(position, gWorld).xyz;
     vout.normal = mul(vin.normal, (float3x3)gWorld);
     vout.tex_coord = mul(float4(vin.tex_coord, 0.0f, 1.0f), gTexTransform); // can straight set it because we flip the v axis when inputting uv textures
     float3x3 tbn = float3x3(vin.tangent, vin.bitangent, vin.normal);
@@ -216,5 +220,6 @@ float4 PS(VertexOut pin) : SV_Target
         direct_lighting += (diffuse_bdrf + specular_bdrf) * l_radiance * cos_li;
     }
     return float4(direct_lighting + gAmbientLight, 1.0f);
+    // return float4(albedo, 1.0f);
 }
 

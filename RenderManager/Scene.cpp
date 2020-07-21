@@ -16,10 +16,11 @@ Scene::~Scene() {
 	//delete m_object;
 	//delete m_root;
 }
-
+static size_t mesh_counter = 0;
 
 DirectX::XMFLOAT4X4 assimp_matrix_to_directx(aiNode* ai_node) {
-	aiMatrix4x4 temp = ai_node->mTransformation.Transpose(); // DirectX uses column matrices
+	aiMatrix4x4 temp = ai_node->mTransformation;// .Transpose(); // DirectX uses column matrices
+	// shouldnt need transpose here because we use the convert to left handed flag
 	return DirectX::XMFLOAT4X4(temp.a1, temp.a2, temp.a3, temp.a4,
 		temp.b1, temp.b2, temp.b3, temp.b4,
 		temp.c1, temp.c2, temp.c3, temp.c4,
@@ -31,7 +32,8 @@ void Scene::process_node(const DirectX::XMMATRIX& parent_transform, aiNode* ai_n
 	// only need to set the transform and the primitive type of submesh using the mesh index
 	DirectX::XMMATRIX temp_transform = DirectX::XMLoadFloat4x4(&assimp_matrix_to_directx(ai_node));
 	// make the node transform be the multiplication of the current node transform and the parent node so it is in world space
-	DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(temp_transform, parent_transform);
+	// DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(temp_transform, parent_transform);
+	DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(parent_transform, temp_transform);
 
 	// if (ai_node->mNumMeshes == 0) { // the node has no meshes, so we should skip this
 	// 	if (ai_node->mNumChildren == 0) return; // does this mesh do anything? can get here if the node is for a camera, should be okay to ignore for now
@@ -56,6 +58,7 @@ void Scene::process_node(const DirectX::XMMATRIX& parent_transform, aiNode* ai_n
 		sub_mesh.m_base_vertex = mesh->m_submesh_helper[scene_mesh_index].m_base_vertex;
 		sub_mesh.m_start_index = mesh->m_submesh_helper[scene_mesh_index].m_start_index;
 		DirectX::XMStoreFloat4x4(&sub_mesh.m_transform, transform);
+		// DirectX::XMStoreFloat4x4(&sub_mesh.m_transform, XMMatrixTranspose(transform));
 		switch (scene->mMeshes[scene_mesh_index]->mPrimitiveTypes) {
 		case aiPrimitiveType_LINE:
 			primitive = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
@@ -79,6 +82,7 @@ void Scene::process_node(const DirectX::XMMATRIX& parent_transform, aiNode* ai_n
 	}
 }
 void Scene::create_mesh(const aiScene* scene, Mesh* mesh) {
+	mesh->m_mesh_id = mesh_counter++;
 	std::vector<Vertex> vertices;
 	std::vector<uint16_t> indices;
 
@@ -146,7 +150,7 @@ void Scene::create_mesh(const aiScene* scene, Mesh* mesh) {
 	// for (size_t i = 0; i != scene->mRootNode->mNumChildren; ++i) { // for each child of the root node...
 	// 	process_node(DirectX::XMMatrixIdentity(), scene->mRootNode->mChildren[i], scene, m_floor->m_mesh); // build the submeshes based on how assimp has them, because we need their unique transforms
 	// }
-	process_node(DirectX::XMMatrixIdentity(), scene->mRootNode, scene, m_floor->m_mesh);
+	process_node(XMLoadFloat4x4(&mesh->m_transform), scene->mRootNode, scene, mesh);
 }
 bool Scene::init() {
 	// use the resource manager to load the items into memory
@@ -155,11 +159,15 @@ bool Scene::init() {
 	std::string name = "floor";
 	std::string zip_file = name + ".zip";
 	engine->resource_manager->load_resource(zip_file);
+	std::string crate = "crate";
+	std::string zip_file1 = "crate.zip";
+	engine->resource_manager->load_resource(zip_file1);
 	//engine->resource_manager->load_resource("Sword.zip");
-	while (!engine->resource_manager->resource_loaded(zip_file)) {
-
-	}
-	const aiScene* scene = engine->resource_manager->get_scene_pointer(zip_file + "/" + name + ".dae");
+	while (!engine->resource_manager->resource_loaded(zip_file)) {}
+	while (!engine->resource_manager->resource_loaded(zip_file1)) {}
+	const aiScene* scene;
+	
+	scene = engine->resource_manager->get_scene_pointer(zip_file + "/" + name + ".dae");
 
 	// m_object = new Object(scene->mNumMeshes);
 	// 
@@ -167,15 +175,11 @@ bool Scene::init() {
 	// 	m_object->m_sub_meshes[i].init(scene->mMeshes[i]);
 	// }
 
-	bool temp = scene->HasTextures();
-
 	m_floor = new GameObject();
-	XMStoreFloat4x4(&m_floor->m_transform, DirectX::XMMatrixIdentity());
-	m_floor->m_position = { 0.0f, 0.0f, 0.0f };
-	// m_floor->m_mesh = new Mesh();
+	// XMStoreFloat4x4(&m_floor->m_transform, DirectX::XMMatrixIdentity());
+	m_floor->m_position = { 0.0f, -1.0f, 1.0f };
 	m_floor->add_mesh(new Mesh());
-	m_floor->m_mesh->m_game_object = m_floor; // tell the mesh which GameObject owns it
-	m_floor->m_mesh->m_mesh_id = 0;
+	
 	create_mesh(scene, m_floor->m_mesh);
 	
 
@@ -194,7 +198,7 @@ bool Scene::init() {
 	// engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::COLOR);
 	std::string tex_name = "base_color";
 	std::string filename = zip_file + "/checkerboard.dds";
-	engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_floor->m_mesh, TextureFlags::COLOR);
+	engine->renderer->create_and_add_texture(tex_name, filename, 0, m_floor->m_mesh, TextureFlags::COLOR);
 
 
 	// tex_name = "sword_normal";
@@ -212,6 +216,7 @@ bool Scene::init() {
 	// tex_name = "sword_height";
 	// filename = zip_file + "/Sting_Height.dds";
 	// engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::HEIGHT);
+	
 	engine->renderer->close_command_list(0);
 
 
@@ -226,11 +231,30 @@ bool Scene::init() {
 	m_floor->m_collision_object->m_body->set_position(m_floor->m_position); // set the position of the rigid body to be that of the game object
 	// m_floor->m_collision_object->m_body->set_transform(&m_floor->m_mesh->m_transform); //rigidbody should have same transform as mesh as it takes us from Model space to world space
 	engine->collision_engine->add_object(m_floor->m_collision_object);
+
+	
+	engine->renderer->reset_command_list(0);
+	
+	
+	m_crate = new GameObject();
+	// XMStoreFloat4x4(&m_crate->m_transform, DirectX::XMMatrixIdentity());
+	m_crate->m_position = { 0.0f, 5.0f, 0.0f };
+	m_crate->add_mesh(new Mesh());
+	while (!engine->resource_manager->resource_loaded(zip_file1)) {}
+	scene = engine->resource_manager->get_scene_pointer(zip_file1 + "/" + crate + ".dae");
+	create_mesh(scene, m_crate->m_mesh);
+	// std::string filename = "crate.zip/crate_diffuse.dds";
+	engine->renderer->create_and_add_texture("crate_color", "crate.zip/crate_diffuse.dds", 0, m_crate->m_mesh, TextureFlags::COLOR);
+	engine->renderer->close_command_list(0);
+	engine->renderer->add_mesh(m_crate->m_mesh);
+	
+	
 	return true;
 }
 void Scene::update(double duration) {
 	// call the update method on each GameObject
 	m_floor->update(duration);
+	m_crate->update(duration);
 }
 void Scene::shutdown() {
 	// tell the resource manager that we no longer need all the resources loaded

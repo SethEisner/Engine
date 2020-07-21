@@ -37,28 +37,32 @@ void Renderer::add_mesh(const Mesh* mesh) {
 	//build_render_item(mesh);
 	m_scene_ready = true;
 }
-void Renderer::create_and_add_texture(const std::string& name, const std::string& filename, size_t id, Mesh& corresponding_mesh, TextureFlags flag) {// use the thread's command list to create and add the texture 
+void Renderer::create_and_add_texture(const std::string& name, const std::string& filename, size_t cmd_list_id, Mesh* corresponding_mesh, TextureFlags flag) {// use the thread's command list to create and add the texture 
 
 	//DirectX::ResourceUploadBatch resource_upload(m_d3d_device.Get());
 	Texture* texture = new Texture();
 	texture->m_name = name;
 	texture->m_filename = filename;
-	auto temp1 = engine->resource_manager->get_data_pointer(texture->m_filename);
-	auto temp2 = engine->resource_manager->get_data_size(texture->m_filename);
+	auto p_data = engine->resource_manager->get_data_pointer(texture->m_filename);
+	auto data_size = engine->resource_manager->get_data_size(texture->m_filename);
 
-	CreateDDSTextureFromMemory12(m_d3d_device.Get(), m_command_lists[id].Get(),
-		engine->resource_manager->get_data_pointer(texture->m_filename),
-		engine->resource_manager->get_data_size(texture->m_filename), texture->m_resource, texture->m_upload_heap);
 	/*
-	ThrowIfFailed(CreateDDSTextureFromMemory12(m_d3d_device.Get(), m_command_lists[id].Get(),
+	CreateDDSTextureFromMemory12(m_d3d_device.Get(), m_command_lists[cmd_list_id].Get(),
 		engine->resource_manager->get_data_pointer(texture->m_filename),
-		engine->resource_manager->get_data_size(texture->m_filename), texture->m_resource, texture->m_upload_heap)); */
+		engine->resource_manager->get_data_size(texture->m_filename), texture->m_resource, texture->m_upload_heap);*/
+	try{
+	ThrowIfFailed(CreateDDSTextureFromMemory12(m_d3d_device.Get(), m_command_lists[cmd_list_id].Get(),
+		p_data, data_size, texture->m_resource, texture->m_upload_heap));
+	}
+	catch (DxException e) {
+		OutputDebugString(e.ToString().c_str());
+	}
 	//m_textures[tex->m_name] = std::move(tex);
 	// set the texture map
 	int index = get_texture_index(flag);
-	assert(m_texture_map[corresponding_mesh.m_mesh_id][index] == nullptr); // assert that we are not overwriting the data
-	m_texture_map[corresponding_mesh.m_mesh_id][index] = texture;
-	corresponding_mesh.m_textures_used = corresponding_mesh.m_textures_used | flag;
+	assert(m_texture_map[corresponding_mesh->m_mesh_id][index] == nullptr && "overwriting texture in texture map"); // assert that we are not overwriting the data
+	m_texture_map[corresponding_mesh->m_mesh_id][index] = texture;
+	corresponding_mesh->m_textures_used = corresponding_mesh->m_textures_used | flag;
 
 }
 bool Renderer::init() {
@@ -95,7 +99,7 @@ bool Renderer::init() {
 	m_cbv_srv_descriptor_size = m_d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	// m_frame_resources.resize(g_num_frame_resources);
 	// camera position can be set anywhere
-	engine->camera->set_position(0.0f, 2.0f, -10.0f);
+	engine->camera->set_position(0.0f, 3.0f, -10.0f);
 	// build the basic structures the rending pipeline can use to render our objects
 	build_root_signature();
 	build_shaders_and_input_layout();
@@ -378,9 +382,9 @@ void Renderer::build_descriptor_heaps(const Mesh* mesh) { // create heaps to hol
 	uint32_t supported_textures = static_cast<uint32_t>(mesh->m_textures_used);
 	static const uint32_t mask = 0x1;
 	Texture* tex = nullptr;
-	for (size_t i = 0; i != NUM_TEXTURES; ++i, supported_textures >>= 1){//, offset = 1) { // for each texture type the mesh could support
+	for (size_t i = 0; i != NUM_TEXTURES; ++i, supported_textures >>= 1){//, offset = 1) { // forf each texture type the mesh could support
 		// if it is supported, create the view
-		Texture* tex = m_dummy_texture;
+		tex = m_dummy_texture;
 		h_desc.Offset(offset, m_cbv_srv_descriptor_size);
 		if (supported_textures & mask) { // bind the real texture
 			tex = m_texture_map[mesh->m_mesh_id][i]; // get the corresponding texture pointer
@@ -479,9 +483,12 @@ void Renderer::build_render_items() { // can tranverse the meshes in the scene, 
 			RenderItem ri = {};
 			// go from submesh vertices to mesh, to game object, to world space
 			// should do this multiplication in the vertex shader, as that's literally what it's for...
-			XMStoreFloat4x4(&ri.m_world, DirectX::XMMatrixMultiply(DirectX::XMMatrixMultiply(XMLoadFloat4x4(&submesh.m_transform), XMLoadFloat4x4(&mesh->m_transform)), XMLoadFloat4x4(&mesh->m_game_object->m_transform)));
+			ri.m_submodel_transform = submesh.m_transform;
+			ri.m_model_transform = mesh->m_transform;
+			ri.m_world = mesh->m_game_object->m_transform;
+			// XMStoreFloat4x4(&ri.m_world, DirectX::XMMatrixMultiply(DirectX::XMMatrixMultiply(XMLoadFloat4x4(&submesh.m_transform), XMLoadFloat4x4(&mesh->m_transform)), XMLoadFloat4x4(&mesh->m_game_object->m_transform)));
 			XMStoreFloat4x4(&ri.m_tex_transform, DirectX::XMMatrixIdentity()); // DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
-			ri.m_textures_used = static_cast<int>(engine->scene->m_floor->m_mesh->m_textures_used);
+			ri.m_textures_used = static_cast<int>(mesh->m_textures_used);
 			ri.m_obj_cb_index = i++;
 			ri.m_mesh = geometry_pair.second; // engine->scene->m_floor->m_mesh;
 			ri.m_primitive_type = submesh.m_primitive;
@@ -497,6 +504,7 @@ void Renderer::draw_render_items(ID3D12GraphicsCommandList* cmd_list, const std:
 	size_t obj_cb_size = calc_constant_buffer_size(sizeof(ObjectConstants));
 	auto object_cb = m_curr_frame_resource->m_object_cb->get_resource();
 	for (size_t i = 0; i < r_items.size(); i++) { // have a different descriptor heap for each render item so need to set it that way
+		RenderItem ri = r_items[i];
 		ID3D12DescriptorHeap* descriptor_heaps[] = { m_descriptor_heap_map.at(r_items[i].m_mesh->m_mesh_id).Get() };
 		m_command_list->SetDescriptorHeaps(_countof(descriptor_heaps), descriptor_heaps);
 		m_command_list->SetGraphicsRootDescriptorTable(3, m_descriptor_heap_map.at(r_items[i].m_mesh->m_mesh_id)->GetGPUDescriptorHandleForHeapStart());
@@ -520,6 +528,9 @@ void Renderer::update_object_cbs(const Timer& t) {
 			XMMATRIX tex_transform = XMLoadFloat4x4(&item.m_tex_transform);
 			ObjectConstants obj_consts;
 			XMStoreFloat4x4(&obj_consts.m_world, XMMatrixTranspose(world));
+			// obj_consts.m_world = item.m_world;
+			obj_consts.m_model = item.m_model_transform;
+			obj_consts.m_submodel = item.m_submodel_transform;
 			XMStoreFloat4x4(&obj_consts.m_tex_transform, XMMatrixTranspose(tex_transform));
 			obj_consts.m_textures_used = item.m_textures_used; // should not change but the memcpy would overwrite it
 			//obj_consts.m_material_index = item.m_material->m_mat_cb_index;

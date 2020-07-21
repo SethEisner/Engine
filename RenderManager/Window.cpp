@@ -95,6 +95,7 @@ void Window::update(float delta) {
 		frame_count = 0;
 		time_elapsed = 0.0f;
 	}
+	engine->camera->set_lens(get_aspect_ratio());
 }
 // HWND Window::get_handle() {
 // 	return m_window_handle;

@@ -55,7 +55,7 @@ public:
 	void reset_command_list(size_t id);
 	void close_command_list(size_t id);
 	void add_mesh(const Mesh* mesh);
-	void create_and_add_texture(const std::string& name, const std::string& filename, size_t id, Mesh& corresponding_mesh, TextureFlags flag); // needs to edit the mesh
+	void create_and_add_texture(const std::string& name, const std::string& filename, size_t id, Mesh* corresponding_mesh, TextureFlags flag); // needs to edit the mesh
 private:
 	void create_command_objects();
 	void create_swap_chain();
@@ -143,10 +143,10 @@ private:
 	DirectX::ResourceUploadBatch* m_upload_batch = {};
 
 	// texture system members
-	std::unordered_map<size_t, std::array<Texture*, NUM_TEXTURES>> m_texture_map; // map from mesh pointer to the array of textures it uses, use the Mesh pointer to get the texture flags and set the constants
+	std::unordered_map<size_t, std::array<Texture*, NUM_TEXTURES>> m_texture_map; // map from mesh id to the array of textures it uses, use the Mesh pointer to get the texture flags and set the constants
 	// std::unordered_map<size_t, std::vector<std::pair<TextureFlags, Texture*>>> m_texture_map; // map from mesh id to the contiguous vector of tectures it uses, where each texture has it's corresponding type
 	// will use the flags in the shader code to get a 0 or 1 which controls whether or not we use the result of the calculation
-	std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> m_descriptor_heap_map; // map from the mesh to the descritor heaps for the textures it uses
+	std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> m_descriptor_heap_map; // map from the mesh id to the descritor heaps for the textures it uses
 	Texture* m_dummy_texture = nullptr;
 	bool m_added_textures = false;
 	bool m_scene_ready = false;

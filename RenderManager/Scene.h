@@ -27,7 +27,7 @@ public:
 	Texture* m_textures; // stores the textures that we build from
 	//Mesh* m_mesh; // eventually have more than one mesh for the scene (turn into a vector for easy adding)
 	GameObject* m_floor;
-	GameObject* m_box;
+	GameObject* m_crate;
 	uint32_t m_mesh_count = 1; // assume only one mesh for now
 	// Node* not needed, build the scene hierarchy a different way
 	// Node* m_root; // contains the SubMeshes we use to index into the Mesh 

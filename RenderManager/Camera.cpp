@@ -2,12 +2,13 @@
 #include "../Utilities/Utilities.h"
 #include "../Engine.h"
 #include "../InputManager/InputManager.h"
+#include "Window.h"
 #include <algorithm>
 using namespace DirectX;
 
 Camera::Camera() {
 	// create default lens with an fov of 90, an aspect ratio of 1.0f, a near plane at 1.0f,a nd a far plane at 1000.0f
-	set_lens(radians(90.0f), 1.0f, 1.0f, 1000.0f);
+	set_lens(radians(90.0f), engine->window->get_aspect_ratio(), 1.0f, 1000.0f);
 	//update_view_matrix();
 }
 XMVECTOR Camera::get_position() const{
@@ -70,7 +71,11 @@ float Camera::get_far_window_width() const {
 float Camera::get_far_window_height() const {
 	return m_far_window_height;
 }
+void Camera::set_lens(float aspect) {
+	set_lens(m_fov_y, aspect, m_near_z, m_far_z);
+}
 void Camera::set_lens(float fov_y, float aspect, float z_near, float z_far) {
+	// build camera from window dimensions
 	m_fov_y = fov_y;
 	m_aspect = aspect;
 	m_near_z = z_near;
@@ -84,7 +89,7 @@ void Camera::look_at(FXMVECTOR pos, FXMVECTOR target, FXMVECTOR world_up) {
 	// left handed coordinate system
 	XMVECTOR l = XMVector3Normalize(XMVectorSubtract(target, pos));
 	XMVECTOR r = XMVector3Normalize(XMVector3Cross(world_up, l));
-	XMVECTOR u = XMVector3Cross(l, r);
+	XMVECTOR u = XMVector3Cross(l, r); // look cross right is up if left handed
 	XMStoreFloat3(&m_pos, pos);
 	XMStoreFloat3(&m_look, l);
 	XMStoreFloat3(&m_right, r);
@@ -151,6 +156,7 @@ void Camera::walk(float d) {
 	m_view_dirty = true;
 }
 void Camera::update_view_matrix() {
+
 	/*if (m_view_dirty) {
 		XMVECTOR right = XMLoadFloat3(&m_right);
 		XMVECTOR up = XMLoadFloat3(&m_up);

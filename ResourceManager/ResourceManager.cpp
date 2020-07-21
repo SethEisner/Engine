@@ -11,7 +11,7 @@
 
 constexpr bool RESOURCE_QUEUE_FULL = false;
 constexpr bool REFERENCE_QUEUE_FULL = false;
-constexpr uint32_t flags = aiProcessPreset_TargetRealtime_Quality | aiProcess_ConvertToLeftHanded | aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices;
+constexpr uint32_t flags = aiProcessPreset_TargetRealtime_Quality | aiProcess_ConvertToLeftHanded;
 //typedef size_t GUID;
 // static HashTable<size_t, bool> ref_count_traversed_set;
 /* IMPORTANT:
