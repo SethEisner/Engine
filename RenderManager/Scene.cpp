@@ -19,7 +19,7 @@ Scene::~Scene() {
 static size_t mesh_counter = 0;
 
 DirectX::XMFLOAT4X4 assimp_matrix_to_directx(aiNode* ai_node) {
-	aiMatrix4x4 temp = ai_node->mTransformation;// .Transpose(); // DirectX uses column matrices
+	aiMatrix4x4 temp = ai_node->mTransformation.Transpose(); // DirectX uses column matrices
 	// shouldnt need transpose here because we use the convert to left handed flag
 	return DirectX::XMFLOAT4X4(temp.a1, temp.a2, temp.a3, temp.a4,
 		temp.b1, temp.b2, temp.b3, temp.b4,
@@ -32,8 +32,8 @@ void Scene::process_node(const DirectX::XMMATRIX& parent_transform, aiNode* ai_n
 	// only need to set the transform and the primitive type of submesh using the mesh index
 	DirectX::XMMATRIX temp_transform = DirectX::XMLoadFloat4x4(&assimp_matrix_to_directx(ai_node));
 	// make the node transform be the multiplication of the current node transform and the parent node so it is in world space
-	// DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(temp_transform, parent_transform);
-	DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(parent_transform, temp_transform);
+	DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(temp_transform, parent_transform);
+	// DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(parent_transform, temp_transform);
 
 	// if (ai_node->mNumMeshes == 0) { // the node has no meshes, so we should skip this
 	// 	if (ai_node->mNumChildren == 0) return; // does this mesh do anything? can get here if the node is for a camera, should be okay to ignore for now
@@ -244,23 +244,24 @@ bool Scene::init() {
 	scene = engine->resource_manager->get_scene_pointer(zip_file1 + "/" + crate + ".dae");
 	create_mesh(scene, m_crate->m_mesh);
 	// std::string filename = "crate.zip/crate_diffuse.dds";
-	engine->renderer->create_and_add_texture("crate_color", "floor.zip/checkerboard.dds" /*"crate.zip/crate_diffuse.dds"*/, 0, m_crate->m_mesh, TextureFlags::COLOR);
+	// engine->renderer->create_and_add_texture("crate_color", "crate.zip/crate_diffuse.dds", 0, m_crate->m_mesh, TextureFlags::COLOR);
+	engine->renderer->create_and_add_texture("crate_color", "floor.zip/checkerboard.dds", 0, m_crate->m_mesh, TextureFlags::COLOR);
 	engine->renderer->close_command_list(0);
 	engine->renderer->add_mesh(m_crate->m_mesh);
 	m_crate->add_collision_object(new CollisionObject(m_crate, m_crate->m_mesh));
-	m_crate->m_collision_object->m_body->set_mass(1.0f);
+	m_crate->m_collision_object->m_body->set_inverse_mass(0.0f);
 	m_crate->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
 	m_crate->m_collision_object->m_body->set_linear_damping(1.0f);
 	m_crate->m_collision_object->m_body->set_velocity({ 0.0f,0.0f,0.0f });
 	m_crate->m_collision_object->m_body->set_position(m_crate->m_position);
-	engine->collision_engine->add_object(m_crate->m_collision_object);
+	// engine->collision_engine->add_object(m_crate->m_collision_object);
 	
 	return true;
 }
 void Scene::update(double duration) {
 	// call the update method on each GameObject
-	m_floor->update(duration);
-	m_crate->update(duration);
+	if(m_floor) m_floor->update(duration);
+	if (m_crate) m_crate->update(duration);
 }
 void Scene::shutdown() {
 	// tell the resource manager that we no longer need all the resources loaded

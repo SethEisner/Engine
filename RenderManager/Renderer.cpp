@@ -482,10 +482,10 @@ void Renderer::build_render_items() { // can tranverse the meshes in the scene, 
 			RenderItem ri = {};
 			// go from submesh vertices to mesh, to game object, to world space
 			// should do this multiplication in the vertex shader, as that's literally what it's for...
-			ri.m_submodel_transform = submesh.m_transform;
-			ri.m_model_transform = mesh->m_transform;
-			ri.m_world = mesh->m_game_object->m_transform;
-			// XMStoreFloat4x4(&ri.m_world, DirectX::XMMatrixMultiply(DirectX::XMMatrixMultiply(XMLoadFloat4x4(&submesh.m_transform), XMLoadFloat4x4(&mesh->m_transform)), XMLoadFloat4x4(&mesh->m_game_object->m_transform)));
+			// ri.m_submodel_transform = submesh.m_transform;
+			// ri.m_model_transform = mesh->m_transform;
+			// ri.m_world = mesh->m_game_object->m_transform;
+			XMStoreFloat4x4(&ri.m_world, DirectX::XMMatrixMultiply(DirectX::XMMatrixMultiply(XMLoadFloat4x4(&submesh.m_transform), XMLoadFloat4x4(&mesh->m_transform)), XMLoadFloat4x4(&mesh->m_game_object->m_transform)));
 			XMStoreFloat4x4(&ri.m_tex_transform, DirectX::XMMatrixIdentity()); // DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
 			ri.m_textures_used = static_cast<int>(mesh->m_textures_used);
 			ri.m_obj_cb_index = i++;
@@ -528,8 +528,8 @@ void Renderer::update_object_cbs(const Timer& t) {
 			ObjectConstants obj_consts;
 			XMStoreFloat4x4(&obj_consts.m_world, XMMatrixTranspose(world));
 			// obj_consts.m_world = item.m_world;
-			obj_consts.m_model = item.m_model_transform;
-			obj_consts.m_submodel = item.m_submodel_transform;
+			// obj_consts.m_model = item.m_model_transform;
+			// obj_consts.m_submodel = item.m_submodel_transform;
 			XMStoreFloat4x4(&obj_consts.m_tex_transform, XMMatrixTranspose(tex_transform));
 			obj_consts.m_textures_used = item.m_textures_used; // should not change but the memcpy would overwrite it
 			//obj_consts.m_material_index = item.m_material->m_mat_cb_index;
