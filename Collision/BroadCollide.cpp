@@ -1,6 +1,24 @@
 #include "BroadCollide.h"
+#include "CollisionObject.h"
+#include "../Gameplay/GameObject.h"
 
 //is there a way to calculate get growth without allocating a BoundingBox
+// BoundingBox::BoundingBox() : m_box(DirectX::BoundingBox()), m_game_object(nullptr), m_transform(new DirectX::XMFLOAT4X4()) {
+// 	// BoundingBox() : m_box(DirectX::BoundingBox()), m_transform(std::shared_ptr<DirectX::XMFLOAT4X4>()) {
+// 	// DirectX::XMStoreFloat4x4(m_transform, DirectX::XMMatrixIdentity()); // make the transform the identity matrix
+// }
+BoundingBox::BoundingBox(GameObject* obj) : m_box(DirectX::BoundingBox()), m_game_object(obj), m_transform(new DirectX::XMFLOAT4X4()) {
+	// m_transform = &obj->m_game_object->m_mesh->m_transform; // make the transform that of the mesh, because the bounding box encapsulates the mesh
+}
+BoundingBox::BoundingBox(const BoundingBox& first, const BoundingBox& second) : m_box(DirectX::BoundingBox()), m_transform(new DirectX::XMFLOAT4X4()) {
+	// create the new box from the transformed boxes, and then set the transform of the new box to be the identiy matrix
+	m_box.CreateMerged(m_box, first.m_world_box, second.m_world_box);
+	DirectX::XMStoreFloat4x4(m_transform, DirectX::XMMatrixIdentity());
+}
+void BoundingBox::transform() {
+	this->m_box.Transform(this->m_world_box, DirectX::XMMatrixMultiply(DirectX::XMLoadFloat4x4(this->m_transform), DirectX::XMLoadFloat4x4(&m_game_object->m_transform)));
+}
+
 float BoundingBox::get_growth(const BoundingBox& other) const {
 	BoundingBox box(*this, other); // create a box that contains both of the boxes
 	// entents is half size so need to multiply each extent by 2

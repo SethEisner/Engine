@@ -176,6 +176,14 @@ struct Mesh { // contains the buffers for a single object. combines all the subm
 		m_vertex_buffer_uploader = nullptr;
 		m_index_buffer_uploader = nullptr;
 	}
+	DirectX::XMFLOAT3 get_position() {
+		DirectX::XMVECTOR temp;
+		DirectX::XMVECTOR pos;
+		DirectX::XMMatrixDecompose(&temp, &temp, &pos, DirectX::XMLoadFloat4x4(&m_transform));
+		DirectX::XMFLOAT3 ret;
+		DirectX::XMStoreFloat3(&ret, pos);
+		return ret;
+	}
 	// void create_mesh(const std::vector<Vertex>& vertices, const std::vector<Vertex>& indices);
 };
 

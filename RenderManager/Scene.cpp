@@ -175,9 +175,7 @@ bool Scene::init() {
 	// 	m_object->m_sub_meshes[i].init(scene->mMeshes[i]);
 	// }
 
-	m_floor = new GameObject();
-	// XMStoreFloat4x4(&m_floor->m_transform, DirectX::XMMatrixIdentity());
-	m_floor->m_position = { 0.0f, -1.0f, 1.0f };
+	m_floor = new GameObject({ 0.0f, -1.0f, 0.0f });
 	m_floor->add_mesh(new Mesh());
 	
 	create_mesh(scene, m_floor->m_mesh);
@@ -217,7 +215,7 @@ bool Scene::init() {
 	// filename = zip_file + "/Sting_Height.dds";
 	// engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::HEIGHT);
 	
-	engine->renderer->close_command_list(0);
+	// engine->renderer->close_command_list(0);
 
 
 	engine->renderer->add_mesh(m_floor->m_mesh); // add mesh at the end because we bind the textures it uses in this function
@@ -228,17 +226,14 @@ bool Scene::init() {
 	m_floor->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
 	m_floor->m_collision_object->m_body->set_linear_damping(1.0f);
 	m_floor->m_collision_object->m_body->set_velocity({ 0.0f,0.0f,0.0f });
-	m_floor->m_collision_object->m_body->set_position(m_floor->m_position); // set the position of the rigid body to be that of the game object
-	// m_floor->m_collision_object->m_body->set_transform(&m_floor->m_mesh->m_transform); //rigidbody should have same transform as mesh as it takes us from Model space to world space
+	
 	engine->collision_engine->add_object(m_floor->m_collision_object);
 
-	
 	engine->renderer->reset_command_list(0);
 	
 	
-	m_crate = new GameObject();
+	m_crate = new GameObject({ 0.0f, 10.0f, 0.0f });
 	// XMStoreFloat4x4(&m_crate->m_transform, DirectX::XMMatrixIdentity());
-	m_crate->m_position = { 0.0f, 5.0f, 0.0f };
 	m_crate->add_mesh(new Mesh());
 	while (!engine->resource_manager->resource_loaded(zip_file1)) {}
 	scene = engine->resource_manager->get_scene_pointer(zip_file1 + "/" + crate + ".dae");
@@ -246,16 +241,18 @@ bool Scene::init() {
 	// std::string filename = "crate.zip/crate_diffuse.dds";
 	// engine->renderer->create_and_add_texture("crate_color", "crate.zip/crate_diffuse.dds", 0, m_crate->m_mesh, TextureFlags::COLOR);
 	engine->renderer->create_and_add_texture("crate_color", "floor.zip/checkerboard.dds", 0, m_crate->m_mesh, TextureFlags::COLOR);
-	engine->renderer->close_command_list(0);
+	
 	engine->renderer->add_mesh(m_crate->m_mesh);
 	m_crate->add_collision_object(new CollisionObject(m_crate, m_crate->m_mesh));
-	m_crate->m_collision_object->m_body->set_inverse_mass(0.0f);
+	m_crate->m_collision_object->m_body->set_inverse_mass(1.0f);
 	m_crate->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
 	m_crate->m_collision_object->m_body->set_linear_damping(1.0f);
 	m_crate->m_collision_object->m_body->set_velocity({ 0.0f,0.0f,0.0f });
-	m_crate->m_collision_object->m_body->set_position(m_crate->m_position);
-	// engine->collision_engine->add_object(m_crate->m_collision_object);
+
+	engine->collision_engine->add_object(m_crate->m_collision_object);
 	
+
+	engine->renderer->close_command_list(0);
 	return true;
 }
 void Scene::update(double duration) {

@@ -7,12 +7,16 @@
 #include <D3DCommon.h>
 #include "../RenderManager/d3dUtil.h" // for Mesh
 #include "../RenderManager/RenderItem.h"
-CollisionObject::CollisionObject(GameObject* game_object, Mesh* mesh) : m_game_object(game_object), m_body(new RigidBody()), m_obb_count(mesh->m_submeshes.size()), m_oriented_boxes(new OrientedBoundingBox[m_obb_count]), m_box(new BoundingBox()) {
+CollisionObject::CollisionObject(GameObject* game_object, Mesh* mesh) : 
+		m_game_object(game_object), 
+		m_body(new RigidBody(game_object)), 
+		m_obb_count(mesh->m_submeshes.size()), 
+		m_oriented_boxes(new OrientedBoundingBox[m_obb_count]), 
+		m_box(new BoundingBox(game_object)) {
 	// give the mesh we want to create a collision object for
 	assert(mesh); // we need the mesh to already be created before we try to create a collision object for it
-	//using namespace DirectX;
 	
-	//DirectX::BoundingBox* aabb = new DirectX::BoundingBox(); // create a new directX bounding box that will hold
+	// create the OBBs
 	for (size_t i = 0; i != m_obb_count; ++i) {
 		// Mesh* mesh = game_object->m_mesh;
 		Vertex* vertex_buffer = reinterpret_cast<Vertex*>(mesh->m_vertex_buffer_cpu->GetBufferPointer());
@@ -26,6 +30,8 @@ CollisionObject::CollisionObject(GameObject* game_object, Mesh* mesh) : m_game_o
 		// corners now store a list of points in Mesh space
 
 	}
+
+	// create the AABB
 	DirectX::XMFLOAT3 corners[8];
 	assert(m_obb_count >= 1);
 	m_oriented_boxes[0].get_corners(corners);
@@ -42,10 +48,9 @@ CollisionObject::CollisionObject(GameObject* game_object, Mesh* mesh) : m_game_o
 		temp.create_from_points(8, corners, sizeof(DirectX::XMFLOAT3));
 		m_box->create_merged(temp); // would technically be faster if we didnt add them one by one, but this is simple enough for now
 	}
-	m_body->set_position(mesh->m_game_object->m_position);
-	m_body->set_transform(&mesh->m_transform);
 	m_box->m_transform = &mesh->m_transform;
-	// m_box should contain all the OBBs, and should be in mesh space (meaning we can apply Mesh::m_transform to get to GameObject space)
+
+	// the rigidbody is created from the gameobject
 }
 CollisionObject::CollisionObject(GameObject* game_object, RigidBody* rigid_body, BoundingBox* aabb, uint32_t obb_count, OrientedBoundingBox* obbs)
 	: m_game_object(game_object), m_body(rigid_body), m_box(aabb), m_obb_count(obb_count), m_oriented_boxes(new OrientedBoundingBox[m_obb_count]) {

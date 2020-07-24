@@ -20,7 +20,7 @@ void CollisionEngine::start_frame() {
 	}
 	
 }
-void CollisionEngine::broad_phase() {
+void CollisionEngine::broad_phase() { // apply the transforms 
 	m_potential_contacts->clear();
 	for (auto i = m_collision_objects->begin(); i != m_collision_objects->end(); ++i) {
 		for (auto j = i + 1; j != m_collision_objects->end(); ++j) {
@@ -59,6 +59,7 @@ void CollisionEngine::run_frame(double duration) {
 	// integrate all the objects
 	for (auto& objs : *m_collision_objects) {
 		objs->m_body->integrate(duration);
+		objs->m_box->transform(); // update m_transformed_box so we can get the correct result from broad_phase collision
 	}
 	// generate the contacts for this frame
 	size_t num_contacts = generate_contacts();

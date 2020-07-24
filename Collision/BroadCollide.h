@@ -2,6 +2,10 @@
 #include "RigidBody.h"
 #include "Contact.h"
 #include <DirectXCollision.h>
+#include <memory>
+
+class CollisionObject;
+class GameObject;
 // broad-phase collision detection using a BVH of spheres because it's super fast
 
 // float because DirectX collision volumes store their geometric attributes in floats
@@ -19,18 +23,21 @@ struct BoundingSphere {
 };
 struct BoundingBox { // AABB
 private: // to be private should have an extents and center function
-	DirectX::BoundingBox m_box;
+	DirectX::BoundingBox m_box; // the AABB in model space that we transform from so we dont get acculuated errors
+	GameObject* m_game_object;
 public:
-	DirectX::XMFLOAT4X4* m_transform; // same transform as in Mesh and also RigidBody
-	BoundingBox() : m_box(DirectX::BoundingBox()) {
-	
-	}
-	BoundingBox(const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT3& extents) : m_box(center, extents) {}
-	BoundingBox(const BoundingBox& first, const BoundingBox& second) : m_box() {
-		m_box.CreateMerged(m_box, first.m_box, second.m_box); // because we call member function of this->m_box and use it to edit this->m_box, this may not work...
-	}
+	DirectX::BoundingBox m_world_box; // the AABB in world space for comapring
+	// std::shared_ptr<DirectX::XMFLOAT4X4> m_transform; // same transform as in Mesh and also RigidBody
+	DirectX::XMFLOAT4X4* m_transform = nullptr; // get's set when we create the CollisionObject
+	// DirectX::XMFLOAT4X4* m_model_transform;
+	// DirectX::XMFLOAT4X4* m_world_transform;
+	// really good candidate for a shared pointer because of create_merged
+	// BoundingBox();
+	explicit BoundingBox(GameObject* obj = nullptr);
+	// BoundingBox(const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT3& extents) : m_box(center, extents) {}
+	BoundingBox(const BoundingBox& first, const BoundingBox& second);
 	inline bool overlaps(const BoundingBox& other) const {
-		return m_box.Intersects(other.m_box);
+		return this->m_world_box.Intersects(other.m_world_box);
 	}
 	float get_growth(const BoundingBox& other) const;
 	inline float get_size() const { // volume of the box, can determine growth from the volume delta
@@ -39,8 +46,14 @@ public:
 	void create_from_points(size_t count, const DirectX::XMFLOAT3* points, size_t stride) {
 		m_box.CreateFromPoints(m_box, count, points, stride);
 	}
+	// create merged is wrong, if we merge two bounding boxes into a single one, we should do it based on their transformed bounding box, and set our transform to be a nullptr
 	void create_merged(const BoundingBox& other) { // merge this BoundingBox with another bounding box, should be in the same space because we dont change the transform
 		m_box.CreateMerged(this->m_box, this->m_box, other.m_box);
+	}
+	// needs to be in ccp file because it uses the CollisionObject pointer
+	void transform(); // applied the internal transform, and then the GameObject transform
+	void transform(const DirectX::XMFLOAT4X4& M) {
+		this->m_box.Transform(this->m_world_box, DirectX::XMLoadFloat4x4(&M));
 	}
 };
 
@@ -74,7 +87,18 @@ protected:
 
 template<class BoundingVolume>
 bool BVHNode<BoundingVolume>::overlaps(const BVHNode<BoundingVolume>* other) const {
-	return m_volume->overlaps(other->m_volume); // call the overlap function fot the Bounding volume we use for the hierarchy
+	BoundingVolume first = *this;
+	BoundingVolume second = *other;
+	if (this->is_leaf()) { // if either node is a leaf node, we need to transform that node by it's transform, and then check the overlap
+		this->m_volume.transform(first, DirectX::XMLoadFloat4x4(this->m_transform));
+	}
+	if (other->is_leaf()) {
+		other->m_volume.transform(second, DirectX::XMLoadFloat4x4(other->m_transform));
+	}
+	// internal nodes should not be transformed, or should have a transform of the identity matrix.
+	// this is because, when we create them we want them to encapsulate both children so there isnt a specific transform to use. 
+	// also, both of the children will have transforms that we need to encapsulate
+	return first.overlaps(second); // call the overlap function for the Bounding volume we use for the hierarchy
 }
 
 template<class BoundingVolume>
@@ -83,9 +107,10 @@ void BVHNode<BoundingVolume>::insert(RigidBody* body, const BoundingVolume& volu
 		// create two new children with ourselves as the parent
 		// the first child has our volume and body
 		// the second child will have the volume and body we want to insert
-		m_children[0] = new BVHNode<BoundingVolume>(this, m_volume, m_body);
-		m_children[1] = new BVHNode<BoundingVolume>(this, volume, body);
+		m_children[0] = new BVHNode<BoundingVolume>(this, m_volume, m_body); // copies the transform internal to m_volume
+		m_children[1] = new BVHNode<BoundingVolume>(this, volume, body); // copies the transform internal to volume
 		this->m_body = nullptr; // set to nullptr so we can be classified as an internal node
+		DirectX::XMStoreFloat4x4(this->m_volume.m_transform, DirectX::XMMatrixIdentity());
 		recalculate_bounding_volume(); // reclaculate our bounding volume using our children's bounding volumes
 	}
 	else { // we need to recurse the tree to find the leaf node to insert into

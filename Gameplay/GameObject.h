@@ -45,7 +45,14 @@ struct GameObject {
 	CollisionObject* remove_collision_object();
 	void add_camera(Camera* camera);
 	Camera* remove_camera();
-	GameObject() = default;
+	void calculate_transform() {
+		DirectX::XMStoreFloat4x4(&m_transform, DirectX::XMMatrixTranslation(m_position.x, m_position.y, m_position.z));
+	}
+	GameObject() = delete;
+	explicit GameObject(DirectX::XMFLOAT3 pos) : m_position(pos) {
+		calculate_transform();
+		// DirectX::XMStoreFloat4x4(&m_transform, DirectX::XMMatrixTranslation(m_position.x, m_position.y, m_position.z)); // make the transform correcpond to the position we initialize it with
+	}
 	~GameObject() {
 		delete m_camera;
 		delete m_collision_object;
