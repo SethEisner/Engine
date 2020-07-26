@@ -47,7 +47,9 @@ public:
 	void set_acceleration(const float x, const float y, const float z);
 	void get_acceleration(DirectX::XMFLOAT3* accel) const;
 	DirectX::XMFLOAT3 get_acceleration() const;
-
+	inline GameObject* get_game_object() const {
+		return m_game_object;
+	}
 	// should have the virtual functions needed by the rigid body but they should be inlined and do nothing so that the contact code can work with the parent or child class
 	RigidBody(GameObject* obj);  // : m_game_object(obj), m_position(obj->m_position) {}
 protected:

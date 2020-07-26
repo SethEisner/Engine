@@ -9,7 +9,8 @@ static const size_t g_num_bodies = 2;
 class Contact {
 	friend class ContactResolver;
 public:
-	RigidBody* m_body[g_num_bodies]; // pair of bodies involved in the contact
+	Contact() = default;
+	RigidBody* m_body[g_num_bodies] = { nullptr, nullptr }; // pair of bodies involved in the contact
 	float m_friction; // lateral friction at contact
 	float m_restitution; // the normal resitution coefficient at the contact, affects how much energy is lost from the collision
 	float m_penetration; // the depth of penetration at the contact point;
@@ -56,11 +57,11 @@ public:
 	void set_iterations(size_t velocity_iterations, size_t position_iterations);
 	void set_iterations(size_t iterations);
 	void set_epsilon(float velocity_epsilon, float position_epsilon);
-	void resolve_contacts(Contact* contact_array, size_t contact_count, double duration);
+	void resolve_contacts(Contact* contact_array, Contact* contact_end, double duration);
 protected:
-	void preprocess_contacts(Contact* contact_array, size_t contact_count, double duration); //readies all contacts in the array for processing, ensures internal data is correct and appropriate objects are alive
-	void adjust_velocities(Contact* contact_array, size_t contact_count, double duration); // resolves velocity issues constrained by velocity iterations
-	void adjust_positions(Contact* contact_array, size_t contact_count, double duration); // resolves position issues constrained by velocity iterations
+	void preprocess_contacts(Contact* contact_array, Contact* contact_end, double duration); //readies all contacts in the array for processing, ensures internal data is correct and appropriate objects are alive
+	void adjust_velocities(Contact* contact_array, Contact* contact_end, double duration); // resolves velocity issues constrained by velocity iterations
+	void adjust_positions(Contact* contact_array, Contact* contact_end, double duration); // resolves position issues constrained by velocity iterations
 };
 // fills the contact structure with the generated contact, the contact pointer should always point to the first available contact in a contact array, 
 // where limit is the max number of contacts the array can hold, 

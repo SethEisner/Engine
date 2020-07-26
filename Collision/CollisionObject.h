@@ -28,7 +28,7 @@ struct CollisionObject {
 		memcpy(m_oriented_boxes, obbs, m_obb_count * sizeof(OrientedBoundingBox*)); // copy the pointers into the CollisionObject
 	}*/
 	// explicit CollisionObject(GameObject* game_object);
-	CollisionObject(GameObject* game_object, Mesh* mesh);/* : m_game_object(game_object), m_obb_count(game_object->m_mesh->m_submeshes.size()), m_oriented_boxes(new OrientedBoundingBox[m_obb_count]){
+	CollisionObject(GameObject* game_object, Mesh* mesh, bool create_rigid_body);/* : m_game_object(game_object), m_obb_count(game_object->m_mesh->m_submeshes.size()), m_oriented_boxes(new OrientedBoundingBox[m_obb_count]){
 		// give the mesh we want to create a collision object for
 		assert(game_object->m_mesh); // we need the mesh to already be created before we try to create a collision object for it
 		for (size_t i = 0; i != m_obb_count; ++i) {

@@ -206,32 +206,30 @@ void ContactResolver::set_epsilon(float velocity_epsilon, float position_epsilon
 	m_velocity_epsilon = velocity_epsilon;
 	m_position_epsilon = position_epsilon;
 }
-void ContactResolver::resolve_contacts(Contact* contact_array, size_t contact_count, double duration) {
+void ContactResolver::resolve_contacts(Contact* contact_array, Contact* contact_end, double duration) {
 	// for each contact, preprocess it, resolve interpenetration, calculate and apply exit velocity
-	if (contact_count == 0) return; // no contacts found
+	if (contact_end - contact_array == 0) return; // no contacts found
 	if (!this->is_valid()) return; // out of iterations or the epsilons are wrong
 	// preprocess the contacts so all the data is there when we start
-	preprocess_contacts(contact_array, contact_count, duration);
+	preprocess_contacts(contact_array, contact_end, duration);
 	// resolve interpenetration of contacting objects
-	adjust_positions(contact_array, contact_count, duration);
+	adjust_positions(contact_array, contact_end, duration);
 	// resolve the velocity of the contact
-	adjust_velocities(contact_array, contact_count, duration);
+	adjust_velocities(contact_array, contact_end, duration);
 }
-void ContactResolver::preprocess_contacts(Contact* contact_array, size_t contact_count, double duration) { //readies all contacts in the array for processing, ensures internal data is correct and appropriate objects are alive
-	const Contact* end = contact_array + contact_count;
-	for (Contact* current = contact_array; current != end; ++current) {
+void ContactResolver::preprocess_contacts(Contact* contact_array, Contact* contact_end, double duration) { //readies all contacts in the array for processing, ensures internal data is correct and appropriate objects are alive
+	for (Contact* current = contact_array; current != contact_end; ++current) {
 		current->calculate_internals(duration);
 	}
 }
-void ContactResolver::adjust_velocities(Contact* contact_array, size_t contact_count, double duration) { // resolves velocity issues constrained by velocity iterations
+void ContactResolver::adjust_velocities(Contact* contact_array, Contact* contact_end, double duration) { // resolves velocity issues constrained by velocity iterations
 	using namespace DirectX;
 	XMFLOAT3 velocity_change[g_num_bodies];
 	assert(g_num_bodies == 2);
-	const Contact* end = contact_array + contact_count;
 	for (m_velocity_iterations_used = 0; m_velocity_iterations_used != m_max_velocity_iterations; ++m_velocity_iterations_used) { // keep processing until we run out of allowed iterations
 		float max = m_velocity_epsilon; // only look for contacts whose velocity is above the threshold
 		Contact* max_contact = nullptr;
-		for (Contact* current = contact_array; current != end; ++current) {  // find the contact with the largest contact velocity
+		for (Contact* current = contact_array; current != contact_end; ++current) {  // find the contact with the largest contact velocity
 			if (current->m_desired_delta_velocity > max) {
 				max = current->m_desired_delta_velocity;
 				max_contact = current;
@@ -241,7 +239,7 @@ void ContactResolver::adjust_velocities(Contact* contact_array, size_t contact_c
 		// perform velocity compinent of collsiion resolution for the biggest collision
 		max_contact->apply_velocity_change(velocity_change);
 		// the update we performed changed some of the relative closing velocities for contacts involcing either one of our objects, and so need to be recomputed
-		for (Contact* current = contact_array; current != end; ++current) { // for each contact
+		for (Contact* current = contact_array; current != contact_end; ++current) { // for each contact
 			for (size_t i = 0; i != g_num_bodies && current->m_body[i]; ++i) {// for each body in the contact
 				for (size_t j = 0; j != g_num_bodies; ++j) { // check if either body in the current contact is one of the bodies we just updated
 					if (current->m_body[i] == max_contact->m_body[j]) { // found matching RigidBody pointers, dont want to run this code if m_body[i] is nullptr, because if both are nullptrs then we cant do anything
@@ -255,16 +253,15 @@ void ContactResolver::adjust_velocities(Contact* contact_array, size_t contact_c
 		}
 	}
 }
-void ContactResolver::adjust_positions(Contact* contact_array, size_t contact_count, double duration) { // resolves position issues constrained by velocity iterations
+void ContactResolver::adjust_positions(Contact* contact_array, Contact* contact_end, double duration) { // resolves position issues constrained by velocity iterations
 	using namespace DirectX;
 	XMFLOAT3 linear_change[g_num_bodies];
 	float max_penetration;
-	const Contact* end = contact_array + contact_count;
 	for (m_position_iterations_used = 0; m_position_iterations_used != m_max_position_iterations; ++m_position_iterations_used) {
 		// find the most severe penetration
 		max_penetration = m_position_epsilon; // only consider penetrations greater than the epsilon, allows objects to interpenetrate slightly
 		Contact* max_contact = nullptr;
-		for (Contact* current = contact_array; current != end; ++current) {
+		for (Contact* current = contact_array; current != contact_end; ++current) {
 			if (current->m_penetration > max_penetration) {
 				max_penetration = current->m_penetration; // update the max
 				max_contact = current;
@@ -273,7 +270,7 @@ void ContactResolver::adjust_positions(Contact* contact_array, size_t contact_co
 		if (!max_contact) return;
 		max_contact->apply_position_change(linear_change, max_penetration);
 		// resolving penetration may have changed the current body's penetration into other bodies
-		for (Contact* current = contact_array; current != end; ++current) {
+		for (Contact* current = contact_array; current != contact_end; ++current) {
 			for (size_t i = 0; i != g_num_bodies && current->m_body[i]; ++i) {// for each body in the contact
 				for (size_t j = 0; j != g_num_bodies; ++j) { // check if either body in the current contact is one of the bodies we just updated
 					if (current->m_body[i] == max_contact->m_body[j]) { // found mathcing body pointers

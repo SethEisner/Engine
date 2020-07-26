@@ -1,16 +1,31 @@
 #include "NarrowCollide.h"
+#include "BroadCollide.h"
+#include "../Gameplay/GameObject.h"
+#include "RigidBody.h"
+#include "../RenderManager/FrameResources.h"
 #include <assert.h>
 #include <limits>
 
 // should use iterators and stl ADTs for searching
+void OrientedBoundingBox::create_from_points(size_t vertex_count, Vertex* vertex_buffer, size_t base_vertex, size_t start_index, size_t vertex_stride) {
+	m_oriented_box.CreateFromPoints(m_oriented_box,
+		vertex_count, reinterpret_cast<DirectX::XMFLOAT3*>(vertex_buffer + base_vertex + start_index), vertex_stride);
+}
+void OrientedBoundingBox::set_transform_pointers(GameObject* obj, Mesh* mesh, SubMesh* submesh) {
+	m_gameobject_to_world = &obj->m_transform;
+	m_model_to_gameobject = &mesh->m_transform;
+	m_submodel_to_model =	&submesh->m_transform;
+}
 
 void OrientedBoundingBox::calculate_internals() {
 	using namespace DirectX;
+	calculate_transform(); // update the transform to world space
+	transform();
 	// XMStoreFloat4x4(&m_transform, XMMatrixMultiply(XMLoadFloat4x4(&m_offset), XMLoadFloat4x4(&m_body->get_transform()))); // probably incorrect calculation of transform...
 }
 
-inline bool IntersectionTests::intersects(const OrientedBoundingBox& first, const OrientedBoundingBox& second) {
-	return first.m_oriented_box.Intersects(second.m_oriented_box); // call the DirectX Collision function so it does the hardwork for us
+inline bool IntersectionTests::intersects(const OrientedBoundingBox& first, const OrientedBoundingBox& second) { // checks for intersection in world space on the oriented boxes
+	return first.m_world_box.Intersects(second.m_world_box); // call the DirectX Collision function so it does the hardwork for us
 }
 static inline float transform_to_axis(const OrientedBoundingBox& box, const DirectX::XMFLOAT3& axis) {
 	using namespace DirectX;
@@ -19,7 +34,7 @@ static inline float transform_to_axis(const OrientedBoundingBox& box, const Dire
 	float y_dot = fabsf(XMVectorGetX(XMVector3Dot(axis_, XMLoadFloat3(&box.get_axis(1)))));
 	float z_dot = fabsf(XMVectorGetX(XMVector3Dot(axis_, XMLoadFloat3(&box.get_axis(2)))));
 	return box.m_oriented_box.Extents.x * x_dot 
-			+ box.m_oriented_box.Extents.y * y_dot 
+			+ box.m_oriented_box.Extents.y * y_dot
 			+ box.m_oriented_box.Extents.z * z_dot;
 }
 // check if the boxes overlap along the given axis, and returns the amount of overlap
@@ -88,14 +103,14 @@ static inline DirectX::XMFLOAT3 contact_point(const DirectX::XMFLOAT3& p_one, co
 }
 void fill_point_face_box_box(const OrientedBoundingBox& first, const OrientedBoundingBox& second, const DirectX::XMFLOAT3& to_center, CollisionData* data, int best, float penetration) {
 	// called when we know that a vertex from box two is in contact with a face on box one
-	Contact* contact = data->m_contacts;
+	Contact* contact = data->m_contact;
 	using namespace DirectX;
 	assert(best >= 0 && best <= 2); // assert that best is either the x,y, or z axis
-	XMVECTOR normal = XMLoadFloat3(&first.get_axis(best)); // normal of the face is in the same direction as the axis the face lies on
+	XMVECTOR normal = XMVector3Normalize(XMLoadFloat3(&first.get_axis(best))); // normal of the face is in the same direction as the axis the face lies on
 	float dot = XMVectorGetX(XMVector3Dot(normal, XMLoadFloat3(&to_center)));
 	if (dot > 0) normal *= -1.0f; // determine if the positive or negative face on the axis collided
 	// determine which vertex of the second box collided with the face
-	XMFLOAT3 vertex = second.m_oriented_box.Extents;
+	XMFLOAT3 vertex = second.m_world_box.Extents;
 	if (XMVectorGetX(XMVector3Dot(XMLoadFloat3(&second.get_axis(0)), normal)) < 0.0f) vertex.x = -vertex.x;
 	if (XMVectorGetX(XMVector3Dot(XMLoadFloat3(&second.get_axis(1)), normal)) < 0.0f) vertex.y = -vertex.y;
 	if (XMVectorGetX(XMVector3Dot(XMLoadFloat3(&second.get_axis(2)), normal)) < 0.0f) vertex.z = -vertex.z;
@@ -130,12 +145,13 @@ uint32_t CollisionDetector::collides(const OrientedBoundingBox& first, const Ori
 		for (size_t j = 3; j != 6; ++j) { // start from 3 so we can start from the base data of the second box
 			XMStoreFloat3(&cross, XMVector3Cross(axes[i], axes[j])); 
 			if (!try_axis(first, second, cross, to_center, index, penetration, best)) return 0;
+			++index;
 		}
 	}
 	assert(best >= 0); // we should only get to this point if we could not find a separating axis, and this best should be a non-negative number
 	// by this point we know there is a collision, and we know which axis gave the smallest penetration
 	// we can deal with it in different ways depending on which axis it was`
-	switch (best) {
+	switch (best) { // at this point all the SATs failed so we have a contact
 	case 0:
 	case 1:
 	case 2: // a vertex of the second box intersected a face on the first box
@@ -179,15 +195,15 @@ uint32_t CollisionDetector::collides(const OrientedBoundingBox& first, const Ori
 		XMStoreFloat3(&first_point,  XMVector3Transform(XMLoadFloat3(&XMFLOAT3(point_on_first_edge)), XMLoadFloat4x4(&first.get_transform())));
 		XMStoreFloat3(&second_point, XMVector3Transform(XMLoadFloat3(&XMFLOAT3(point_on_second_edge)), XMLoadFloat4x4(&second.get_transform())));
 		// find out which point is closest approach of the two line segments
-		float first_extents[3] = { first.m_oriented_box.Extents.x, first.m_oriented_box.Extents.y, first.m_oriented_box.Extents.z };
-		float second_extents[3] = { second.m_oriented_box.Extents.x, second.m_oriented_box.Extents.y, second.m_oriented_box.Extents.z };
+		float first_extents[3] = { first.m_world_box.Extents.x, first.m_world_box.Extents.y, first.m_world_box.Extents.z };
+		float second_extents[3] = { second.m_world_box.Extents.x, second.m_world_box.Extents.y, second.m_world_box.Extents.z };
 		XMFLOAT3 first_edge;
 		XMStoreFloat3(&first_edge, axes[first_axis_index]);
 		XMFLOAT3 second_edge;
 		XMStoreFloat3(&second_edge, axes[3 + second_axis_index]);
 		XMFLOAT3 vertex = contact_point(first_point, first_edge, first_half_size, second_point, second_edge, second_half_size, best_axis > 2);
 
-		Contact* contact = data->m_contacts;
+		Contact* contact = data->m_contact;
 		contact->m_penetration = penetration;
 		XMStoreFloat3(&contact->m_contact_normal, normal); // axis is perpendicular to both edges so we can use it as the contact normal
 		contact->m_contact_point = vertex;

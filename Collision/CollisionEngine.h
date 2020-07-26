@@ -30,7 +30,7 @@ class CollisionEngine {
 	// BVHNode<BoundingBox*>* m_bvh_root; // bvh of BoundingBoxes, pass a BoundingBox pointer so we use the pointer in the actual node instead of the BoundingBox itself, 
 	// want to do this because the GameObject has ownership the boundingbox itself, use this pointer to read the up to date info
 	ContactResolver* m_resolver;
-	CollisionData m_collision_data; // stores the collision data for each frame, including the array of contacts. build by the collisiondetector
+	CollisionData* m_collision_data; // stores the collision data for each frame, including the array of contacts. build by the collisiondetector
 	//PotentialCollision* m_potential_contacts; // holds the array of potential contacts
 	std::vector<PotentialCollision>* m_potential_contacts; // use a vector because we want an unlimited number of potential contacts 
 	// because this is cheap to determine and false positives dont count for anything. also we still have the same number of actual contacts
