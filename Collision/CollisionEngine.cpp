@@ -14,9 +14,8 @@ CollisionEngine::CollisionEngine(size_t max_contacts, size_t iterations) :
 	m_collision_data->reset(m_max_contacts);
 	m_collision_data->m_friction = 0.9f;
 	m_collision_data->m_restitution = 0.2f;
-	m_collision_data->m_tolerance = 0.1f;
+	m_collision_data->m_tolerance = 0.05f;
 }
-	//m_potential_contacts_count(0)
 
 void CollisionEngine::start_frame() {
 	for (auto& objs : *m_collision_objects) { // reset the forces on each body and calculate the necessary data

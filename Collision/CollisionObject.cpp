@@ -7,9 +7,9 @@
 #include <D3DCommon.h>
 #include "../RenderManager/d3dUtil.h" // for Mesh
 #include "../RenderManager/RenderItem.h"
-CollisionObject::CollisionObject(GameObject* game_object, Mesh* mesh, bool create_rigid_body) : 
+CollisionObject::CollisionObject(GameObject* game_object, Mesh* mesh) : 
 		m_game_object(game_object), 
-		m_body(create_rigid_body ? new RigidBody(game_object) : nullptr), 
+		m_body(nullptr), 
 		m_obb_count(mesh->m_submeshes.size()), 
 		m_oriented_boxes(new OrientedBoundingBox[m_obb_count]), 
 		m_box(new BoundingBox(game_object)) {
@@ -25,7 +25,7 @@ CollisionObject::CollisionObject(GameObject* game_object, Mesh* mesh, bool creat
 		size_t base_vertex = mesh->m_submeshes[i].m_base_vertex; // a value added to each index before reading a vertex from the vertex buffer
 		m_oriented_boxes[i].create_from_points(vertex_count, vertex_buffer, base_vertex, start_index, mesh->m_vertex_stride);
 		// m_oriented_boxes[i].m_transform = mesh->m_submeshes[i].m_transform;
-		m_oriented_boxes[i].m_body = m_body;
+		m_oriented_boxes[i].m_body = nullptr;
 		m_oriented_boxes[i].set_transform_pointers(game_object, mesh, (mesh->m_submeshes.data() + i));
 		m_oriented_boxes[i].calculate_transform();
 	}
@@ -59,4 +59,11 @@ CollisionObject::CollisionObject(GameObject* game_object, RigidBody* rigid_body,
 }
 DirectX::XMFLOAT3 CollisionObject::get_position() {
 	return m_body->get_position();
+}
+void CollisionObject::add_rigid_body() {
+	if (m_body) return;
+	m_body = new RigidBody(m_game_object);
+	for (size_t i = 0; i != m_obb_count; ++i) {
+		m_oriented_boxes[i].m_body = m_body;
+	}
 }

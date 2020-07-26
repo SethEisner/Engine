@@ -219,13 +219,7 @@ bool Scene::init() {
 
 
 	engine->renderer->add_mesh(m_floor->m_mesh); // add mesh at the end because we bind the textures it uses in this function
-	// CollisionObject* coll_obj = new CollisionObject(m_floor, m_floor->m_mesh);
-	m_floor->add_collision_object(new CollisionObject(m_floor, m_floor->m_mesh, false));
-	// m_floor->m_collision_object->m_body->set_inverse_mass(0.0f); // set the inverse mass of the floor to be zero so it has infinite mass
-	// // m_floor->m_collision_object->m_body->set_mass(1.0f);
-	// m_floor->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
-	// m_floor->m_collision_object->m_body->set_linear_damping(1.0f);
-	// m_floor->m_collision_object->m_body->set_velocity({ 0.0f,0.0f,0.0f });
+	m_floor->add_collision_object(new CollisionObject(m_floor, m_floor->m_mesh));
 	
 	engine->collision_engine->add_object(m_floor->m_collision_object);
 
@@ -243,7 +237,8 @@ bool Scene::init() {
 	engine->renderer->create_and_add_texture("crate_color", "floor.zip/checkerboard.dds", 0, m_crate->m_mesh, TextureFlags::COLOR);
 	
 	engine->renderer->add_mesh(m_crate->m_mesh);
-	m_crate->add_collision_object(new CollisionObject(m_crate, m_crate->m_mesh, true));
+	m_crate->add_collision_object(new CollisionObject(m_crate, m_crate->m_mesh));
+	m_crate->m_collision_object->add_rigid_body();
 	m_crate->m_collision_object->m_body->set_inverse_mass(1.0f);
 	m_crate->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
 	m_crate->m_collision_object->m_body->set_linear_damping(1.0f);
