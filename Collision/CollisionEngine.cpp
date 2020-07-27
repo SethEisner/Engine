@@ -13,8 +13,8 @@ CollisionEngine::CollisionEngine(size_t max_contacts, size_t iterations) :
 		m_potential_contacts(new std::vector<PotentialCollision>()) {
 	m_collision_data->reset(m_max_contacts);
 	m_collision_data->m_friction = 0.9f;
-	m_collision_data->m_restitution = 0.2f;
-	m_collision_data->m_tolerance = 0.05f;
+	m_collision_data->m_restitution = 0.3f;
+	m_collision_data->m_tolerance = 0.1f;
 }
 
 void CollisionEngine::start_frame() {

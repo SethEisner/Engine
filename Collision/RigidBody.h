@@ -8,6 +8,8 @@
 // using polymorphism
 class GameObject;
 
+static constexpr float g_sleep_epsilon = 0.3f;
+
 class RigidBody {
 public:
 	// virtual void calculate_derived_data(); // a rigid body will need to calculate different values
@@ -21,6 +23,7 @@ public:
 	bool has_finite_mass() const; // if inverse mass is not 0 then we have finite mass
 	void set_linear_damping(const float);
 	float get_linear_damping() const;
+	void set_position(const DirectX::XMVECTOR& pos);
 	void set_position(const DirectX::XMFLOAT3& pos);
 	void set_position(const float x, const float y, const float z);
 	void get_position(DirectX::XMFLOAT3*) const;
@@ -50,6 +53,14 @@ public:
 	inline GameObject* get_game_object() const {
 		return m_game_object;
 	}
+	inline bool get_awake() const {
+		return m_is_awake;
+	}
+	inline bool get_can_sleep() const {
+		return m_can_sleep;
+	}
+	void set_awake(const bool awake = true);
+	void set_can_sleep(const bool can_sleep = true);
 	// should have the virtual functions needed by the rigid body but they should be inlined and do nothing so that the contact code can work with the parent or child class
 	RigidBody(GameObject* obj);  // : m_game_object(obj), m_position(obj->m_position) {}
 protected:
@@ -66,6 +77,7 @@ protected:
 	DirectX::XMFLOAT3 m_acceleration;
 	DirectX::XMFLOAT3 m_last_frame_accleration;
 	// optimizations that may not be needed yet
+	float m_motion;
 	bool m_is_awake; // can sleep the body so it doesnt get updated by the integration nor can it collide with the world
 	bool m_can_sleep; // mark whether the body is allowed to fall asleep
 };

@@ -63,6 +63,8 @@ DirectX::XMFLOAT3 CollisionObject::get_position() {
 void CollisionObject::add_rigid_body() {
 	if (m_body) return;
 	m_body = new RigidBody(m_game_object);
+	m_body->set_can_sleep(true); // want the object to be able to go to sleep
+	m_body->set_awake();
 	for (size_t i = 0; i != m_obb_count; ++i) {
 		m_oriented_boxes[i].m_body = m_body;
 	}

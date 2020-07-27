@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <math.h>
 #include <limits>
+#include <algorithm>
 
 // inline void RigidBody::calculate_derived_data() { 
 // 	return; 
@@ -20,7 +21,7 @@ void RigidBody::update() {
 	return;
 }
 void RigidBody::integrate(double duration) { // called in run_frame of collision_engine
-	// if (!m_is_awake) return; // do not integrate sleeping bodies
+	if (!m_is_awake) return; // do not integrate sleeping bodies
 	using namespace DirectX;
 	// calculate linear accleration from force inputs
 	XMVECTOR last_frame_acceleration = XMLoadFloat3(&m_acceleration);//  XMVectorSet(m_acceleration.x, m_acceleration.y, m_acceleration.z, 0.0f);
@@ -54,6 +55,14 @@ void RigidBody::integrate(double duration) { // called in run_frame of collision
 	// incorrect: this->m_transform = this->m_transform * translation; // applying the transform like this every frame will cause accumulation errors...
 	// DirectX::XMStoreFloat4x4(&translation, DirectX::XMMatrixTranslation(m_position.x, m_position.y, m_position.z));
 	// should never sleep the player because their position and possibly velocity can be updated else where
+	if (m_can_sleep) {
+		float current_motion = XMVectorGetX(XMVector3Dot(position, position));
+		float bias = powf(0.5f, duration);
+		m_motion = bias * m_motion + (1.0f - bias) * current_motion;
+		if (m_motion < g_sleep_epsilon) set_awake(false); // only awake if the motion is above the threshold
+		m_motion = std::min(m_motion, g_sleep_epsilon * 10); // cap m_motion at g_sleep_epsilon * 10
+
+	}
 }
 // void RigidBody::set_game_object(GameObject* obj) {
 // 	m_game_object = obj;
@@ -81,12 +90,15 @@ void RigidBody::set_linear_damping(const float linear_damping) {
 float RigidBody::get_linear_damping() const {
 	return m_linear_damping;
 }
+void RigidBody::set_position(const DirectX::XMVECTOR& pos) {
+	XMStoreFloat3(&m_position, pos);
+}
 void RigidBody::set_position(const DirectX::XMFLOAT3& position)
 {
-	DirectX::XMVectorSet(position.x, position.y, position.z, 1.0f);
+	m_position = position;
 }
 void RigidBody::set_position(const float x, const float y, const float z) {
-	DirectX::XMVectorSet(x, y, z, 1.0f);
+	m_position = { x, y, z };
 }
 // fucntions that get an XMVECTOR member should return a XMFLOAT3 or 4
 void RigidBody::get_position(DirectX::XMFLOAT3* ret) const {
@@ -197,4 +209,17 @@ void RigidBody::get_acceleration(DirectX::XMFLOAT3* accel) const {
 }
 DirectX::XMFLOAT3 RigidBody::get_acceleration() const {
 	return m_acceleration;
+}
+void RigidBody::set_awake(const bool awake) {
+	m_is_awake = awake;
+	if (m_is_awake) {
+		m_motion = 2.0f * g_sleep_epsilon;
+		return;
+	}
+	m_velocity = { 0.0f, 0.0f, 0.0f };
+
+}
+void RigidBody::set_can_sleep(const bool can_sleep) {
+	m_can_sleep = can_sleep;
+	if (!m_can_sleep && !m_is_awake) set_awake();
 }

@@ -16,17 +16,11 @@ void Contact::calculate_internals(double duration) {
 	calculate_contact_basis();
 	// store the position of the contact relative to each body in contact space
 	using namespace DirectX;
-	assert(g_num_bodies == 2);
-	for (size_t i = 0; i != g_num_bodies && m_body[i]; ++i) { // calculate the relative position for each non null body in the contact structure
-		XMStoreFloat3(&m_relative_contact_position[i], XMLoadFloat3(&m_contact_point) - XMLoadFloat3(&m_body[i]->get_position()));
-	}
+	XMStoreFloat3(&m_relative_contact_position[0], XMLoadFloat3(&m_contact_point) - XMLoadFloat3(&m_body[0]->get_position()));
+	if (m_body[1]) XMStoreFloat3(&m_relative_contact_position[1], XMLoadFloat3(&m_contact_point) - XMLoadFloat3(&m_body[1]->get_position()));
 	// find the relative velocity of the bodies at the contact point
 	m_contact_velocity = calculate_local_velocity(0, duration);
-	if (m_body[1]) {
-		// m_contact_velocity -= calculate_local_velocity(1, duration);
-		// negate here because contact normal is negated for the second body, so we need to re-negate it to put it into terms of the first body
-		XMStoreFloat3(&m_contact_velocity, XMLoadFloat3(&m_contact_velocity) - XMLoadFloat3(&calculate_local_velocity(1, duration)));
-	}
+	if (m_body[1]) XMStoreFloat3(&m_contact_velocity, XMLoadFloat3(&m_contact_velocity) - XMLoadFloat3(&calculate_local_velocity(1, duration)));
 	// calculate the desired change in velocity for the resolution
 	calculate_desired_delta_velocity(duration);
 
@@ -38,18 +32,31 @@ void Contact::swap_bodies() { // reverses the contact
 	std::swap(m_body[0], m_body[1]);
 	
 }
+void Contact::match_awake_state() {
+	if (!m_body[1]) return; // no body to match state with
+	bool awake0 = m_body[0]->get_awake();
+	bool awake1 = m_body[1]->get_awake();
+	if (awake0 == awake1) return; // both bodies already have matching states
+	if (awake0) {
+		m_body[1]->set_awake();
+		return;
+	}
+	assert(awake1); // should only get here if body1 is awake
+	m_body[0]->set_awake();
+}
 void Contact::calculate_desired_delta_velocity(double duration) {
-	const static float velocity_limit = 0.25f;
-	float velocity_from_acc = 0.0f;
+	const static float velocity_limit = 0.1f;
 	using namespace DirectX;
-	const XMVECTOR contact_normal = XMLoadFloat3(&m_contact_normal);
-	velocity_from_acc += XMVectorGetX(XMVector3Dot((XMLoadFloat3(&m_body[0]->get_last_frame_acceleration()) * duration), contact_normal));
-	if (m_body[1]) velocity_from_acc -= XMVectorGetX(XMVector3Dot((XMLoadFloat3(&m_body[1]->get_last_frame_acceleration()) * duration), contact_normal));
-	// if the velocity is very low, set the restitution to zero so the objects dont try to bounce: limits vibration of stacked objects
-	float this_restitution = m_restitution;
-	if (fabsf(m_contact_velocity.x) < velocity_limit) this_restitution = 0.0f;
-	// combine the bounce velocity with the removed accleration velocity
-	m_desired_delta_velocity = -m_contact_velocity.x - this_restitution * (m_contact_velocity.x - velocity_from_acc);
+	XMVECTOR scaled_contact = duration * XMLoadFloat3(&m_contact_normal);
+	float velocity_from_acceleration = XMVectorGetX(XMVector3Dot(XMLoadFloat3(&m_body[0]->get_last_frame_acceleration()), scaled_contact));
+	if (m_body[1]) {
+		velocity_from_acceleration -= XMVectorGetX(XMVector3Dot(XMLoadFloat3(&m_body[1]->get_last_frame_acceleration()), scaled_contact));
+	}
+	float restitution = m_restitution;
+	if (fabs(m_contact_velocity.x) < velocity_limit) {
+		restitution = 0.0f;
+	}
+	m_desired_delta_velocity = -m_contact_velocity.x - restitution * (m_contact_velocity.x - velocity_from_acceleration);
 }
 DirectX::XMFLOAT3 Contact::calculate_local_velocity(uint32_t body_index, double duration) {
 	RigidBody* this_body = m_body[body_index];
@@ -78,7 +85,7 @@ void Contact::calculate_contact_basis() { // calulates an orthonormal basis for 
 
 	using namespace DirectX;
 	// todo: determine if orthogonal returns a normalized vector or not
-	XMStoreFloat3(&contact_tangent[0], XMVector3Normalize(XMVector3Orthogonal(XMLoadFloat3(&m_contact_normal)))); // compute a normalized vector that's orthogonal to the contact normal
+	XMStoreFloat3(&contact_tangent[0], XMVector3Orthogonal(XMLoadFloat3(&m_contact_normal))); // compute a normalized vector that's orthogonal to the contact normal
 	// contact basis is right handed so we cross the normal (x) with the first tangent (y) to get z
 	XMStoreFloat3(&contact_tangent[1], XMVector3Normalize(XMVector3Cross(XMLoadFloat3(&m_contact_normal), XMLoadFloat3(&contact_tangent[0]))));
 	// copy into the rows to automatically calculate the transpose (inverse) which takes us from contact space to world space
@@ -111,35 +118,32 @@ void Contact::apply_velocity_change(DirectX::XMFLOAT3 velocity_change[2]) { // p
 	}
 }
 void Contact::apply_position_change(DirectX::XMFLOAT3 linear_change[2], float penetration) {
-	float linear_move[g_num_bodies];
-	float total_inertia = 0;
-	float linear_inertia[g_num_bodies];
+	float linear_move[2] = { 0.0f, 0.0f };
+	float total_inertia = 0.0f;
+	float linear_inertia[2] = { 0.0f, 0.0f };
 	using namespace DirectX;
-	for (size_t i = 0; i != g_num_bodies && m_body[i]; ++i) {
-		// no rotaional component so only need to worry about linear inertia
+	
+	//calculate the inertia of each object in the direction of the contact normal
+	// objects in a collision are moved based on how much relative mass they have
+	// lower relative mass is moved more than a highrer relative mass
+	// mass relative to the other object
+	for (size_t i = 0; i != 2 && m_body[i]; ++i) { // needs to be separate loop because total_inertia needs to be calcualted
 		linear_inertia[i] = m_body[i]->get_inverse_mass();
 		total_inertia += linear_inertia[i];
 	}
-	// caluclate and apply the changes for each body
-	float sign = 1; // sign for first body is 1 and -1 for the second body
-	for (size_t i = 0; i != g_num_bodies && m_body[i]; ++i, sign = -1) {
-		linear_move[i] = sign * penetration * (linear_inertia[i] / total_inertia); // objects in a collision move based on their relative mass
-		
-		XMVECTOR projection = XMLoadFloat3(&m_relative_contact_position[i]);
-		const XMVECTOR contact_normal = XMLoadFloat3(&m_contact_normal);
-		projection += contact_normal * XMVector3Dot(-XMLoadFloat3(&m_relative_contact_position[i]), contact_normal);
-		// velocity change is the linear movement along the contact normal
-		XMStoreFloat3(&linear_change[i], contact_normal * linear_move[i]);
-		// apply the linear movement
-		XMFLOAT3 pos;
-		m_body[i]->get_position(&pos);
-		XMVECTOR new_pos = XMLoadFloat3(&pos);
-		new_pos += contact_normal * linear_move[i]; // faster to recalculate the same linear change that it would be to load the previously calculated value
-		XMStoreFloat3(&pos, new_pos);
-		m_body[i]->set_position(pos);
-		// dont need to change the orientation because we are not calculating rotation
-		// may not be necessary because original code only called this for sleeping objects
-		// m_body[i]->calculate_derived_data(); // function only updates rotational data in the rigidbody
+	// first body is guranteed to not be a nullptr, and we negate the sign for the second iteration because we are using the perspective of the second body
+	float inverse_ineratia = 1.0f / total_inertia;
+	float sign = 1.0f;
+	for (size_t i = 0; i != 2 && m_body[i]; ++i, sign = -1.0f) {
+		linear_move[i] = sign * penetration * linear_inertia[i] * inverse_ineratia;
+		// XMVECTOR projection = XMLoadFloat3(m_relative_contact_position + i);
+		XMVECTOR normal = XMLoadFloat3(&m_contact_normal);
+		// projection += (normal * -XMVector3Dot(projection, normal));
+		XMStoreFloat3(linear_change + i, normal * linear_move[i]);
+		XMVECTOR position = XMLoadFloat3(&m_body[i]->get_position());
+		position += normal * linear_move[i];
+
+		m_body[i]->set_position(position);
 	}
 }
 inline DirectX::XMFLOAT3 Contact::calculate_frictionless_impulse(/*DirectX::XMFLOAT3X3* inverse_inertia_tensor*/) { // calculates the impulse needed to resolve the contact given that the contact has no friction
@@ -158,30 +162,32 @@ inline DirectX::XMFLOAT3 Contact::calculate_friction_impulse(/*DirectX::XMFLOAT3
 	XMFLOAT3 impulse_contact = { 0.0f, 0.0f, 0.0f };
 	float inverse_mass = m_body[0]->get_inverse_mass();
 	if (m_body[1]) inverse_mass += m_body[1]->get_inverse_mass();
-	XMMATRIX delta_vel = XMMatrixIdentity();
-	delta_vel *= inverse_mass;
+	XMMATRIX delta_velocity = XMMatrixIdentity();//XMMatrixTranspose(XMLoadFloat3x3(&m_contact_to_world));
+	// delta_velocity *= XMLoadFloat3x3(&m_contact_to_world);
+	delta_velocity *= inverse_mass;
+	//delta_vel *= inverse_mass;
 	// invert to get the impulse needed per unit velocity
-	XMVECTOR determinant;
-	XMMATRIX impulse_matrix = XMMatrixInverse(&determinant, delta_vel);
+	XMVECTOR determinant = XMMatrixDeterminant(delta_velocity);
+	XMMATRIX impulse_matrix = XMMatrixInverse(&determinant, delta_velocity);
 	// find the target velocities to kill
-	XMVECTOR velocity_kill = {m_desired_delta_velocity, -m_contact_velocity.y, -m_contact_velocity.z, 0.0f};
+	XMVECTOR velocity_kill = XMVectorSet(m_desired_delta_velocity, -m_contact_velocity.y, -m_contact_velocity.z, 0.0f);
 	// find the impulse required to kill the target velocities
 	XMStoreFloat3(&impulse_contact, XMVector3Transform(velocity_kill, impulse_matrix));
 	// check for exceeding friction
-	float planar_impulse_sqr = impulse_contact.y * impulse_contact.y + impulse_contact.z * impulse_contact.z;
-	if (planar_impulse_sqr > ((impulse_contact.x * m_friction) * (impulse_contact.x * m_friction))) { // overcame static friction
+	float planar_impulse = sqrtf(impulse_contact.y * impulse_contact.y + impulse_contact.z * impulse_contact.z);
+	if (planar_impulse > (impulse_contact.x * m_friction)) { // overcame static friction
 		// exceeding static friction so use dynamic friction
-		float planar_impulse = sqrtf(planar_impulse_sqr);
+		//float planar_impulse = sqrtf(planar_impulse_sqr);
 		float inv_planar_impulse = 1.0f / planar_impulse;
 		impulse_contact.y *= inv_planar_impulse;
 		impulse_contact.z *= inv_planar_impulse;
-		XMFLOAT3X3 delta_velocity;
-		XMStoreFloat3x3(&delta_velocity, delta_vel);
+		XMFLOAT3X3 delta_vel;
+		XMStoreFloat3x3(&delta_vel, delta_velocity);
 		// cyclone uses row matrices, but I'm usign column befcause that's what direct x math uses
-		impulse_contact.x = delta_velocity.m[0][0] + delta_velocity.m[1][0] * m_friction * impulse_contact.y + delta_velocity.m[2][0] * m_friction * impulse_contact.z;
+		impulse_contact.x = delta_vel.m[0][0] + delta_vel.m[1][1] * m_friction * impulse_contact.y + delta_vel.m[2][2] * m_friction * impulse_contact.z;
 		impulse_contact.x = m_desired_delta_velocity / impulse_contact.x;
 		impulse_contact.y *= m_friction * impulse_contact.x;
-		impulse_contact.z *= impulse_contact.y; //isotropic friction so the friction we apply is the same for the y and z direction
+		impulse_contact.z *= m_friction * impulse_contact.x; //isotropic friction so the friction we apply is the same for the y and z direction
 	}
 	return impulse_contact;
 }
@@ -224,38 +230,74 @@ void ContactResolver::preprocess_contacts(Contact* contact_array, Contact* conta
 }
 void ContactResolver::adjust_velocities(Contact* contact_array, Contact* contact_end, double duration) { // resolves velocity issues constrained by velocity iterations
 	using namespace DirectX;
-	XMFLOAT3 velocity_change[g_num_bodies];
-	assert(g_num_bodies == 2);
-	for (m_velocity_iterations_used = 0; m_velocity_iterations_used != m_max_velocity_iterations; ++m_velocity_iterations_used) { // keep processing until we run out of allowed iterations
-		float max = m_velocity_epsilon; // only look for contacts whose velocity is above the threshold
+	XMFLOAT3 velocity_change[2];
+	XMFLOAT3 delta_velocity;
+	m_velocity_iterations_used = 0;
+	do {
+		float max = m_velocity_epsilon;
 		Contact* max_contact = nullptr;
-		for (Contact* current = contact_array; current != contact_end; ++current) {  // find the contact with the largest contact velocity
+		for (Contact* current = contact_array; current != contact_end; ++current) { // find the contact with the max separating velocity
 			if (current->m_desired_delta_velocity > max) {
 				max = current->m_desired_delta_velocity;
 				max_contact = current;
 			}
 		}
-		if (!max_contact) return; // return if we didnt find a contact with velocity greater than epsilon
-		// perform velocity compinent of collsiion resolution for the biggest collision
+		if (!max_contact) return;
+		// resolve the velocities of the contact that came out on top
+		max_contact->match_awake_state();
 		max_contact->apply_velocity_change(velocity_change);
-		// the update we performed changed some of the relative closing velocities for contacts involcing either one of our objects, and so need to be recomputed
-		for (Contact* current = contact_array; current != contact_end; ++current) { // for each contact
-			for (size_t i = 0; i != g_num_bodies && current->m_body[i]; ++i) {// for each body in the contact
-				for (size_t j = 0; j != g_num_bodies; ++j) { // check if either body in the current contact is one of the bodies we just updated
-					if (current->m_body[i] == max_contact->m_body[j]) { // found matching RigidBody pointers, dont want to run this code if m_body[i] is nullptr, because if both are nullptrs then we cant do anything
-						XMStoreFloat3(&current->m_contact_velocity, 
-							(i?-1:1) * XMLoadFloat3(&current->m_contact_velocity) + 
-							XMVector3Transform(XMLoadFloat3(&velocity_change[j]), XMMatrixTranspose(XMLoadFloat3x3(&current->m_contact_to_world))));
+		for (Contact* current = contact_array; current != contact_end; ++current) {
+			for (size_t b = 0; b != 2; ++b) if (current->m_body[b]) {
+				for (size_t d = 0; d != 2; ++d) {
+					if (current->m_body[b] == max_contact->m_body[d]) {
+						// XMVECTOR delta_velocity = XMLoadFloat3(velocity_change + d);
+						// XMVECTOR contact_velocity = XMLoadFloat3(&current->m_contact_velocity);
+						// XMVector3Transform(delta_velocity, XMMatrixTranspose(XMLoadFloat3x3(&current->m_contact_to_world))) * (b?-1:1);
+						// XMStoreFloat3(&current->m_contact_velocity, contact_velocity + delta_velocity);
+						// current->calculate_desired_delta_velocity(duration);
+
+						XMStoreFloat3(&current->m_contact_velocity,
+							(b?-1:1) * XMLoadFloat3(&current->m_contact_velocity) + 
+							XMVector3Transform(XMLoadFloat3(velocity_change + d), XMMatrixTranspose(XMLoadFloat3x3(&current->m_contact_to_world))));
 						current->calculate_desired_delta_velocity(duration);
 					}
 				}
 			}
 		}
-	}
+	} while (++m_velocity_iterations_used < m_max_velocity_iterations);
+	
+	
+	
+	// for (m_velocity_iterations_used = 0; m_velocity_iterations_used != m_max_velocity_iterations; ++m_velocity_iterations_used) { // keep processing until we run out of allowed iterations
+	// 	float max = m_velocity_epsilon; // only look for contacts whose velocity is above the threshold
+	// 	Contact* max_contact = nullptr;
+	// 	for (Contact* current = contact_array; current != contact_end; ++current) {  // find the contact with the largest contact velocity
+	// 		if (current->m_desired_delta_velocity > max) {
+	// 			max = current->m_desired_delta_velocity;
+	// 			max_contact = current;
+	// 		}
+	// 	}
+	// 	if (!max_contact) return; // return if we didnt find a contact with velocity greater than epsilon
+	// 	// perform velocity compinent of collsiion resolution for the biggest collision
+	// 	max_contact->apply_velocity_change(velocity_change);
+	// 	// the update we performed changed some of the relative closing velocities for contacts involcing either one of our objects, and so need to be recomputed
+	// 	for (Contact* current = contact_array; current != contact_end; ++current) { // for each contact
+	// 		for (size_t i = 0; i != 2 && current->m_body[i]; ++i) {// for each body in the contact
+	// 			for (size_t j = 0; j != 2; ++j) { // check if either body in the current contact is one of the bodies we just updated
+	// 				if (current->m_body[i] == max_contact->m_body[j]) { // found matching RigidBody pointers, dont want to run this code if m_body[i] is nullptr, because if both are nullptrs then we cant do anything
+	// 					XMStoreFloat3(&current->m_contact_velocity, 
+	// 						(i?-1:1) * XMLoadFloat3(&current->m_contact_velocity) + 
+	// 						XMVector3Transform(XMLoadFloat3(&velocity_change[j]), XMMatrixTranspose(XMLoadFloat3x3(&current->m_contact_to_world))));
+	// 					current->calculate_desired_delta_velocity(duration);
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
 }
 void ContactResolver::adjust_positions(Contact* contact_array, Contact* contact_end, double duration) { // resolves position issues constrained by velocity iterations
 	using namespace DirectX;
-	XMFLOAT3 linear_change[g_num_bodies];
+	XMFLOAT3 linear_change[2];
 	float max_penetration;
 	for (m_position_iterations_used = 0; m_position_iterations_used != m_max_position_iterations; ++m_position_iterations_used) {
 		// find the most severe penetration
@@ -268,11 +310,12 @@ void ContactResolver::adjust_positions(Contact* contact_array, Contact* contact_
 			}
 		}
 		if (!max_contact) return;
+		max_contact->match_awake_state();
 		max_contact->apply_position_change(linear_change, max_penetration);
 		// resolving penetration may have changed the current body's penetration into other bodies
 		for (Contact* current = contact_array; current != contact_end; ++current) {
-			for (size_t i = 0; i != g_num_bodies && current->m_body[i]; ++i) {// for each body in the contact
-				for (size_t j = 0; j != g_num_bodies; ++j) { // check if either body in the current contact is one of the bodies we just updated
+			for (size_t i = 0; i != 2 && current->m_body[i]; ++i) {// for each body in the contact
+				for (size_t j = 0; j != 2; ++j) { // check if either body in the current contact is one of the bodies we just updated
 					if (current->m_body[i] == max_contact->m_body[j]) { // found mathcing body pointers
 						current->m_penetration += (i?1:-1) * XMVectorGetX(XMVector3Dot(XMLoadFloat3(&linear_change[j]), XMLoadFloat3(&current->m_contact_normal)));
 						// the sign of the change is positive if we're dealing with the second body in a contact and negative otherwise 
