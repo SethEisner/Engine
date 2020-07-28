@@ -70,7 +70,7 @@ public:
 		assert(entry_index != BUCKET_SIZE); // assert that the key exists, could throw an exception
 		// if (entry_index == BUCKET_SIZE) throw std::out_of_range("not in HashTable");
 		m_lock.unlock_shared();
-		return &bucket[index].m_entry[entry_index].m_value;
+		return bucket[index].m_entry[entry_index].m_value;
 	}
 	bool contains(const Key& _key) { // see if something with this key is already in the hashtable
 		Hash hash = static_cast<Hash>(std::hash<Key>{}(_key));
