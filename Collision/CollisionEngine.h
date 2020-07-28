@@ -8,14 +8,14 @@
 #include "CollisionObject.h" // contains gameobject and collision object
 
 // eventually replace the PotentialContact structure in broad collide with this, and make the BVH use CollisionObjects in place of RigidBodies
-struct PotentialCollision { // a potential contact is a pair of two collisionobjects, use collision objects so it's easy to go get associated gameobject, rigidbody, AABB, and OBBs
-	CollisionObject* m_collision_object[2] = { nullptr, nullptr };
-	PotentialCollision(CollisionObject* first, CollisionObject* second) {
-		m_collision_object[0] = first;
-		m_collision_object[1] = second;
-	}
-
-};
+// struct PotentialCollision { // a potential contact is a pair of two collisionobjects, use collision objects so it's easy to go get associated gameobject, rigidbody, AABB, and OBBs
+// 	CollisionObject* m_collision_object[2] = { nullptr, nullptr };
+// 	PotentialCollision(CollisionObject* first, CollisionObject* second) {
+// 		m_collision_object[0] = first;
+// 		m_collision_object[1] = second;
+// 	}
+// 
+// };
 // represents an independent simulation of physics. it keeps track of a set of rigid bodies, and prvides the means to update them all
 // engine should keep a copy of the CollisionEngine pointer and should build the BVH from the objects in the scene
 // should be renamed to CollisionEngine
@@ -32,9 +32,11 @@ class CollisionEngine {
 	ContactResolver* m_resolver;
 	CollisionData* m_collision_data; // stores the collision data for each frame, including the array of contacts. build by the collisiondetector
 	//PotentialCollision* m_potential_contacts; // holds the array of potential contacts
-	std::vector<PotentialCollision>* m_potential_contacts; // use a vector because we want an unlimited number of potential contacts 
+	// std::vector<PotentialCollision>* m_potential_contacts; // use a vector because we want an unlimited number of potential contacts 
+	PotentialContact* m_potential_contacts; // array of length m_max_contacts
 	// because this is cheap to determine and false positives dont count for anything. also we still have the same number of actual contacts
 	// size_t m_potential_contacts_count;
+	BVHNode<BoundingBox>* m_bvh; // the bounding volume hierarchy
 public:
 	explicit CollisionEngine(size_t max_contacts = 256, size_t iterations = 0);
 	~CollisionEngine() {
@@ -45,9 +47,9 @@ public:
 	void run_frame(double duration); // 
 	void start_frame(); // initializes the CollisionEngine for a simulation frame. clears the force and torque acculumators for bodies in the CollisionEngine
 	void update(double duration); // app.cpp update
-	void broad_phase(); // performs broadphase collision detection
-	void narrow_phase(); // performs narrow phase collision detection
-	size_t generate_contacts(); // eventually use the BVH, for now do O(n^2) search for collisions of CollisionObjects
+	size_t broad_phase(); // performs broadphase collision detection
+	void narrow_phase(size_t); // performs narrow phase collision detection
+	void generate_contacts(); // eventually use the BVH, for now do O(n^2) search for collisions of CollisionObjects
 	// void update_objects(); // could call a post physics update function. idk what would be in it because we only have RigidBody pointers
 	// update_objects function originally called integrate, and calculate
 	// just stores pointers, does not control ownership of any of the gameobject members

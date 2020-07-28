@@ -31,8 +31,8 @@ CollisionObject::CollisionObject(GameObject* game_object, Mesh* mesh) :
 	}
 
 	// create the AABB
-	DirectX::XMFLOAT3 corners[8];
-	assert(m_obb_count >= 1);
+	DirectX::XMFLOAT3 corners[8]; // an OBB has 8 corners
+	assert(m_obb_count >= 1); // assert that we have an OBB
 	m_oriented_boxes[0].get_corners(corners); // get's the corners in submodel space
 	for (size_t i = 0; i != 8; ++i) { // transform each corner into m_box's/AABB's space
 		// DirectX::XMStoreFloat3(corners + i, DirectX::XMVector3Transform(XMLoadFloat3(corners + i), XMLoadFloat4x4(&m_oriented_boxes[0].get_model_transform())));
@@ -45,12 +45,13 @@ CollisionObject::CollisionObject(GameObject* game_object, Mesh* mesh) :
 			// DirectX::XMStoreFloat3(corners + j, DirectX::XMVector3Transform(XMLoadFloat3(corners + j), XMLoadFloat4x4(&m_oriented_boxes[obb_index].m_transform)));
 			DirectX::XMStoreFloat3(corners + j, DirectX::XMVector3Transform(XMLoadFloat3(corners + j), XMLoadFloat4x4(&mesh->m_submeshes[obb_index].m_transform)));
 		}
-		BoundingBox temp; // bounding boxes are super cheap so this shouldnt be a problem, alsoonly 8 points so that should be super fast too
+		BoundingBox temp; // bounding boxes are super cheap so this shouldnt be a problem, also only 8 points so that should be super fast too
 		temp.create_from_points(8, corners, sizeof(DirectX::XMFLOAT3));
 		m_box->create_merged(temp); // would technically be faster if we didnt add them one by one, but this is simple enough for now
 	}
 	m_box->m_transform = &mesh->m_transform;
-
+	m_box->set_game_object(m_game_object);
+	m_box->transform(); // calculate the world box 
 	// the rigidbody is created from the gameobject
 }
 CollisionObject::CollisionObject(GameObject* game_object, RigidBody* rigid_body, BoundingBox* aabb, uint32_t obb_count, OrientedBoundingBox* obbs)
