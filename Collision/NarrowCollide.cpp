@@ -7,9 +7,8 @@
 #include <limits>
 
 // should use iterators and stl ADTs for searching
-void OrientedBoundingBox::create_from_points(size_t vertex_count, Vertex* vertex_buffer, size_t base_vertex, size_t start_index, size_t vertex_stride) {
-	m_oriented_box.CreateFromPoints(m_oriented_box,
-		vertex_count, reinterpret_cast<DirectX::XMFLOAT3*>(vertex_buffer + base_vertex + start_index), vertex_stride);
+void OrientedBoundingBox::create_from_points(size_t vertex_count, Vertex* vertex_buffer, size_t base_vertex, size_t start_index) {
+	m_oriented_box.CreateFromPoints(m_oriented_box, vertex_count, &vertex_buffer->m_pos, sizeof(Vertex));
 }
 void OrientedBoundingBox::set_transform_pointers(GameObject* obj, Mesh* mesh, SubMesh* submesh) {
 	m_gameobject_to_world = &obj->m_transform;

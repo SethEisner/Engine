@@ -56,12 +56,12 @@ void RigidBody::integrate(double duration) { // called in run_frame of collision
 	// DirectX::XMStoreFloat4x4(&translation, DirectX::XMMatrixTranslation(m_position.x, m_position.y, m_position.z));
 	// should never sleep the player because their position and possibly velocity can be updated else where
 	if (m_can_sleep) {
-		float current_motion = XMVectorGetX(XMVector3Dot(position, position));
+		float current_motion = XMVectorGetX(XMVector3Dot(velocity, velocity));
 		float bias = powf(0.5f, duration);
 		m_motion = bias * m_motion + (1.0f - bias) * current_motion;
+		// OutputDebugStringA((std::to_string(m_position.x) + "\n").c_str());
 		if (m_motion < g_sleep_epsilon) set_awake(false); // only awake if the motion is above the threshold
 		m_motion = std::min(m_motion, g_sleep_epsilon * 10); // cap m_motion at g_sleep_epsilon * 10
-
 	}
 }
 // void RigidBody::set_game_object(GameObject* obj) {

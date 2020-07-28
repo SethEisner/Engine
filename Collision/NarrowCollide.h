@@ -48,7 +48,7 @@ public:
 	const DirectX::XMFLOAT4X4& get_model_transform() {
 		return *m_submodel_to_model;
 	}
-	void create_from_points(size_t vertex_count, Vertex* vertex_buffer, size_t base_vertex, size_t start_index, size_t vertex_stride);
+	void create_from_points(size_t vertex_count, Vertex* vertex_buffer, size_t base_vertex, size_t start_index);
 	void set_transform_pointers(GameObject* obj, Mesh* mesh, SubMesh* submesh);
 private:
 	DirectX::XMFLOAT4X4* m_submodel_to_model; // could combine these two matrices into one because as of now they dont change, only the gameobject one gets changed

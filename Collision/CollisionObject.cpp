@@ -23,10 +23,10 @@ CollisionObject::CollisionObject(GameObject* game_object, Mesh* mesh) :
 		size_t start_index = mesh->m_submeshes[i].m_start_index; // the location of the first index read by the GPU from the index buffer
 		size_t vertex_count = mesh->m_submeshes[i].m_vertex_count; // the number of indecis for this submesh
 		size_t base_vertex = mesh->m_submeshes[i].m_base_vertex; // a value added to each index before reading a vertex from the vertex buffer
-		m_oriented_boxes[i].create_from_points(vertex_count, vertex_buffer, base_vertex, start_index, mesh->m_vertex_stride);
+		m_oriented_boxes[i].create_from_points(vertex_count, vertex_buffer, base_vertex, start_index);
 		// m_oriented_boxes[i].m_transform = mesh->m_submeshes[i].m_transform;
 		m_oriented_boxes[i].m_body = nullptr;
-		m_oriented_boxes[i].set_transform_pointers(game_object, mesh, (mesh->m_submeshes.data() + i));
+		m_oriented_boxes[i].set_transform_pointers(game_object, mesh, mesh->m_submeshes.data() + i);
 		m_oriented_boxes[i].calculate_transform();
 	}
 

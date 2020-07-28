@@ -110,44 +110,9 @@ protected:
 
 template<class BoundingVolume>
 bool BVHNode<BoundingVolume>::overlaps(const BVHNode<BoundingVolume>* other) const {
-	// BoundingVolume first = *this;
-	// BoundingVolume second = *other;
-	// if (this->is_leaf()) { // if either node is a leaf node, we need to transform that node by it's transform, and then check the overlap
-	// 	this->m_volume.transform(first, DirectX::XMLoadFloat4x4(this->m_transform));
-	// }
-	// if (other->is_leaf()) {
-	// 	other->m_volume.transform(second, DirectX::XMLoadFloat4x4(other->m_transform));
-	// }
-	// internal nodes should not be transformed, or should have a transform of the identity matrix.
-	// this is because, when we create them we want them to encapsulate both children so there isnt a specific transform to use. 
-	// also, both of the children will have transforms that we need to encapsulate
 	return m_collision_object->m_box->overlaps(*other->m_collision_object->m_box); // call the overlap function for the Bounding volume we use for the hierarchy
 }
 
-/*
-template<class BoundingVolume>
-void BVHNode<BoundingVolume>::insert(RigidBody* body, const BoundingVolume& volume) {
-	if (is_leaf()) { // if we are a leaf then we must create two new children and make ourselves an internal node
-		// create two new children with ourselves as the parent
-		// the first child has our volume and body
-		// the second child will have the volume and body we want to insert
-		m_children[0] = new BVHNode<BoundingVolume>(this, m_volume, m_body); // copies the transform internal to m_volume
-		m_children[1] = new BVHNode<BoundingVolume>(this, volume, body); // copies the transform internal to volume
-		this->m_body = nullptr; // set to nullptr so we can be classified as an internal node
-		DirectX::XMStoreFloat4x4(this->m_volume.m_transform, DirectX::XMMatrixIdentity());
-		recalculate_bounding_volume(); // reclaculate our bounding volume using our children's bounding volumes
-	}
-	else { // we need to recurse the tree to find the leaf node to insert into
-		// need to pick which child to insert the new node into by which one would grow the least
-		if (m_children[0]->m_volume.get_growth(volume) < m_children[1]->m_volume.get_growth(volume)) {
-			m_children[0]->insert(body, volume);
-		}
-		else {
-			m_children[1]->insert(body, volume);
-		}
-	}
-}
-*/
 template<class BoundingVolume>
 void BVHNode<BoundingVolume>::insert(CollisionObject* coll_obj) {
 	if (is_leaf()) { // if we are a leaf then we must create two new children and make ourself the internal node

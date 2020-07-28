@@ -9,6 +9,7 @@ public:
 	struct cell_t {
 		std::atomic<size_t> m_cell_num;
 		T m_data;
+		cell_t() = default;
 	};
 	cell_t* const m_buffer;
 	const size_t m_buffer_mask;

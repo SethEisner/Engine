@@ -14,7 +14,7 @@ CollisionEngine::CollisionEngine(size_t max_contacts, size_t iterations) :
 		m_bvh(nullptr) {// new BVHNode<BoundingBox>(nullptr, std::move(BoundingBox()) ,nullptr)) {
 	m_collision_data->reset(m_max_contacts);
 	m_collision_data->m_friction = 0.9f;
-	m_collision_data->m_restitution = 0.3f;
+	m_collision_data->m_restitution = 0.2f; // 0.2 makes stacks stable
 	m_collision_data->m_tolerance = 0.1f;
 }
 
@@ -26,7 +26,19 @@ void CollisionEngine::start_frame() {
 	
 }
 size_t CollisionEngine::broad_phase() { // apply the transforms 
-	 return m_bvh->get_potential_contacts(m_potential_contacts, m_max_contacts);
+	// m_potential_contacts->clear();
+	size_t current = 0;
+	for (auto i = m_collision_objects->begin(); i != m_collision_objects->end(); ++i) {
+		for (auto j = i + 1; j != m_collision_objects->end(); ++j) {
+			if ((*i)->m_box->overlaps(*(*j)->m_box)) { 
+				m_potential_contacts[current].m_collision_object[0] = *i;// = PotentialContact((*i), (*j));
+				m_potential_contacts[current].m_collision_object[1] = *j;
+				current++;
+				if (current == m_max_contacts) return current;
+			}
+		}
+	}
+	return current;
 }
 void CollisionEngine::narrow_phase(size_t num_contacts) {
 	m_collision_data->reset(m_max_contacts); // reset the contacts
@@ -45,19 +57,22 @@ void CollisionEngine::narrow_phase(size_t num_contacts) {
 }
 void CollisionEngine::generate_contacts() {
 	// perform broad phase collision detection with the bouding volume hierarchy
-	size_t potential_contact_count = m_bvh->get_potential_contacts(m_potential_contacts, m_max_contacts); // build the array of potential contacts
+	// size_t potential_contact_count = m_bvh->get_potential_contacts(m_potential_contacts, m_max_contacts); // build the array of potential contacts
+	narrow_phase(broad_phase());
+
+
 	// perform narrow phase collision on every potential contact
-	for (auto curr = m_potential_contacts; curr != m_potential_contacts + potential_contact_count; ++curr) {
-		auto first = curr->m_collision_object[0];
-		auto second = curr->m_collision_object[1];
-		// check for collision between every pair of OBBs between the two collision objects
-		for (size_t i = 0; i != first->m_obb_count; ++i) {
-			for (size_t j = 0; j != second->m_obb_count; ++j) {
-				if (!m_collision_data->has_more_contacts()) return; // we have run out of contacts we are allowed to generate
-				CollisionDetector::collides(first->m_oriented_boxes[i], second->m_oriented_boxes[j], m_collision_data); // element wise check to array for overlap
-			}
-		}
-	}
+	// for (auto curr = m_potential_contacts; curr != m_potential_contacts + potential_contact_count; ++curr) {
+	// 	auto first = curr->m_collision_object[0];
+	// 	auto second = curr->m_collision_object[1];
+	// 	// check for collision between every pair of OBBs between the two collision objects
+	// 	for (size_t i = 0; i != first->m_obb_count; ++i) {
+	// 		for (size_t j = 0; j != second->m_obb_count; ++j) {
+	// 			if (!m_collision_data->has_more_contacts()) return; // we have run out of contacts we are allowed to generate
+	// 			CollisionDetector::collides(first->m_oriented_boxes[i], second->m_oriented_boxes[j], m_collision_data); // element wise check to array for overlap
+	// 		}
+	// 	}
+	// }
 }
 void CollisionEngine::run_frame(double duration) {
 	// integrate all the objects
