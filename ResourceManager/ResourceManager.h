@@ -10,6 +10,12 @@
 #include <set>
 #include <stack>
 #include <mutex>
+#include <vector>
+// assimp headers
+#include <assimp/Importer.hpp> // c++ importer interface
+#include <assimp/cimport.h>
+#include <assimp/scene.h> // output data structure
+#include <assimp/postprocess.h> // for post processing flags
 /* TODO:
 	implement a get resource function that returns the handle, might need a map from a GUID to a handle, i dont think reading the m_registry without a lock is safe...
 		the entry could be removed between when we check if it's still in the registry and when we go to get its handle
@@ -23,17 +29,10 @@
 /* Implementation Notes:
 	user can only load or free packaged resources (zip files)
 	create a registry entry for each zip file
-<<<<<<< HEAD
-	registry entries have internal and external dependencies. 
-		internal means the required data is within the same resource file (not zip but actual obj file for instance that the registry entry is for)
-		external means the required data is within an entirely separate file, that could be within the same packaged resource or within another packaged resource
-	manage the lifetimes through referenmce counting. 
-=======
 	registry entries have internal and external dependencies.
 		internal means the required data is within the same resource file (not zip but actual obj file for instance that the registry entry is for)
 		external means the required data is within an entirely separate file, that could be within the same packaged resource or within another packaged resource
 	manage the lifetimes through referenmce counting.
->>>>>>> renderer
 	internal dependencies do not update the reference count at all because they are already within the loaded file that is being tracked (track the registry entry of the first load)
 	external dependencies do update the reference count
 	loading a packaged resouce creates a registry entry for that packaged resource if it does not exist, or increments the reference count if it does exist.
@@ -56,11 +55,7 @@ Support for external references in other packaged resources: (must handle loadin
 	what happens if we read a packaged resource into memory that has a reference to another unloaded packaged resource
 		add the dependency to the external dependency list of the registry entry (probably want to add the GUID to the whole filepath)
 		add that packaged resource to the queue (what if the resource is already in the queue)
-<<<<<<< HEAD
-			when we get a package filepath from the queue, check if it is already in the registry first before reading the contents (to fix double adds) 
-=======
 			when we get a package filepath from the queue, check if it is already in the registry first before reading the contents (to fix double adds)
->>>>>>> renderer
 				then update the reference count and traverse the dependency graph
 		when we load that packaged resource in from memory: (assume it is self contained for now so we dont need to load more stuff)
 			traverse external dependencies graph and increment reference count
@@ -75,12 +70,12 @@ Handle post load initialization later when I have a better idea about how the me
 */
 
 const size_t REFERENCE_ARRAY_SIZE = 16;
-static constexpr char resource_path[52] = "C:/Users/Seth Eisner/source/repos/Engine/Resources/";
+constexpr char resource_path[52] = "C:/Users/Seth Eisner/source/repos/Engine/Resources/";
 //void start_resource_thread(void);
 class ResourceManager {
 	typedef size_t GUID;
 	typedef uint8_t byte;
-	enum class FileType { ZIP, OBJ, MTL, INVALID };
+	enum class FileType { ZIP = 0, OBJ = 1, MTL = 2, DAE = 3, DDS = 4, INVALID = 5 };
 	struct ReferenceCountEntry {
 		GUID m_resource; // the resource to update the reference count of
 		int m_delta; // the number to change the reference count by
@@ -103,27 +98,20 @@ class ResourceManager {
 	};
 	struct RegistryEntry {
 		int64_t m_handle; // the handle to the general allocator's pointer
+		//aiScene* m_scene_data; // ownership of this pointer is controlled by the assimp importer
 		int64_t m_ref_count; // the reference count of the resource
 		size_t m_size; // size of the memory block 
 		GUID m_internal_references[REFERENCE_ARRAY_SIZE]; // the GUIDs of internal references - 
 		GUID m_external_references[REFERENCE_ARRAY_SIZE]; // the GUIDs of all external references 
 		FileType m_file_type;
 		bool m_ready;
-<<<<<<< HEAD
-		RegistryEntry(Handle _handle, size_t _size, int64_t _ref_count, bool _ready, FileType _file_type) : 
-			m_size(_size), 
-			m_handle(_handle),  
-			m_ref_count(_ref_count), 
-			m_internal_references(), 
-			m_external_references(), 
-=======
 		RegistryEntry(Handle _handle, size_t _size, int64_t _ref_count, bool _ready, FileType _file_type) :
 			m_size(_size),
+			//m_scene_data(scene_ptr), // set to nullptr because we must read later after creating the registry entry. assign later
 			m_handle(_handle),
 			m_ref_count(_ref_count),
 			m_internal_references(),
 			m_external_references(),
->>>>>>> renderer
 			m_ready(_ready),
 			m_file_type(_file_type) {
 			for (int i = 0; i != REFERENCE_ARRAY_SIZE; ++i) {
@@ -134,9 +122,10 @@ class ResourceManager {
 		RegistryEntry() = default; // default initialize
 		RegistryEntry& operator=(const RegistryEntry& rhs) { // need move constructor because atomics
 			if (this != &rhs) {
-				this->m_size = rhs.m_size;
 				this->m_handle = rhs.m_handle;
+				//this->m_scene_data = this->m_scene_data;
 				this->m_ref_count = rhs.m_ref_count;
+				this->m_size = rhs.m_size;
 				std::copy(rhs.m_internal_references, rhs.m_internal_references + REFERENCE_ARRAY_SIZE, this->m_internal_references);
 				std::copy(rhs.m_external_references, rhs.m_external_references + REFERENCE_ARRAY_SIZE, this->m_external_references);
 				this->m_ready = rhs.m_ready;
@@ -144,11 +133,7 @@ class ResourceManager {
 			}
 			return *this;
 		}
-<<<<<<< HEAD
-	}; 
-=======
 	};
->>>>>>> renderer
 	template <typename T>
 	struct QueueEntry {
 		char* m_filepath; // use strcpy
@@ -158,21 +143,31 @@ class ResourceManager {
 public:
 	ResourceManager() :
 		m_registry(new HashTable<GUID, RegistryEntry>()),
+		m_handle_map(new HashTable<GUID, Handle>()),
+		m_size_map(new HashTable<GUID, size_t>()),
 		m_ready_map(new HashTable<GUID, bool>()),
 		m_ready_map_lock(new std::shared_mutex()),
+		m_scene_map(new HashTable<GUID, const aiScene*>()),
 		m_dependency_count(new HashTable<GUID, size_t>()),
 		m_dependency_count_lock(new std::mutex()),
 		m_allocator(new GeneralAllocator(1024 * 1024 * 1024)),
+		m_run_flag(true),
 		m_thread(new std::thread(&ResourceManager::start_resource_thread, this)),
 		m_resource_queue(new Queue<std::string>(16)),
 		m_ref_count_queue(new Queue<ReferenceCountEntry>(16)),
 		m_potentially_ready(new std::list<GUID>()),
-		m_zip_files(new std::list<GUID>()) {}
+		m_free_list(new std::list<GUID>()),
+		m_zip_files(new std::list<GUID>())
+		//m_importer(new Assimp::Importer())
+		 {} // assimp importer to read files from memory and construct the object
 	~ResourceManager() {
-		run_flag = false; // set the run_flag to false to stop the thread from looping
+		m_run_flag = false; // set the run_flag to false to stop the thread from looping
 		m_thread->join(); // 
 		delete m_registry;
+		delete m_handle_map;
+		delete m_size_map;
 		delete m_ready_map;
+		delete m_scene_map;
 		delete m_ready_map_lock;
 		delete m_dependency_count;
 		delete m_dependency_count_lock;
@@ -181,11 +176,17 @@ public:
 		delete m_resource_queue;
 		delete m_ref_count_queue;
 		delete m_potentially_ready;
+		delete m_free_list;
 		delete m_zip_files;
+		//delete m_importer;
 	}
 	void load_resource(const std::string&, void(*function)(char*) = nullptr);
 	bool resource_loaded(const std::string&);
 	void remove_resource(const std::string&);
+	// reads a shared data structure and returns the ppointer to an aiScene object when given the filename
+	const aiScene* get_scene_pointer(const std::string&) const;
+	byte* get_data_pointer(const std::string&); // given the filename of the resource, get the pointer to the data contained in the registry
+	size_t get_data_size(const std::string&) const;
 private:
 	void remove_from_ready_map(GUID);
 	void set_ready_map(GUID, bool);
@@ -195,13 +196,11 @@ private:
 	size_t get_dependency_count(GUID);
 	void change_reference_count_by(GUID, int);
 	void get_external_dependencies(GUID, const std::string&);
-<<<<<<< HEAD
-	void traverse_dependency_graph(GUID, const std::string&, void (ResourceManager::*func_p)(GUID, const std::string&));
-=======
 	void traverse_dependency_graph(GUID, const std::string&, void (ResourceManager::* func_p)(GUID, const std::string&));
->>>>>>> renderer
-	Handle read_resource_into_memory(const std::string& zip_file);
-	void unzip_resource(const std::string&, Handle);
+	// Handle read_resource_into_memory(const std::string& zip_file);
+	byte* read_resource_into_memory(const std::string& zip_file);
+	// void unzip_resource(const std::string&, Handle);
+	void unzip_resource(const std::string&, byte*);
 	bool get_compressed_file_info(byte* compressed, size_t& compressed_size, size_t& uncompressed_size, size_t& offset, std::string& file_name);
 	void ready_resources(void);
 	int64_t get_dependency_sum(GUID);
@@ -216,17 +215,25 @@ private:
 	FileType get_file_type(const std::string&);
 	// m_registry is shared across threads
 	HashTable<GUID, RegistryEntry>* m_registry; // registry to keep track of what has been loaded
+	HashTable<GUID, Handle>* m_handle_map;
+	HashTable<GUID, size_t>* m_size_map;
 	HashTable<GUID, bool>* m_ready_map; // map from GUIDs to bools to we dont need to read the registry, only the resource thread should have access to the registry
+	HashTable<GUID, const aiScene*>* m_scene_map; // map from GUIDs to scene pointers so we can build the scene after it is loaded by assimp
 	std::shared_mutex* m_ready_map_lock;
 	HashTable<GUID, size_t>* m_dependency_count; // used to mark dependencies of unloaded stuff, 
 	std::mutex* m_dependency_count_lock;
 	GeneralAllocator* m_allocator; // use own general allocator
+	bool m_run_flag; // initialize flag before the thread so it's true when the thread goes to read it
 	std::thread* m_thread;
 	Queue<std::string>* m_resource_queue; // queue of names of zip files to load
 	Queue<ReferenceCountEntry>* m_ref_count_queue;
-	std::list<GUID>* m_potentially_ready;
-	std::list<GUID>* m_zip_files;
-	bool run_flag = true; // dont need synchronization on this because only 1 thread writes to it and the other reads
+	std::list<GUID>* m_potentially_ready; // should be a list because we want fast removal from within the list
+	std::list<GUID>* m_free_list; // list of zip files to remove 
+	std::list<GUID>* m_zip_files; // should be a list because we want fast removal from within the list
+	// assimp stuff (shouldnt need to be threadsafe because it's all on one thread)
+	// Assimp::Importer* m_importer;
+
+	 // dont need synchronization on this because only 1 thread writes to it and the other reads
 	/* SHARED objects:
 		m_ready_map, needs an actual lock
 		m_dependency_map, this needs an actual lock

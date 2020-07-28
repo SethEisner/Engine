@@ -1,46 +1,83 @@
 #include "Engine.h"
+#include "RenderManager/Renderer.h"
+#include "ResourceManager/ResourceManager.h"
+#include "InputManager/InputManager.h"
+#include "Memory/MemoryManager.h"
+#include "RenderManager/Window.h"
+#include "RenderManager/Timer.h"
+#include "RenderManager/Camera.h"
+#include "RenderManager/Scene.h"
+#include "Collision/CollisionEngine.h"
+
+Engine* engine = new Engine();
+
+bool Engine::init(HINSTANCE hInstance) {
+	// constructors should be called in the order below. added an extra linebreak where order is dependent
+	window = new Window(hInstance, L"class name", L"Window name");
+	if (!window->init()) return false;
+
+	resource_manager = new ResourceManager();
+	global_timer = new Timer();
+	input_manager = new InputManager();
+	input_manager->init();
+	camera = new Camera();
 
 
-//Engine* engine = new Engine();
+	renderer = new Renderer();
+	collision_engine = new CollisionEngine();
+	scene = new Scene();
 
-Engine::Engine(HINSTANCE hInstance) :
-	m_window(new Window(hInstance, L"class name", L"Window name")),
-	m_renderer(new Renderer(m_window)) {}
-bool Engine::init() {
-	// call init functions for all members in the correct order
-	if (!m_window->init()) return false;
+	//renderer = new Renderer();	
 	try {
-		m_renderer->init();
+		renderer->init();
+		renderer->on_resize();
+		if (!scene->init()) return false;
 	}
 	catch (DxException& e) {
 		MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
 		exit(e.error_code);
 	}
-	m_renderer->on_resize();
+
+	// scene needs the renderer to have created command lists for it to use
+	global_timer->tick();
 	return true;
 }
 void Engine::run() {
 	MSG msg = { 0 };
-	while (msg.message != WM_QUIT) {
-		// if there are window messages then process them
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) >= 0) {
+	while (true) {
+		input_manager->update(); // update the input manager states
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0) {
+			if (msg.message == WM_QUIT) return;
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
-			//m_input_manager->get_input(msg); // call input manager with the message
+			if (msg.message == WM_KEYDOWN && msg.wParam == VK_ESCAPE) {
+				engine->window->toggle_mouse_capture();
+				global_timer->toggle();
+			}
+			input_manager->get_input(msg); // call input manager with the message so it can process it
 		}
-		m_renderer->update();
-		m_renderer->draw();
+		if (global_timer->running()) {
+			update();
+			renderer->draw();
+		}
 	}
 }
 void Engine::shutdown() {
-
+	delete renderer;
+	delete scene;
+	delete resource_manager;
+	delete input_manager;
+	delete global_timer;
+	delete camera;
+	delete window;
+	delete engine;
 }
 void Engine::update() {
-	m_renderer->update();
-}
-Renderer* Engine::get_renderer() const {
-	return m_renderer;
-}
-Window* Engine::get_window() const {
-	if(this) return m_window;
+	global_timer->tick();
+	double duration = global_timer->delta_time();
+	window->update(duration);
+	camera->update(duration);
+	scene->update(duration);
+	collision_engine->update(duration);
+	renderer->update();
 }

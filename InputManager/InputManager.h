@@ -42,16 +42,18 @@ PRESSED  --->  HELD    UNHELD  <--- start
 		RIGHT = 2
 	};
 	// InputManager() : m_key_state(), m_character_pressed(), m_mouse_state(), m_name_to_action(new std::unordered_map<uint32_t, GameAction*>) {}
-	InputManager() : m_name_to_action(NEW(HashTable<uint32_t COMMA GameAction>, memory_manager->get_linear_allocator())(63)), m_key_state(), m_character_pressed(), m_mouse_state() {
+	InputManager();// : m_name_to_action(NEW(HashTable<uint32_t COMMA GameAction>, memory_manager->get_linear_allocator())(63)), m_key_state(), m_character_pressed(), m_mouse_state() {
 		// allocate an array of game_objects
 		//m_name_to_action = static_cast<GameAction*>(memory_manager->get_linear_allocator().allocate_aligned(sizeof(GameAction) * m_action_count, alignof(GameAction)));
 		// allocate an array of game_objects using the default constructor
 		//m_name_to_action = NEW_ARRAY(GameAction, m_action_count, memory_manager->get_linear_allocator())();
-	}
+	// }
 	~InputManager() {
 		//delete m_name_to_action;
 		FREE(m_name_to_action, memory_manager->get_linear_allocator());
 	}
+	void init();
+	void update();
 	void get_input(const MSG&);
 	// get state of a game action using a hashed string literal (e.g. HASH("shoot"))
 	bool is_pressed(uint32_t) const;
@@ -65,6 +67,12 @@ PRESSED  --->  HELD    UNHELD  <--- start
 	void remap_action(uint32_t, Key);
 	int get_mouse_x() const;
 	int get_mouse_y() const;
+	int get_mouse_prev_x() const;
+	int get_mouse_prev_y() const;
+	float get_mouse_delta_x() const;
+	float get_mouse_delta_y() const;
+	bool mouse_pos_changed() const;
+	void update_mouse_state();
 
 private:
 	struct GameAction { // represents a single game action that is managed by the input manager
@@ -100,9 +108,15 @@ private:
 	struct Mouse {
 		int x; // number of pixels from left side of window
 		int y; // number of pixels from top of window
+		int prev_x;
+		int prev_y;
+		float delta_x;
+		float delta_y;
 		uint32_t m_button_count; // size of the m_buttons array
 		KeyEntry m_buttons[3]; // left, middle, right states
-		Mouse() : x(0), y(0), m_button_count(3), m_buttons() {}
+		bool position_changed;
+		Mouse() : x(0), y(0), prev_x(0), prev_y(0), delta_x(0.0f), delta_y(0.0f), m_button_count(3), m_buttons(), position_changed(false) {}
+		Mouse(int _x, int _y, int _prev_x, int _prev_y) : x(_x), y(_y), prev_x(_prev_x), prev_y(_prev_y), delta_x(0.0f), delta_y(0.0f), m_button_count(3), m_buttons(), position_changed(false) {}
 	};
 	// should use pointer so the input manager can manage the lifetime of the GameAction objects
 	// std::unordered_map<uint32_t, GameAction*>* m_name_to_action; // stores the mapping from the hashed string literal used by the programmer to identify a game action to the actual game action object itself
@@ -115,6 +129,7 @@ private:
 	Mouse m_mouse_state;
 
 	void update_key_states(void);		// used to update the state changes that aren't dependent on getting a new message/ can't happend due to the implementation
+	//void update_mouse_state();
 	void update_mouse_pos(const MSG&);	// changes the position of the mouse for any mouse message that contains the position
 	void process_mousemove(const MSG&);
 	void process_mousedown(const MSG&, uint32_t);

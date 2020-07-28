@@ -6,8 +6,9 @@
 #include <chrono>
 #include <string>
 #include "JobSystem/JobSystem.h"
-#include "InputManager/InputManager.h"
+//#include "InputManager/InputManager.h"
 #include "Utilities/Utilities.h"
+//#define NOMINMAX
 #include <windows.h>
 #include "Math/Matrix.h"
 #include "Math/Line.h"
@@ -18,8 +19,8 @@
 #include "Memory/GeneralAllocator.h"
 #include "ThreadSafeContainers/HashTable.h"
 #include "Engine.h"
-
-
+#include "ResourceManager/ResourceManager.h"
+#include "Engine.h"
 
 
 const int thread_count = 3; //std::min((unsigned int) 3, std::thread::hardware_concurrency() - 1);
@@ -63,33 +64,50 @@ size_t size_of(T ptr) {
 	return sizeof(*ptr);
 }
 
-Engine* engine;
+//Engine* engine;
 
 // int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hprevinstance, LPSTR lpcmdline, int nCmdShow) {
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR pCmdLine, _In_ int nCmdShow) {
-	Engine* engine = new Engine(hInstance);
+	//Engine* engine = new Engine();
 	
 	//std::this_thread::sleep_for(std::chrono::seconds(2));
 	//JobSystem::startup(thread_count);
 
 
-	engine->init();
+	if (!engine->init(hInstance)) return -1;
 	engine->run();
 	engine->shutdown();
 
 
-	HashTable<int, int> t;
-	t.insert(9, -9);
-	t.insert(9, -9);
-	t.insert(9, -9);
-	t.insert(9, -9);
-	t.insert(9, -9);
-	assert(t.at(9) == -9);
-	t.set(9, 8);
-	assert(t.at(9) == 8);
-	assert(t.contains(9));
-	t.remove(9);
-	assert(!t.contains(9));
+	// HashTable<int, int> t;
+	// t.insert(9, -9);
+	// t.insert(9, -9);
+	// t.insert(9, -9);
+	// t.insert(9, -9);
+	// t.insert(9, -9);
+	// assert(t.at(9) == -9);
+	// t.set(9, 8);
+	// assert(t.at(9) == 8);
+	// assert(t.contains(9));
+	// t.remove(9);
+	// assert(!t.contains(9));
+
+
+	ResourceManager rm;
+	std::string path = "cat.zip";
+	rm.load_resource(path);
+	while (!rm.resource_loaded(path)) {};
+
+	OutputDebugStringA("loaded the zip and its dependencies\n");
+
+	// rm.remove_resource(path);
+	// 
+	// while (rm.resource_loaded(path)) {}; // (fixed?) seems super error prone to wait on a resource to be removed
+	// 
+	// OutputDebugStringA("unloaded the zip and its dependencies\n\n");
+
+	// while (true) {}
+
 
 
 	//GeneralAllocator allocator(1024);

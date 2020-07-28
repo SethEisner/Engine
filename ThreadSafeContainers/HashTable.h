@@ -59,8 +59,8 @@ public:
 		}
 		m_lock.unlock();
 	}
-	Value* at(const Key& _key) { // get the value associated with the key, return a constant reference so it cant be modified
-	//Value& at(const Key& _key) {
+	Value& at(const Key& _key) { // get the value associated with the key, return a constant reference so it cant be modified
+	// Value* at(const Key& _key) {
 		Hash hash = static_cast<Hash>(std::hash<Key>{}(_key));
 		assert(hash != SIZE_MAX);
 		size_t index = hash % m_table_size;
@@ -88,13 +88,16 @@ public:
 		size_t index = hash % m_table_size;
 		Bucket* bucket = reinterpret_cast<Bucket*>(memory_manager->get_general_allocator()->get_pointer(m_table_handle)); // get the up to date pointer from the general allocator
 		m_lock.lock(); // lock the mutex for exclusive ownership
-		size_t entry_index;
-		if (entry_index = bucket_contains(bucket[index], hash) == BUCKET_SIZE) { // the key is not in the table
+		size_t entry_index = bucket_contains(bucket[index], hash);
+		if (entry_index == BUCKET_SIZE) { // entry not already in the bucket, so add it to the table 
 			entry_index = get_open_entry(bucket[index]);
 			assert(entry_index != BUCKET_SIZE); // assert that the bucket has a spot for us to insert the value
-			bucket[index].m_entry[entry_index].m_hash = hash;
+			bucket[index].m_entry[entry_index].m_hash = hash; // need to set the key
 		}
 		bucket[index].m_entry[entry_index].m_value = _value;
+		//assert(bucket[index].m_entry[entry_index].m_value);
+		Value temp = bucket[index].m_entry[entry_index].m_value;
+		Hash temp1 = bucket[index].m_entry[entry_index].m_hash;
 		m_lock.unlock();
 	}
 	void reset() {

@@ -19,15 +19,28 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Collision\BroadCollide.cpp" />
+    <ClCompile Include="Collision\CollisionEngine.cpp" />
+    <ClCompile Include="Collision\CollisionObject.cpp" />
+    <ClCompile Include="Collision\Contact.cpp" />
+    <ClCompile Include="Collision\NarrowCollide.cpp" />
+    <ClCompile Include="Collision\RigidBody.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="Gameplay\GameObject.cpp" />
     <ClCompile Include="Math\Matrix.cpp" />
     <ClCompile Include="Math\Quaternion.cpp" />
     <ClCompile Include="Math\Vector.cpp" />
     <ClCompile Include="InputManager\InputManager.cpp" />
-    <ClCompile Include="Memory\GeneralAllocator.cpp" />
     <ClCompile Include="Memory\MemoryManager.cpp" />
-    <ClCompile Include="RenderManager\Mesh.cpp" />
+    <ClCompile Include="RenderManager\Camera.cpp" />
+    <ClCompile Include="RenderManager\d3dUtil.cpp" />
+    <ClCompile Include="RenderManager\DDSTextureLoader12.cpp" />
+    <ClCompile Include="RenderManager\FrameResources.cpp" />
+    <ClCompile Include="RenderManager\Object.cpp" />
+    <ClCompile Include="RenderManager\MathHelper.cpp" />
     <ClCompile Include="RenderManager\Renderer.cpp" />
+    <ClCompile Include="RenderManager\Scene.cpp" />
+    <ClCompile Include="RenderManager\Timer.cpp" />
     <ClCompile Include="RenderManager\Window.cpp" />
     <ClCompile Include="ResourceManager\ResourceManager.cpp" />
     <ClCompile Include="Utilities\Utilities.cpp" />
@@ -35,8 +48,15 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Collision\BroadCollide.h" />
+    <ClInclude Include="Collision\CollisionEngine.h" />
+    <ClInclude Include="Collision\CollisionObject.h" />
+    <ClInclude Include="Collision\Contact.h" />
+    <ClInclude Include="Collision\NarrowCollide.h" />
+    <ClInclude Include="Collision\RigidBody.h" />
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="Engine.h" />
+    <ClInclude Include="Gameplay\GameObject.h" />
     <ClInclude Include="Math\Line.h" />
     <ClInclude Include="Math\Matrix.h" />
     <ClInclude Include="Math\Plane.h" />
@@ -49,12 +69,20 @@
     <ClInclude Include="Memory\MemoryManager.h" />
     <ClInclude Include="Memory\PoolAllocator.h" />
     <ClInclude Include="Memory\StackAllocator.h" />
-    <ClInclude Include="RenderManager\Mesh.h" />
+    <ClInclude Include="RenderManager\Camera.h" />
+    <ClInclude Include="RenderManager\d3dUtil.h" />
+    <ClInclude Include="RenderManager\DDSTextureLoader12.h" />
+    <ClInclude Include="RenderManager\FrameResources.h" />
+    <ClInclude Include="RenderManager\Object.h" />
+    <ClInclude Include="RenderManager\MathHelper.h" />
     <ClInclude Include="RenderManager\Renderer.h" />
-    <ClInclude Include="RenderManager\RenderTypes.h" />
+    <ClInclude Include="RenderManager\RenderItem.h" />
+    <ClInclude Include="RenderManager\Scene.h" />
+    <ClInclude Include="RenderManager\Timer.h" />
     <ClInclude Include="RenderManager\UploadBuffer.h" />
     <ClInclude Include="RenderManager\Window.h" />
     <ClInclude Include="ResourceManager\ResourceManager.h" />
+    <ClInclude Include="ThreadSafeContainers\HashTable.h" />
     <ClInclude Include="Utilities\Utilities.h" />
     <ClInclude Include="JobSystem\JobSystem.h" />
     <ClInclude Include="ThreadSafeContainers\Queue.h" />
@@ -118,12 +146,16 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Program Files\Autodesk\FBX\FBX SDK\2020.0.1\include;C:\Users\Seth Eisner\Downloads\assimp-5.0.0\assimp-5.0.0\include;C:\Users\Seth Eisner\source\repos\Engine\packages\zlib-vc140-static-64.1.2.11\lib\native\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Seth Eisner\Downloads\assimp-5.0.0\assimp-5.0.0\lib\Release;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0.1\lib\vs2017\x64\$(Configuration);C:\Users\Seth Eisner\source\repos\Engine\packages\zlib-vc140-static-64.1.2.11\lib\native\libs\x64\static\$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\Program Files\Autodesk\FBX\FBX SDK\2020.0.1\include;C:\Users\Seth Eisner\Downloads\assimp-5.0.0\assimp-5.0.0\include;C:\Users\Seth Eisner\source\repos\Engine\packages\zlib-vc140-static-64.1.2.11\lib\native\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Seth Eisner\Downloads\assimp-5.0.0\assimp-5.0.0\lib\$(Configuration);C:\Program Files\Autodesk\FBX\FBX SDK\2020.0.1\lib\vs2017\x64\$(Configuration);C:\Users\Seth Eisner\source\repos\Engine\packages\zlib-vc140-static-64.1.2.11\lib\native\libs\x64\static\$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -141,14 +173,17 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMINMAX;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <FloatingPointModel>Fast</FloatingPointModel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3dcompiler.lib;d3d12.lib;dxgi.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp-vc142-mt.lib;IrrXML.lib;zlibstatic.lib;libfbxsdk.lib;d3dcompiler.lib;d3d12.lib;dxgi.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\Seth Eisner\Documents\vcpkg\installed\x86-windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -165,6 +200,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -173,30 +209,31 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMINMAX;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <Optimization>MaxSpeed</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <FloatingPointModel>Fast</FloatingPointModel>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3dcompiler.lib;d3d12.lib;dxgi.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp-vc142-mt.lib;IrrXML.lib;zlibstatic.lib;libfbxsdk.lib;d3dcompiler.lib;d3d12.lib;dxgi.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\Seth Eisner\Documents\vcpkg\installed\x86-windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="packages\directxtk12_desktop_2015.2019.12.17.1\build\native\directxtk12_desktop_2015.targets" Condition="Exists('packages\directxtk12_desktop_2015.2019.12.17.1\build\native\directxtk12_desktop_2015.targets')" />
-    <Import Project="packages\rapidxml.1.13\build\native\rapidxml.targets" Condition="Exists('packages\rapidxml.1.13\build\native\rapidxml.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('packages\directxtk12_desktop_2015.2019.12.17.1\build\native\directxtk12_desktop_2015.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\directxtk12_desktop_2015.2019.12.17.1\build\native\directxtk12_desktop_2015.targets'))" />
-    <Error Condition="!Exists('packages\rapidxml.1.13\build\native\rapidxml.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\rapidxml.1.13\build\native\rapidxml.targets'))" />
   </Target>
 </Project>

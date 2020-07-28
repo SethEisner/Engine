@@ -1,86 +1,116 @@
 #include "InputManager.h"
 #include <windows.h>
 #include <windowsx.h>  // for GET_X/Y_PARAM
+#include <string>
+#include "../RenderManager/Window.h"
+#include "../Engine.h"
+#include "../Utilities/Utilities.h"
 
-void InputManager::get_input(const MSG& message) {
+
+InputManager::InputManager() : m_name_to_action(NEW(HashTable<uint32_t COMMA GameAction>, memory_manager->get_linear_allocator())(63)), m_key_state(), m_character_pressed(), 
+							   m_mouse_state(static_cast<int>(engine->window->m_width / 2), static_cast<int>(engine->window->m_height / 2), static_cast<int>(engine->window->m_width / 2), static_cast<int>(engine->window->m_height / 2)) {
+
+}
+
+void InputManager::init() {
+	add_action(HASH("right"), InputManager::Key('D'));
+	add_action(HASH("left"), InputManager::Key('A'));
+	add_action(HASH("forward"), InputManager::Key('W'));
+	add_action(HASH("backward"), InputManager::Key('S'));
+}
+void InputManager::update() {
 	update_key_states(); // update the states of the relative buttons before we read in more input
-
+	update_mouse_state(); // reset the mouse input once per frame
+}
+void InputManager::update_mouse_state() {
+	// set the prev state to be the current state
+	if (m_mouse_state.position_changed) {
+		// m_mouse_state.prev_x = m_mouse_state.x;
+		// m_mouse_state.prev_y = m_mouse_state.y;
+		//m_mouse_state.delta_y = 0.0f;
+		//SetCursorPos(static_cast<int>(engine->window->m_width / 2), static_cast<int>(engine->window->m_height / 2));
+		m_mouse_state.position_changed = false;
+	}
+}
+void InputManager::get_input(const MSG& message) {
+	// update_key_states(); // update the states of the relative buttons before we read in more input
+	// update_mouse_state();
 	//MSG message = { 0 };
 	//while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE) > 0) { // there's a message in the queue
 		// TranslateMessage(&message); // translate the message into 
 		// DispatchMessageA(&message); // dispatch the messages we dont handle to the window procedure so we dont need to worry about the nitty gritty
-		uint32_t index = -1;
-		switch (message.message) {
-		case WM_MOUSEMOVE:
-			process_mousemove(message);
-			break;
-		case WM_LBUTTONDOWN:
-			process_mousedown(message, static_cast<uint32_t>(MouseButton::LEFT));
-			break;
-		case WM_MBUTTONDOWN:
-			process_mousedown(message, static_cast<uint32_t>(MouseButton::MIDDLE));
-			break;
-		case WM_RBUTTONDOWN:
-			process_mousedown(message, static_cast<uint32_t>(MouseButton::RIGHT));
-			break;
-		case WM_LBUTTONUP:
-			process_mouseup(message, static_cast<uint32_t>(MouseButton::LEFT));
-			break;
-		case WM_MBUTTONUP:
-			process_mouseup(message, static_cast<uint32_t>(MouseButton::MIDDLE));
-			break;
-		case WM_RBUTTONUP:
-			process_mouseup(message, static_cast<uint32_t>(MouseButton::RIGHT));
-			break;
-		//case WM_MOUSEWHEEL: 
-		//	process_mousewheel(message);
-		//	break;
-		case WM_KEYDOWN:
-			process_keydown(message);
-			break;
-		case WM_KEYUP:
-			process_keyup(message);
-			break;
-		case WM_CHAR: // used for generic typing, not for game input that we check the state of
-			process_char(message);
-			break;
-		case WM_DEADCHAR: // eventually use for i18n
-			break;
-		}
-	//}
+	uint32_t index = -1;
+	switch (message.message) {
+	case WM_MOUSEMOVE:
+		process_mousemove(message);
+		break;
+	case WM_LBUTTONDOWN:
+		process_mousedown(message, static_cast<uint32_t>(MouseButton::LEFT));
+		break;
+	case WM_MBUTTONDOWN:
+		process_mousedown(message, static_cast<uint32_t>(MouseButton::MIDDLE));
+		break;
+	case WM_RBUTTONDOWN:
+		process_mousedown(message, static_cast<uint32_t>(MouseButton::RIGHT));
+		break;
+	case WM_LBUTTONUP:
+		process_mouseup(message, static_cast<uint32_t>(MouseButton::LEFT));
+		break;
+	case WM_MBUTTONUP:
+		process_mouseup(message, static_cast<uint32_t>(MouseButton::MIDDLE));
+		break;
+	case WM_RBUTTONUP:
+		process_mouseup(message, static_cast<uint32_t>(MouseButton::RIGHT));
+		break;
+	//case WM_MOUSEWHEEL: 
+	//	process_mousewheel(message);
+	//	break;
+	case WM_KEYDOWN:
+		process_keydown(message);
+		break;
+	case WM_KEYUP:
+		process_keyup(message);
+		break;
+	case WM_CHAR: // used for generic typing, not for game input that we check the state of
+		process_char(message);
+		break;
+	case WM_DEADCHAR: // eventually use for i18n
+		break;
+	}
 }
 
 bool InputManager::is_pressed(uint32_t hashed_action_name) const {
 	//const GameAction* action = &(this->m_name_to_action[hashed_action_name % m_action_count]); // return a const gameaction pointer so we dont modify the object here
-	const GameAction* action = this->m_name_to_action->at(hashed_action_name);
-	if (action->m_type == GameAction::GameAction_t::MOUSEBUTTON) { // find which array we need to index into (super low overhead because this type rarely changes)
-		return m_mouse_state.m_buttons[static_cast<uint32_t>(action->m_value.m_button)].m_curr_state == State::PRESSED;
+	const GameAction action = m_name_to_action->at(hashed_action_name);
+	if (action.m_type == GameAction::GameAction_t::MOUSEBUTTON) { // find which array we need to index into (super low overhead because this type rarely changes)
+		return m_mouse_state.m_buttons[static_cast<uint32_t>(action.m_value.m_button)].m_curr_state == State::PRESSED;
 	}
-	return m_key_state[action->m_value.m_key].m_curr_state == State::PRESSED;
+	return m_key_state[action.m_value.m_key].m_curr_state == State::PRESSED;
 }
 bool InputManager::is_released(uint32_t hashed_action_name) const {
 	//const GameAction* action = &(this->m_name_to_action[hashed_action_name % m_action_count]);
-	const GameAction* action = this->m_name_to_action->at(hashed_action_name);
-	if (action->m_type == GameAction::GameAction_t::MOUSEBUTTON) {
-		return m_mouse_state.m_buttons[static_cast<uint32_t>(action->m_value.m_button)].m_curr_state == State::RELEASED;
+	const GameAction action = m_name_to_action->at(hashed_action_name);
+	if (action.m_type == GameAction::GameAction_t::MOUSEBUTTON) {
+		return m_mouse_state.m_buttons[static_cast<uint32_t>(action.m_value.m_button)].m_curr_state == State::RELEASED;
 	}
-	return m_key_state[action->m_value.m_key].m_curr_state == State::RELEASED;
+	return m_key_state[action.m_value.m_key].m_curr_state == State::RELEASED;
 }
 bool InputManager::is_held(uint32_t hashed_action_name) const {
 	//const GameAction* action = &(m_name_to_action[hashed_action_name % m_action_count]);
-	const GameAction* action = this->m_name_to_action->at(hashed_action_name);
-	if (action->m_type == GameAction::GameAction_t::MOUSEBUTTON) {
-		return m_mouse_state.m_buttons[static_cast<uint32_t>(action->m_value.m_button)].m_curr_state == State::HELD;
+	//OutputDebugStringA("is held\n");
+	const GameAction action = m_name_to_action->at(hashed_action_name);
+	if (action.m_type == GameAction::GameAction_t::MOUSEBUTTON) {
+		return m_mouse_state.m_buttons[static_cast<uint32_t>(action.m_value.m_button)].m_curr_state == State::HELD;
 	}
-	return m_key_state[action->m_value.m_key].m_curr_state == State::HELD;
+	return m_key_state[action.m_value.m_key].m_curr_state == State::HELD;
 }
 bool InputManager::is_unheld(uint32_t hashed_action_name) const {
 	//const GameAction* action = &(this->m_name_to_action[hashed_action_name % m_action_count]);
-	const GameAction* action = this->m_name_to_action->at(hashed_action_name);
-	if (action->m_type == GameAction::GameAction_t::MOUSEBUTTON) {
-		return m_mouse_state.m_buttons[static_cast<uint32_t>(action->m_value.m_button)].m_curr_state == State::UNHELD;
+	const GameAction action = m_name_to_action->at(hashed_action_name);
+	if (action.m_type == GameAction::GameAction_t::MOUSEBUTTON) {
+		return m_mouse_state.m_buttons[static_cast<uint32_t>(action.m_value.m_button)].m_curr_state == State::UNHELD;
 	}
-	return m_key_state[action->m_value.m_key].m_curr_state == State::UNHELD;
+	return m_key_state[action.m_value.m_key].m_curr_state == State::UNHELD;
 }
 void InputManager::add_action(uint32_t hashed_action_name, MouseButton button) {
 	//m_name_to_action[hashed_action_name % m_action_count] = GameAction(button);
@@ -94,14 +124,14 @@ void InputManager::add_action(uint32_t hashed_action_name, Key key) {
 }
 void InputManager::remap_action(uint32_t hashed_action_name, MouseButton button) {
 	// GameAction* action = &(this->m_name_to_action[hashed_action_name % m_action_count]); // at function will currently throw an exception if we remap an action that doesn't exist. (probably okay because that's a bug in the user's code and not the intended interface)
-	// action->m_type = GameAction::GameAction_t::MOUSEBUTTON;
-	// action->m_value.m_button = button;
+	// action.m_type = GameAction::GameAction_t::MOUSEBUTTON;
+	// action.m_value.m_button = button;
 	m_name_to_action->set(hashed_action_name, GameAction(button));
 }
 void InputManager::remap_action(uint32_t hashed_action_name, Key key) {
 	// GameAction* action = &(this->m_name_to_action[hashed_action_name % m_action_count]);
-	// action->m_type = GameAction::GameAction_t::KEY;
-	// action->m_value.m_key = key;
+	// action.m_type = GameAction::GameAction_t::KEY;
+	// action.m_value.m_key = key;
 	m_name_to_action->set(hashed_action_name, GameAction(key));
 }
 int InputManager::get_mouse_x() const {
@@ -109,6 +139,23 @@ int InputManager::get_mouse_x() const {
 }
 int InputManager::get_mouse_y() const {
 	return m_mouse_state.y;
+}
+int InputManager::get_mouse_prev_x() const {
+	return m_mouse_state.prev_x;
+}
+int InputManager::get_mouse_prev_y() const {
+	return m_mouse_state.prev_y;
+}
+float InputManager::get_mouse_delta_x() const {
+	return m_mouse_state.delta_x;
+	//return m_mouse_state.x - m_mouse_state.prev_x;
+}
+float InputManager::get_mouse_delta_y() const {
+	return m_mouse_state.delta_y;
+	// return m_mouse_state.y - m_mouse_state.prev_y;
+}
+bool  InputManager::mouse_pos_changed() const {
+	return m_mouse_state.position_changed;
 }
 // private functions:
 void InputManager::update_key_states() { // used to make sure released only exists for one frame, and to make sure that we properly transition to held for the mouse buttons
@@ -147,9 +194,30 @@ void InputManager::update_key_states() { // used to make sure released only exis
 		}
 	}
 }
+
 void InputManager::update_mouse_pos(const MSG& message) {
-	m_mouse_state.x = GET_X_LPARAM(message.lParam);
-	m_mouse_state.y = GET_Y_LPARAM(message.lParam);
+	// convert window coordinate to client area coordinate with origin at the center of the client area
+	int delta_x = GET_X_LPARAM(message.lParam) - static_cast<int>(engine->window->m_width / 2) - engine->window->m_left;
+	int delta_y = -(GET_Y_LPARAM(message.lParam) - static_cast<int>(engine->window->m_height / 2)) + engine->window->m_top;
+	//std::string debug = std::to_string(delta_x) + " " + std::to_string(delta_y) + "\n";
+	//OutputDebugStringA(debug.c_str());
+	// if the mouse is not centered at the screen
+	if (delta_x != 0 || delta_y != 0) { // there is a change in either the x or y direction
+		// distance of mouse from the center of the window
+		m_mouse_state.delta_x += delta_x;
+		m_mouse_state.delta_y += -delta_y;
+		// m_mouse_state.delta_y = m_mouse_state.y - m_mouse_state.prev_y;
+		// m_mouse_state.delta_x = (static_cast<float>(GET_X_LPARAM(message.lParam)) - static_cast<float>(m_mouse_state.prev_x)) - static_cast<float>(engine->window->m_width / 2);
+		// m_mouse_state.delta_y = -(static_cast<float>(GET_Y_LPARAM(message.lParam)) - static_cast<float>(engine->window->m_height / 2));
+		m_mouse_state.position_changed = true;
+		if (engine->window->m_mouse_captured) {
+			SetCursorPos(static_cast<int>(engine->window->m_width / 2) + engine->window->m_screen_x, static_cast<int>(engine->window->m_height / 2) + engine->window->m_screen_y);
+		}
+		// std::string temp = "";
+		// temp += std::to_string(m_mouse_state.x) + " " + std::to_string(m_mouse_state.y) + "\n";
+		// OutputDebugStringA(temp.c_str());
+		// std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
 }
 void InputManager::process_mousemove(const MSG& message) {
 	update_mouse_pos(message);

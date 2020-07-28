@@ -1,0 +1,225 @@
+#include "RigidBody.h"
+#include "../Gameplay/GameObject.h"
+#include <memory>
+#include <assert.h>
+#include <math.h>
+#include <limits>
+#include <algorithm>
+
+// inline void RigidBody::calculate_derived_data() { 
+// 	return; 
+// }
+static constexpr float gravity = -9.8f;
+static const DirectX::XMFLOAT3 gravity_arr(0.0f, gravity, 0.0f);
+static const DirectX::XMVECTOR gravity_vec = DirectX::XMLoadFloat3(&gravity_arr);
+
+RigidBody::RigidBody(GameObject* obj) : m_game_object(obj), m_position(obj->m_position) {}
+
+
+void RigidBody::update() {
+	// DirectX::XMStoreFloat4x4(m_transform, DirectX::XMMatrixTranslation(m_position.x, m_position.y, m_position.z));
+	return;
+}
+void RigidBody::integrate(double duration) { // called in run_frame of collision_engine
+	if (!m_is_awake) return; // do not integrate sleeping bodies
+	using namespace DirectX;
+	// calculate linear accleration from force inputs
+	XMVECTOR last_frame_acceleration = XMLoadFloat3(&m_acceleration);//  XMVectorSet(m_acceleration.x, m_acceleration.y, m_acceleration.z, 0.0f);
+	XMVECTOR force_accum = XMLoadFloat3(&m_force_accum);
+	XMVECTOR inverse_mass = XMVectorSet(m_inverse_mass, m_inverse_mass, m_inverse_mass, 0.0f);
+	XMVECTOR velocity = XMLoadFloat3(&m_velocity);
+	XMVECTOR position = XMVectorSet(m_position.x, m_position.y, m_position.z, 1.0f); // position can be translated so w is 1
+	//m_last_frame_accleration = m_acceleration;
+	// if we have finite mass, apply gravity
+	if (has_finite_mass()) force_accum += gravity_vec * get_mass();
+	last_frame_acceleration += (force_accum * inverse_mass);
+	// adjust velocity, update linear velocity from both accleration and impulse
+	velocity += (last_frame_acceleration * duration);
+	// impose drag
+	velocity *= pow(m_linear_damping, duration);
+	// update linear position
+	position += (velocity * duration);
+
+	// calculate_derived_data();
+	clear_accumulators();
+
+	XMStoreFloat3(&m_last_frame_accleration, last_frame_acceleration);
+	XMStoreFloat3(&m_velocity, velocity);
+	XMStoreFloat3(&m_position, position);
+	// with the position we just calculated, it is the new worldspace position, should add to the position of the gameobject
+	m_game_object->m_position = m_position; // update the position in the game object
+	// update the transform of the gameobject from what we have calculated
+	m_game_object->calculate_transform();
+	// DirectX::XMMATRIX translation = DirectX::XMMatrixTranslation(m_position.x, m_position.y, m_position.z);
+	// XMStoreFloat4x4(&m_collision_object->m_game_object->m_transform, DirectX::XMMatrixMultiply(DirectX::XMLoadFloat4x4(this->m_transform), translation));
+	// incorrect: this->m_transform = this->m_transform * translation; // applying the transform like this every frame will cause accumulation errors...
+	// DirectX::XMStoreFloat4x4(&translation, DirectX::XMMatrixTranslation(m_position.x, m_position.y, m_position.z));
+	// should never sleep the player because their position and possibly velocity can be updated else where
+	if (m_can_sleep) {
+		float current_motion = XMVectorGetX(XMVector3Dot(position, position));
+		float bias = powf(0.5f, duration);
+		m_motion = bias * m_motion + (1.0f - bias) * current_motion;
+		if (m_motion < g_sleep_epsilon) set_awake(false); // only awake if the motion is above the threshold
+		m_motion = std::min(m_motion, g_sleep_epsilon * 10); // cap m_motion at g_sleep_epsilon * 10
+
+	}
+}
+// void RigidBody::set_game_object(GameObject* obj) {
+// 	m_game_object = obj;
+// }
+void RigidBody::set_mass(const float mass) {
+	assert(mass != 0.0f);
+	m_inverse_mass = 1.0f / mass;
+}
+float RigidBody::get_mass() const{
+	if (m_inverse_mass == 0.0f) return std::numeric_limits<float>::infinity();
+	return 1.0f / m_inverse_mass;
+}
+void RigidBody::set_inverse_mass(const float inverse_mass) {
+	m_inverse_mass = inverse_mass;
+}
+float RigidBody::get_inverse_mass() const {
+	return m_inverse_mass;
+}
+bool RigidBody::has_finite_mass() const {
+	return m_inverse_mass > 0.0f;
+}
+void RigidBody::set_linear_damping(const float linear_damping) {
+	m_linear_damping = linear_damping;
+}
+float RigidBody::get_linear_damping() const {
+	return m_linear_damping;
+}
+void RigidBody::set_position(const DirectX::XMVECTOR& pos) {
+	XMStoreFloat3(&m_position, pos);
+}
+void RigidBody::set_position(const DirectX::XMFLOAT3& position)
+{
+	m_position = position;
+}
+void RigidBody::set_position(const float x, const float y, const float z) {
+	m_position = { x, y, z };
+}
+// fucntions that get an XMVECTOR member should return a XMFLOAT3 or 4
+void RigidBody::get_position(DirectX::XMFLOAT3* ret) const {
+	*ret = m_position;
+}
+DirectX::XMFLOAT3 RigidBody::get_position() const {
+	return m_position;
+}
+// void RigidBody::get_transform(DirectX::XMFLOAT4X4* transform) const {
+// 	transform = m_transform;
+// }
+// DirectX::XMFLOAT4X4 RigidBody::get_transform() const {
+// 	return *m_transform;
+// }
+// void RigidBody::set_transform(DirectX::XMFLOAT4X4* trans) {
+// 	m_transform = trans;
+// 	// m_transform = trans;
+// 	// DirectX::XMMATRIX transform = XMLoadFloat4x4(&trans);
+// 	// DirectX::XMStoreFloat4x4(&m_inverse_transform, DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(transform), transform));
+// }
+// DirectX::XMFLOAT3 RigidBody::get_point_in_local_space(const DirectX::XMFLOAT3& point) const {
+// 	DirectX::XMFLOAT4 ret;
+// 	DirectX::XMStoreFloat4(&ret, 
+// 		DirectX::XMVector4Transform(DirectX::XMVectorSet(point.x, point.y, point.z, 1.0f), DirectX::XMLoadFloat4x4(&m_inverse_transform)));
+// 	return DirectX::XMFLOAT3(ret.x, ret.y, ret.z);
+// }
+// DirectX::XMFLOAT3 RigidBody::get_point_in_world_space(const DirectX::XMFLOAT3& point) const {
+// 	DirectX::XMFLOAT4 ret;
+// 	DirectX::XMStoreFloat4(&ret,
+// 		DirectX::XMVector4Transform(DirectX::XMVectorSet(point.x, point.y, point.z, 1.0f), DirectX::XMLoadFloat4x4(m_transform)));
+// 	return DirectX::XMFLOAT3(ret.x, ret.y, ret.z);
+// }
+// DirectX::XMFLOAT3 RigidBody::get_vector_in_local_space(const DirectX::XMFLOAT3& vector) const {
+// 	DirectX::XMFLOAT3 ret;
+// 	DirectX::XMStoreFloat3(&ret,
+// 		DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&vector), DirectX::XMLoadFloat4x4(&m_inverse_transform)));
+// 	return ret;
+// }
+// DirectX::XMFLOAT3 RigidBody::get_vector_in_world_space(const DirectX::XMFLOAT3& vector) const {
+// 	DirectX::XMFLOAT3 ret;
+// 	DirectX::XMStoreFloat3(&ret,
+// 		DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&vector), DirectX::XMLoadFloat4x4(m_transform)));
+// 	return ret;
+// }
+void RigidBody::set_velocity(const DirectX::XMFLOAT3& velocity) {
+	m_velocity = velocity;
+}
+void RigidBody::set_velocity(float x, float y, float z) {
+	m_velocity.x = x;
+	m_velocity.y = y;
+	m_velocity.z = z;
+}
+void RigidBody::get_velocity(DirectX::XMFLOAT3* velocity) const {
+	*velocity = m_velocity;
+}
+DirectX::XMFLOAT3 RigidBody::get_velocity() const {
+	return m_velocity;
+}
+void RigidBody::add_velocity(const DirectX::XMFLOAT3& delta_velocity) {
+	using namespace DirectX;
+	XMVECTOR velocity = XMLoadFloat3(&m_velocity);
+	velocity += XMLoadFloat3(&delta_velocity);
+	XMStoreFloat3(&m_velocity, velocity);
+}
+void RigidBody::get_last_frame_acceleration(DirectX::XMFLOAT3* accel) const {
+	*accel = m_last_frame_accleration;
+}
+DirectX::XMFLOAT3 RigidBody::get_last_frame_acceleration() const {
+	return m_last_frame_accleration;
+}
+void RigidBody::clear_accumulators() {
+	m_force_accum.x = 0.0f;
+	m_force_accum.y = 0.0f;
+	m_force_accum.z = 0.0f;
+	// dont have forces so we only need to set the force accumulator to zero
+}
+void RigidBody::add_force(const DirectX::XMFLOAT3& force)
+{
+	using namespace DirectX;
+	XMVECTOR force_accum = XMLoadFloat3(&m_force_accum);
+	force_accum += XMLoadFloat3(&force);
+	XMStoreFloat3(&m_force_accum, force_accum);
+}
+// adding a force at a point does the same thing as add force because we do not calculate rotations for RigidBodys (yet)
+// if we want rotations then adding force at a point will apply a torque
+// void RigidBody::add_force_at_RigidBody_point(const DirectX::XMFLOAT3& force, const DirectX::XMFLOAT3& point) {
+// 	// Convert to coordinates relative to center of mass.
+// 	using namespace DirectX;
+// 	XMFLOAT3 pt = get_point_in_world_space(point);
+// 	add_force_at_point(force, pt);
+// }
+// void RigidBody::add_force_at_point(const DirectX::XMFLOAT3& force, const DirectX::XMFLOAT3& point) {
+// 	using namespace DirectX;
+// 	XMVECTOR force_accum = XMLoadFloat3(&m_force_accum);
+// 	force_accum += XMLoadFloat3(&force);
+// 	XMStoreFloat3(&m_force_accum, force_accum);
+// }
+void RigidBody::set_acceleration(const DirectX::XMFLOAT3& accel) {
+	m_acceleration = accel;
+}
+void RigidBody::set_acceleration(float x, float y, float z) {
+	m_acceleration.x = x;
+	m_acceleration.y = y;
+	m_acceleration.z = z;
+}
+void RigidBody::get_acceleration(DirectX::XMFLOAT3* accel) const {
+	*accel = m_acceleration;
+}
+DirectX::XMFLOAT3 RigidBody::get_acceleration() const {
+	return m_acceleration;
+}
+void RigidBody::set_awake(const bool awake) {
+	m_is_awake = awake;
+	if (m_is_awake) {
+		m_motion = 2.0f * g_sleep_epsilon;
+		return;
+	}
+	m_velocity = { 0.0f, 0.0f, 0.0f };
+
+}
+void RigidBody::set_can_sleep(const bool can_sleep) {
+	m_can_sleep = can_sleep;
+	if (!m_can_sleep && !m_is_awake) set_awake();
+}
