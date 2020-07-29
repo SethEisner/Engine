@@ -153,128 +153,88 @@ void Scene::create_mesh(const aiScene* scene, Mesh* mesh) {
 	process_node(XMLoadFloat4x4(&mesh->m_transform), scene->mRootNode, scene, mesh);
 }
 bool Scene::init() {
+
+	
 	// use the resource manager to load the items into memory
 	// then build each RenderItem and add it to the vector
 	//std::string name = "Sword";
-	std::string name = "floor";
-	std::string zip_file = name + ".zip";
-	engine->resource_manager->load_resource(zip_file);
-	std::string crate = "crate";
-	std::string zip_file1 = "crate.zip";
-	engine->resource_manager->load_resource(zip_file1);
-	//engine->resource_manager->load_resource("Sword.zip");
-	while (!engine->resource_manager->resource_loaded(zip_file)) {}
-	while (!engine->resource_manager->resource_loaded(zip_file1)) {}
+	engine->resource_manager->load_resource("floor.zip");
+	engine->resource_manager->load_resource("crate.zip");
+	engine->resource_manager->load_resource("Sword.zip");
+	while (!engine->resource_manager->resource_loaded("floor.zip")) {}
+	while (!engine->resource_manager->resource_loaded("crate.zip")) {}
+	while (!engine->resource_manager->resource_loaded("Sword.zip")) {}
 	const aiScene* scene;
 	
-	scene = engine->resource_manager->get_scene_pointer(zip_file + "/" + name + ".dae");
-
-	// m_object = new Object(scene->mNumMeshes);
-	// 
-	// for (size_t i = 0; i != m_object->m_mesh_count; ++i) { // init every mesh in the scene to the object
-	// 	m_object->m_sub_meshes[i].init(scene->mMeshes[i]);
-	// }
-
-	m_floor = new GameObject({ 0.0f, -1.0f, 0.0f });
-	m_floor->add_mesh(new Mesh());
-	
-	create_mesh(scene, m_floor->m_mesh);
-	
-
-
-	// m_root = new Node();
 
 	
-
-	// should eventually read in a file that has all this data in a nice format. maybe a json file callend scene
-	// build the textures in the scene, or tell the renderer about them
-
-	// replace 0 with the thread id to index into the array of command lists
-	engine->renderer->reset_command_list(0);
-	// std::string tex_name = "checker";
-	// std::string filename = "floor.zip/checkerboard.dds";
-	// engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::COLOR);
-	std::string tex_name = "base_color";
-	std::string filename = zip_file + "/checkerboard.dds";
-	engine->renderer->create_and_add_texture(tex_name, filename, 0, m_floor->m_mesh, TextureFlags::COLOR);
-
-
-	// tex_name = "sword_normal";
-	// filename = zip_file + "/Sting_Normal.dds";
-	// engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::NORMAL);
-	// 
-	// tex_name = "sword_roughness";
-	// filename = zip_file + "/Sting_Roughness.dds";
-	// engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::ROUGHNESS);
-	// 
-	// tex_name = "sword_metalness";
-	// filename = zip_file + "/Sting_Roughness.dds";
-	// engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::METALLIC);
-	// 
-	// tex_name = "sword_height";
-	// filename = zip_file + "/Sting_Height.dds";
-	// engine->renderer->create_and_add_texture(tex_name, filename, 0, *m_mesh, TextureFlags::HEIGHT);
+	scene = engine->resource_manager->get_scene_pointer("floor.zip/floor.dae");
+	GameObject* floor = new GameObject({ 0.0f, -1.0f, 0.0f });
+	floor->add_mesh(new Mesh());
+	create_mesh(scene, floor->m_mesh);
+	engine->renderer->create_and_add_texture("base_color", "floor.zip/checkerboard.dds", 0, floor->m_mesh, TextureFlags::COLOR);
+	engine->renderer->add_mesh(floor->m_mesh); // add mesh at the end because we bind the textures it uses in this function
+	floor->add_collision_object(new CollisionObject(floor, floor->m_mesh));
+	engine->collision_engine->add_object(floor->m_collision_object);
+	m_game_objects.emplace_back(floor);
 	
-	// engine->renderer->close_command_list(0);
+	scene = engine->resource_manager->get_scene_pointer("crate.zip/crate.dae");
+	GameObject* crate = new GameObject({ 0.0f, 10.0f, 0.0f });
+	crate->add_mesh(new Mesh());
+	create_mesh(scene, crate->m_mesh);
+	engine->renderer->create_and_add_texture("crate_color", "crate.zip/crate_diffuse.dds", 0, crate->m_mesh, TextureFlags::COLOR);
+	engine->renderer->add_mesh(crate->m_mesh); // add mesh at the end because we bind the textures it uses in this function
+	crate->add_collision_object(new CollisionObject(crate, crate->m_mesh));
+	crate->m_collision_object->add_rigid_body();
+	crate->m_collision_object->m_body->set_mass(10.0f);
+	crate->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
+	crate->m_collision_object->m_body->set_linear_damping(0.8f);
+	crate->m_collision_object->m_body->set_velocity({ 0.0f, 0.0f, 0.0f });
+	engine->collision_engine->add_object(crate->m_collision_object);
+	m_game_objects.emplace_back(crate);
 
 
-	engine->renderer->add_mesh(m_floor->m_mesh); // add mesh at the end because we bind the textures it uses in this function
-	m_floor->add_collision_object(new CollisionObject(m_floor, m_floor->m_mesh));
+	scene = engine->resource_manager->get_scene_pointer("crate.zip/crate.dae");
+	GameObject* crate_1 = new GameObject({ 0.0f, 13.0f, 0.0f });
+	crate_1->add_mesh(new Mesh());
+	create_mesh(scene, crate_1->m_mesh);
+	engine->renderer->create_and_add_texture("crate_color", "crate.zip/crate_diffuse.dds", 0, crate_1->m_mesh, TextureFlags::COLOR);
+	engine->renderer->add_mesh(crate_1->m_mesh); // add mesh at the end because we bind the textures it uses in this function
+	crate_1->add_collision_object(new CollisionObject(crate_1, crate_1->m_mesh));
+	crate_1->m_collision_object->add_rigid_body();
+	crate_1->m_collision_object->m_body->set_mass(10.0f);
+	crate_1->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
+	crate_1->m_collision_object->m_body->set_linear_damping(0.8f);
+	crate_1->m_collision_object->m_body->set_velocity({ 0.0f, 10.0f, 0.0f });
+	engine->collision_engine->add_object(crate_1->m_collision_object);
+	m_game_objects.emplace_back(crate_1);
 	
-	engine->collision_engine->add_object(m_floor->m_collision_object);
+	scene = engine->resource_manager->get_scene_pointer("Sword.zip/Sword.dae");
+	GameObject* Sword = new GameObject({ 24.0f, 0.0f, 0.0f }, { 10.0f, 10.0f, 10.0f });
+	Sword->add_mesh(new Mesh());
+	create_mesh(scene, Sword->m_mesh);
+	engine->renderer->create_and_add_texture("Sword_color",    "Sword.zip/Sting_Color.dds", 0, Sword->m_mesh, TextureFlags::COLOR);
+	engine->renderer->create_and_add_texture("Sword_normal",   "Sword.zip/Sting_Normal.dds", 0, Sword->m_mesh, TextureFlags::NORMAL);
+	engine->renderer->create_and_add_texture("Sword_rough",    "Sword.zip/Sting_Roughness.dds", 0, Sword->m_mesh, TextureFlags::ROUGHNESS);
+	engine->renderer->create_and_add_texture("Sword_mettalic", "Sword.zip/Sting_Metallic.dds", 0, Sword->m_mesh, TextureFlags::METALLIC);
+	engine->renderer->create_and_add_texture("Sword_height",   "Sword.zip/Sting_Height.dds", 0, Sword->m_mesh, TextureFlags::HEIGHT);
+	engine->renderer->add_mesh(Sword->m_mesh); // add mesh at the end because we bind the textures it uses in this function
+	Sword->add_collision_object(new CollisionObject(Sword, Sword->m_mesh));
+	Sword->m_collision_object->add_rigid_body();
+	Sword->m_collision_object->m_body->set_mass(10.0f);
+	Sword->m_collision_object->m_body->set_acceleration({ 0.0f, 9.8f, 0.0f });
+	Sword->m_collision_object->m_body->set_linear_damping(1.0f);
+	Sword->m_collision_object->m_body->set_velocity({ -10.0f, 0.0f, 0.0f });
+	engine->collision_engine->add_object(Sword->m_collision_object);
+	m_game_objects.emplace_back(Sword);
 
-	engine->renderer->reset_command_list(0);
-	
-	
-	m_crate0 = new GameObject({ 0.0f, 10.0f, 0.0f });
-	// XMStoreFloat4x4(&m_crate0->m_transform, DirectX::XMMatrixIdentity());
-	m_crate0->add_mesh(new Mesh());
-	while (!engine->resource_manager->resource_loaded(zip_file1)) {}
-	scene = engine->resource_manager->get_scene_pointer(zip_file1 + "/" + crate + ".dae");
-	create_mesh(scene, m_crate0->m_mesh);
-	// std::string filename = "crate.zip/crate_diffuse.dds";
-	// engine->renderer->create_and_add_texture("crate_color", "crate.zip/crate_diffuse.dds", 0, m_crate0->m_mesh, TextureFlags::COLOR);
-	engine->renderer->create_and_add_texture("crate_color", "floor.zip/checkerboard.dds", 0, m_crate0->m_mesh, TextureFlags::COLOR);
-	
-	engine->renderer->add_mesh(m_crate0->m_mesh);
-	m_crate0->add_collision_object(new CollisionObject(m_crate0, m_crate0->m_mesh));
-	m_crate0->m_collision_object->add_rigid_body();
-	m_crate0->m_collision_object->m_body->set_mass(10.0f);
-	m_crate0->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
-	m_crate0->m_collision_object->m_body->set_linear_damping(0.8f);
-	m_crate0->m_collision_object->m_body->set_velocity({ 0.0f, 0.0f, 0.0f });
-
-	engine->collision_engine->add_object(m_crate0->m_collision_object);
-
-
-
-	m_crate1 = new GameObject({ 0.0f, 13.0f, 0.0f });
-	m_crate1->add_mesh(new Mesh());
-	while (!engine->resource_manager->resource_loaded(zip_file1)) {}
-	scene = engine->resource_manager->get_scene_pointer(zip_file1 + "/" + crate + ".dae");
-	create_mesh(scene, m_crate1->m_mesh);
-	// std::string filename = "crate.zip/crate_diffuse.dds";
-	// engine->renderer->create_and_add_texture("crate_color", "crate.zip/crate_diffuse.dds", 0, m_crate1->m_mesh, TextureFlags::COLOR);
-	engine->renderer->create_and_add_texture("crate_color", "floor.zip/checkerboard.dds", 0, m_crate1->m_mesh, TextureFlags::COLOR);
-	
-	engine->renderer->add_mesh(m_crate1->m_mesh);
-	m_crate1->add_collision_object(new CollisionObject(m_crate1, m_crate1->m_mesh));
-	m_crate1->m_collision_object->add_rigid_body();
-	m_crate1->m_collision_object->m_body->set_mass(10.0f);
-	m_crate1->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
-	m_crate1->m_collision_object->m_body->set_linear_damping(0.8f);
-	m_crate1->m_collision_object->m_body->set_velocity({ 0.0f, 10.0f, 0.0f });
-	
-	engine->collision_engine->add_object(m_crate1->m_collision_object);
-
-	engine->renderer->close_command_list(0);
 	return true;
 }
 void Scene::update(double duration) {
 	// call the update method on each GameObject
-	if (m_floor) m_floor->update(duration);
-	if (m_crate0) m_crate0->update(duration);
-	if (m_crate1) m_crate1->update(duration);
+	for (size_t i = 0; i != m_game_objects.size(); ++i) {
+		m_game_objects[i]->update(duration);
+	}
 }
 void Scene::shutdown() {
 	// tell the resource manager that we no longer need all the resources loaded

@@ -38,7 +38,7 @@ void Renderer::add_mesh(const Mesh* mesh) {
 	m_scene_ready = true;
 }
 void Renderer::create_and_add_texture(const std::string& name, const std::string& filename, size_t cmd_list_id, Mesh* corresponding_mesh, TextureFlags flag) {// use the thread's command list to create and add the texture 
-
+	reset_command_list(cmd_list_id);
 	//DirectX::ResourceUploadBatch resource_upload(m_d3d_device.Get());
 	Texture* texture = new Texture();
 	texture->m_name = name;
@@ -57,13 +57,13 @@ void Renderer::create_and_add_texture(const std::string& name, const std::string
 	catch (DxException e) {
 		OutputDebugString(e.ToString().c_str());
 	}
+	close_command_list(cmd_list_id);
 	//m_textures[tex->m_name] = std::move(tex);
 	// set the texture map
 	int index = get_texture_index(flag);
 	assert(m_texture_map[corresponding_mesh->m_mesh_id][index] == nullptr && "overwriting texture in texture map"); // assert that we are not overwriting the data
 	m_texture_map[corresponding_mesh->m_mesh_id][index] = texture;
 	corresponding_mesh->m_textures_used = corresponding_mesh->m_textures_used | flag;
-
 }
 bool Renderer::init() {
 
@@ -170,7 +170,7 @@ void Renderer::draw() {
 	m_command_list->ClearDepthStencilView(depth_stencil_view(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	// specify the buffers we are going to render to
 	m_command_list->OMSetRenderTargets(1, &current_back_buffer_view(), true, &depth_stencil_view());
-
+	// m_command_list->SetDescriptorHeaps()
 	// should be render item independent
 	m_command_list->SetGraphicsRootSignature(m_root_signature.Get());
 	auto pass_cb = m_curr_frame_resource->m_pass_cb->get_resource();
@@ -355,9 +355,6 @@ D3D12_CPU_DESCRIPTOR_HANDLE Renderer::depth_stencil_view() const {
 	return m_dsv_heap->GetCPUDescriptorHandleForHeapStart();
 }
 void Renderer::build_descriptor_heaps(const Mesh* mesh) { // create heaps to hold the textures (maybe dont create them every frame but only for new textures...
-
-
-
 	// create a new descritpor heap and map it to the given mesh
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srv_descriptor_heap = nullptr;
 	D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc = {};
@@ -377,22 +374,22 @@ void Renderer::build_descriptor_heaps(const Mesh* mesh) { // create heaps to hol
 	srv_desc.Texture2D.MostDetailedMip = 0;
 	srv_desc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // only support 2d textures for now
-	size_t offset = 0;
+	//size_t offset = 0;
 
 	uint32_t supported_textures = static_cast<uint32_t>(mesh->m_textures_used);
 	static const uint32_t mask = 0x1;
-	Texture* tex = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Resource> tex;
 	for (size_t i = 0; i != NUM_TEXTURES; ++i, supported_textures >>= 1){//, offset = 1) { // forf each texture type the mesh could support
 		// if it is supported, create the view
-		tex = m_dummy_texture;
-		h_desc.Offset(offset, m_cbv_srv_descriptor_size);
+		tex = m_dummy_texture->m_resource;
+		//h_desc.Offset(offset, m_cbv_srv_descriptor_size);
 		if (supported_textures & mask) { // bind the real texture
-			tex = m_texture_map[mesh->m_mesh_id][i]; // get the corresponding texture pointer
+			tex = m_texture_map[mesh->m_mesh_id][i]->m_resource; // get the corresponding texture pointer
 		}
-		srv_desc.Format = tex->m_resource->GetDesc().Format;
-		srv_desc.Texture2D.MipLevels = tex->m_resource->GetDesc().MipLevels;
-		m_d3d_device->CreateShaderResourceView(tex->m_resource.Get(), &srv_desc, h_desc);
-		offset = 1;
+		srv_desc.Format = tex->GetDesc().Format;
+		srv_desc.Texture2D.MipLevels = tex->GetDesc().MipLevels;
+		m_d3d_device->CreateShaderResourceView(tex.Get(), &srv_desc, h_desc);
+		h_desc.Offset(1, m_cbv_srv_descriptor_size);
 	}
 }
 void Renderer::build_root_signature() {
@@ -580,7 +577,7 @@ void Renderer::update_main_pass_cb(const Timer& t) {
 	m_main_pass_cb.m_far_z = engine->camera->get_far_z();
 	m_main_pass_cb.m_total_time = t.total_time();
 	m_main_pass_cb.m_delta_time = t.delta_time();
-	m_main_pass_cb.m_ambient_light = {0.1f, 0.1f, 0.11f, 1.0f};
+	m_main_pass_cb.m_ambient_light = {0.11f, 0.11f, 0.10f, 1.0f};
 	m_main_pass_cb.m_lights[0].m_direction = {0.57735f, -0.57735f, 0.57735f};
 	m_main_pass_cb.m_lights[0].m_strength = { 0.8f, 0.8f, 0.8f };
 	m_main_pass_cb.m_lights[1].m_direction = { -0.57735f, -0.57735f, 0.57735f };

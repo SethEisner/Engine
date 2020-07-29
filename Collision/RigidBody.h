@@ -8,7 +8,7 @@
 // using polymorphism
 class GameObject;
 
-static constexpr float g_sleep_epsilon = 0.3f;/// 10.0f; // the larger this number the faster an object will stop jiggling once it hits the ground
+static constexpr float g_sleep_epsilon = 15.0f; // the larger this number the faster an object will stop jiggling once it hits the ground
 
 class RigidBody {
 public:

@@ -138,7 +138,7 @@ float ga_schlick_ggx(float cos_li, float cos_lo, float roughness) { // schlick g
     return ga_schlick_g1(cos_li, k) * ga_schlick_g1(cos_lo, k);
 }
 float fresnel_schlick(float3 f0, float cos_theta) {
-    return f0 + (1.0f - f0) * pow(1.0f - cos_theta, 5.0);
+    return f0 + ((float3(1.0f, 1.0f, 1.0f) - f0) * pow(1.0f - cos_theta, 5.0));
 }
 
 #define COLOR_INDEX 0
@@ -162,14 +162,14 @@ float4 PS(VertexOut pin) : SV_Target
     float height_scale = 0.005f;
     
 
-    if (height_used) {
-        float height = gTextures[HEIGHT_INDEX].Sample(gsamAnisotropicWrap, tex).r;
-        float2 p = view.xy * (height * height_scale);
-        tex = tex + p;
-    }
+    // if (height_used) {
+    //     float height = gTextures[HEIGHT_INDEX].Sample(gsamAnisotropicWrap, tex).r;
+    //     float2 p = view.xy * (height * height_scale);
+    //     tex = tex + p;
+    // }
     float3 normal = { 0.0f, 0.0f, 0.0f };
     if (normal_used) {
-        float3 normal_sample = normal_used * gTextures[NORMAL_INDEX].Sample(gsamAnisotropicWrap, tex).rgb;
+        float3 normal_sample = gTextures[NORMAL_INDEX].Sample(gsamAnisotropicWrap, tex).rgb;
         normal = normal_used * normalize(2.0f * normal_sample - 1.0f);
         normal = normalize(mul(normal, pin.tangent_basis));
     }
@@ -196,7 +196,6 @@ float4 PS(VertexOut pin) : SV_Target
     float3 f0 = lerp(Fdielectric, albedo, metalness); 
 
     float3 direct_lighting = { 0.0f, 0.0f, 0.0f };
-
     for (uint i = 0; i < 1 /*NUM_DIR_LIGHTS + NUM_POINT_LIGHTS + NUM_SPOT_LIGHTS*/; i++) { // so far only have 3 directional lights
         float3 li = -gLights[i].Direction; // vector of incoming light from the surface
         float3 l_radiance = gLights[i].Strength;
@@ -209,13 +208,17 @@ float4 PS(VertexOut pin) : SV_Target
         float3 f = fresnel_schlick(f0, max(0.0f, dot(lh, lo)));
         float d = ndf_ggx(cos_lh, roughness);
         float g = ga_schlick_ggx(cos_li, cos_lo, roughness);
-        float3 kd = lerp(float3(1, 1, 1) - f, float3(0, 0, 0), metalness);
+        float3 kd = lerp(float3(1, 1, 1) - f, float3(0, 0, 0) + f, metalness);
+        // float3 kd = lerp(float3(1, 1, 1) - f, 0.0, metalness);
 
         float3 diffuse_bdrf = kd * albedo;
         float3 specular_bdrf = (f * d * g) / max(Epsilon, 4.0 * cos_li * cos_lo);
         direct_lighting += (diffuse_bdrf + specular_bdrf) * l_radiance * cos_li;
     }
-    return float4(direct_lighting + gAmbientLight, 1.0f);
-    // return float4(albedo, 1.0f);
+
+    // calculate the ambient, would use an irradiance map here if we add one
+    // return float4(metalness, metalness, metalness, 1.0f);
+    // return float4(direct_lighting, 1.0f);
+    return float4(direct_lighting + gAmbientLight*albedo, 1.0f);
 }
 

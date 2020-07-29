@@ -34,6 +34,7 @@ class Camera;
 struct GameObject {
 	DirectX::XMFLOAT4X4 m_transform; // transform from Model space to World Space
 	DirectX::XMFLOAT3 m_position; // use to build the transform's translation
+	DirectX::XMFLOAT3 m_scale; // use to build the transform's scaling
 	Mesh* m_mesh = nullptr;
 	CollisionObject* m_collision_object = nullptr;
 	Camera* m_camera = nullptr; // may not want to have a camera in the game object
@@ -45,11 +46,9 @@ struct GameObject {
 	CollisionObject* remove_collision_object();
 	void add_camera(Camera* camera);
 	Camera* remove_camera();
-	void calculate_transform() {
-		DirectX::XMStoreFloat4x4(&m_transform, DirectX::XMMatrixTranslation(m_position.x, m_position.y, m_position.z));
-	}
+	void calculate_transform();
 	GameObject() = delete;
-	explicit GameObject(DirectX::XMFLOAT3 pos) : m_position(pos) {
+	explicit GameObject(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f }) : m_position(pos), m_scale(scale) {
 		calculate_transform();
 		// DirectX::XMStoreFloat4x4(&m_transform, DirectX::XMMatrixTranslation(m_position.x, m_position.y, m_position.z)); // make the transform correcpond to the position we initialize it with
 	}
