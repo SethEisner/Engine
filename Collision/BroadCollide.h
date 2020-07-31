@@ -1,6 +1,7 @@
 #pragma once
 #include "RigidBody.h"
 #include "CollisionObject.h"
+#include "../Gameplay/GameObject.h"
 #include "Contact.h"
 #include <DirectXCollision.h>
 #include <memory>
@@ -39,7 +40,12 @@ public:
 	// BoundingBox(const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT3& extents) : m_box(center, extents) {}
 	BoundingBox(const BoundingBox& first, const BoundingBox& second);
 	inline bool overlaps(const BoundingBox& other) const { // check for intersection in world space
-		return this->m_world_box.Intersects(other.m_world_box);
+		// return this->m_world_box.Intersects(other.m_world_box);
+		if (this->m_world_box.Intersects(other.m_world_box)) {
+			return true;
+		}
+		return false;
+
 	}
 	float get_growth(const BoundingBox& other) const;
 	inline float get_size() const { // volume of the box, can determine growth from the volume delta
@@ -65,11 +71,6 @@ public:
 		m_game_object = obj;
 	}
 };
-
-// holds two bodies that might be in contact
-// struct PotentialContact {
-// 	RigidBody* m_body[2];
-// };
 
 struct PotentialContact { // a potential contact is a pair of two collisionobjects, use collision objects so it's easy to go get associated gameobject, rigidbody, AABB, and OBBs
 	CollisionObject* m_collision_object[2] = { nullptr, nullptr };
@@ -102,6 +103,7 @@ public:
 	size_t get_potential_contacts(PotentialContact* contacts, size_t limit) const; // build the array of potential contacts
 	// void insert(RigidBody* body, const BoundingVolume& volume);
 	void insert(CollisionObject* coll_obj); // collision objects have their own BoundingVolume
+	void update();
 protected:
 	bool overlaps(const BVHNode<BoundingVolume>* other) const; // checks if two nodes overlap, should call the overlaps method of the BoundingVolume
 	size_t get_potential_contacts_with(const BVHNode<BoundingVolume>* other, PotentialContact* contacts, size_t limit) const;
@@ -110,7 +112,9 @@ protected:
 
 template<class BoundingVolume>
 bool BVHNode<BoundingVolume>::overlaps(const BVHNode<BoundingVolume>* other) const {
-	return m_collision_object->m_box->overlaps(*other->m_collision_object->m_box); // call the overlap function for the Bounding volume we use for the hierarchy
+	// doesnt collide for even 
+	return m_volume.overlaps(other->m_volume); // call the overlap function for the Bounding volume we use for the hierarchy
+	// return m_collision_object->m_box->overlaps(*other->m_collision_object->m_box);
 }
 
 template<class BoundingVolume>
@@ -132,6 +136,20 @@ void BVHNode<BoundingVolume>::insert(CollisionObject* coll_obj) {
 		else {
 			m_children[1]->insert(coll_obj);
 		}
+	}
+}
+
+template<class BoundingVolume>
+void BVHNode<BoundingVolume>::update() { // called every frame
+	// need to recalculate internal node volumes
+	// this is the current node, start with this = root 
+	if (!is_leaf()) { // if we are an internal node, process our children first and then recalculate our volume once the children have the correct volume 
+		m_children[0]->update();
+		m_children[1]->update();
+		m_volume = BoundingVolume(m_children[0]->m_volume, m_children[1]->m_volume);
+	}
+	else{ // if we are a leaf, recalculate the leaf's volume because the collision object has moved
+		m_volume = *m_collision_object->m_box;
 	}
 }
 
@@ -186,22 +204,27 @@ size_t BVHNode<BoundingVolume>::get_potential_contacts(PotentialContact* contact
 
 template<class BoundingVolume>
 size_t BVHNode<BoundingVolume>::get_potential_contacts_with(const BVHNode<BoundingVolume>* other, PotentialContact* contacts, size_t limit) const {
-	if (!overlaps(other) || limit == 0) return 0; // if nether BVH overlaps then we dont need to proceed further
-	if (is_leaf() && other->is_leaf()) { // if we are both leaf nodes then there is one potential contact because the overlap call above us passed
-		contacts->m_collision_object[0] =  this->m_collision_object;
-		contacts->m_collision_object[1] = other->m_collision_object;
-		return 1;
+	size_t count = 0;
+	if (!is_leaf() && limit > count) { // chekc for contacts between our children
+		count += m_children[0]->get_potential_contacts_with(m_children[1], contacts + count, limit - count);
 	}
-	// determine which brach to descend into, if either is a leaf then descend into the other, otherwise descend into the larger one
-	// descend into the larger one incase we pass the limit from it
-	if (other->is_leaf() || (!is_leaf() && m_volume.get_size() >= other->m_volume.get_size())) {
-		size_t count = m_children[0]->get_potential_contacts_with(other, contacts, limit);
-		if (limit > count) return count + m_children[1]->get_potential_contacts_with(other, contacts + count, limit - count);
-		return count;
+	if (!other->is_leaf() && limit > count) { // check for contacts between the other's children
+		count += other->m_children[0]->get_potential_contacts_with(other->m_children[1], contacts + count, limit - count);
 	}
-	else {
-		size_t count = get_potential_contacts_with(other->m_children[0], contacts, limit);
-		if (limit > count) return count + get_potential_contacts_with(other->m_children[1], contacts + count, limit - count);
-		return count;
+	if (limit > 0 && this->overlaps(other)) { // still have space and our subtrees overlap
+		if (is_leaf() && other->is_leaf()) { // if we are both leaf nodes then there is one potential contact because the overlap call above us passed
+			contacts->m_collision_object[0] = this->m_collision_object;
+			contacts->m_collision_object[1] = other->m_collision_object;
+			return count + 1; // guranteed to have space for one more contact
+		}
+		if (other->is_leaf() || (!is_leaf() && m_volume.get_size() >= other->m_volume.get_size())) {
+			if (limit > count) count += m_children[0]->get_potential_contacts_with(other, contacts + count, limit - count);
+			if (limit > count) count += m_children[1]->get_potential_contacts_with(other, contacts + count, limit - count);
+		}
+		else { // other must not be a leaf here, and other is bigger than this volume
+			if (limit > count) count += get_potential_contacts_with(other->m_children[0], contacts + count, limit - count);
+			if (limit > count) count += get_potential_contacts_with(other->m_children[1], contacts + count, limit - count);
+		}
 	}
+	return count;
 }

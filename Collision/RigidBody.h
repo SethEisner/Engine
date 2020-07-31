@@ -4,11 +4,9 @@
 // dont program the physics calculations yet, when/if I do we can have a bool for 
 // the player / rotatable, which prevents the body from rotating, can
 // contact should use a pair of body pointers, doing it this way allows us to use RTTI and a single contact type
-
-// using polymorphism
 class GameObject;
 
-static constexpr float g_sleep_epsilon = 15.0f; // the larger this number the faster an object will stop jiggling once it hits the ground
+static constexpr float g_sleep_epsilon = 1.0f; // the larger this number the faster an object will stop jiggling once it hits the ground
 
 class RigidBody {
 public:

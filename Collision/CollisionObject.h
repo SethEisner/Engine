@@ -47,4 +47,5 @@ struct CollisionObject {
 	}
 	void add_rigid_body();
 	DirectX::XMFLOAT3 get_position();
+	bool get_awake();
 };

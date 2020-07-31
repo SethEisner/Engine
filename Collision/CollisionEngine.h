@@ -45,7 +45,7 @@ public:
 	}
 	//size_t generate_contacts(); // calls each contact generator to report their contacts
 	void run_frame(double duration); // 
-	void start_frame(); // initializes the CollisionEngine for a simulation frame. clears the force and torque acculumators for bodies in the CollisionEngine
+	void start_frame(double duration); // initializes the CollisionEngine for a simulation frame. clears the force and torque acculumators for bodies in the CollisionEngine
 	void update(double duration); // app.cpp update
 	size_t broad_phase(); // performs broadphase collision detection
 	void narrow_phase(size_t); // performs narrow phase collision detection

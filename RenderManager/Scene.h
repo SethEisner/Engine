@@ -10,7 +10,7 @@ class Scene {
 public:
 	Scene();
 	~Scene();
-	bool init();
+	void init();
 	void update(double duration);
 	void shutdown();
 	void process_node(const DirectX::XMMATRIX& parent_transform, aiNode* node, const aiScene* scene, Mesh* mesh);

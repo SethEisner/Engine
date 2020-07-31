@@ -21,7 +21,8 @@ void RigidBody::update() {
 	return;
 }
 void RigidBody::integrate(double duration) { // called in run_frame of collision_engine
-	if (!m_is_awake) return; // do not integrate sleeping bodies
+	// already do this check in the collision engine
+	// if (!m_is_awake) return; // do not integrate sleeping bodies
 	using namespace DirectX;
 	// calculate linear accleration from force inputs
 	XMVECTOR last_frame_acceleration = XMLoadFloat3(&m_acceleration);//  XMVectorSet(m_acceleration.x, m_acceleration.y, m_acceleration.z, 0.0f);

@@ -27,18 +27,10 @@ bool Engine::init(HINSTANCE hInstance) {
 	collision_engine = new CollisionEngine();
 	scene = new Scene();
 
-	//renderer = new Renderer();	
-	try {
-		renderer->init();
-		renderer->on_resize();
-		if (!scene->init()) return false;
-	}
-	catch (DxException& e) {
-		MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
-		exit(e.error_code);
-	}
+	renderer->init();
+	renderer->on_resize();
+	scene->init();
 
-	// scene needs the renderer to have created command lists for it to use
 	global_timer->tick();
 	return true;
 }

@@ -18,30 +18,23 @@ CollisionEngine::CollisionEngine(size_t max_contacts, size_t iterations) :
 	m_collision_data->m_tolerance = 0.1f;
 }
 
-void CollisionEngine::start_frame() {
+void CollisionEngine::start_frame(double duration) { // integrate all the objects, and update their internal data for collision detection
 	for (auto& objs : *m_collision_objects) { // reset the forces on each body and calculate the necessary data
-		if (objs->m_body) objs->m_body->clear_accumulators();
-		// objs->m_body->calculate_derived_data();
-	}
-	
-}
-size_t CollisionEngine::broad_phase() { // apply the transforms 
-	// m_potential_contacts->clear();
-	size_t current = 0;
-	for (auto i = m_collision_objects->begin(); i != m_collision_objects->end(); ++i) {
-		for (auto j = i + 1; j != m_collision_objects->end(); ++j) {
-			if ((*i)->m_box->overlaps(*(*j)->m_box)) { 
-				m_potential_contacts[current].m_collision_object[0] = *i;// = PotentialContact((*i), (*j));
-				m_potential_contacts[current].m_collision_object[1] = *j;
-				current++;
-				if (current == m_max_contacts) return current;
-			}
+		if (!objs->get_awake()) continue; // if the object is asleep we can skip it
+		// otherwise if it's awake it must have a rigidbody that is awake and we can integrate
+		objs->m_body->clear_accumulators();
+		objs->m_body->integrate(duration);
+		objs->m_body->update();
+		objs->m_box->transform();
+		for (size_t i = 0; i != objs->m_obb_count; ++i) {
+			objs->m_oriented_boxes[i].calculate_internals();
 		}
 	}
-	return current;
+}
+size_t CollisionEngine::broad_phase() { // apply the transforms 
+	return m_bvh->get_potential_contacts(m_potential_contacts, m_max_contacts);
 }
 void CollisionEngine::narrow_phase(size_t num_contacts) {
-	m_collision_data->reset(m_max_contacts); // reset the contacts
 	// for every potential collision
 	for (auto curr = m_potential_contacts; curr != m_potential_contacts + num_contacts; ++curr) {
 		auto first = curr->m_collision_object[0];
@@ -53,48 +46,24 @@ void CollisionEngine::narrow_phase(size_t num_contacts) {
 			}
 		}
 	}
-	// m_collion data holds all the collisions for this frame
 }
 void CollisionEngine::generate_contacts() {
-	// perform broad phase collision detection with the bouding volume hierarchy
-	// size_t potential_contact_count = m_bvh->get_potential_contacts(m_potential_contacts, m_max_contacts); // build the array of potential contacts
-	narrow_phase(broad_phase());
-
-
-	// perform narrow phase collision on every potential contact
-	// for (auto curr = m_potential_contacts; curr != m_potential_contacts + potential_contact_count; ++curr) {
-	// 	auto first = curr->m_collision_object[0];
-	// 	auto second = curr->m_collision_object[1];
-	// 	// check for collision between every pair of OBBs between the two collision objects
-	// 	for (size_t i = 0; i != first->m_obb_count; ++i) {
-	// 		for (size_t j = 0; j != second->m_obb_count; ++j) {
-	// 			if (!m_collision_data->has_more_contacts()) return; // we have run out of contacts we are allowed to generate
-	// 			CollisionDetector::collides(first->m_oriented_boxes[i], second->m_oriented_boxes[j], m_collision_data); // element wise check to array for overlap
-	// 		}
-	// 	}
-	// }
+	size_t contacts = broad_phase();
+	return (contacts > 0) ? narrow_phase(contacts) : (void)0;
 }
 void CollisionEngine::run_frame(double duration) {
-	// integrate all the objects
-	for (auto& objs : *m_collision_objects) {
-		if (objs->m_body) objs->m_body->integrate(duration);
-		objs->m_box->transform(); // update m_transformed_box so we can get the correct result from broad_phase collision
-		for (size_t i = 0; i != objs->m_obb_count; ++i) {
-			objs->m_oriented_boxes[i].calculate_internals();
-		}
-	}
+	
+	m_bvh->update(); // update directly after integrating
 	m_collision_data->reset(m_max_contacts); // reset the contacts for this frame
 	// generate the contacts for this frame
 	generate_contacts(); // data is in m_collision_data
 	// resolve the generated contacts
+	if (m_collision_data->m_contact_count == 0) return; // no collisions to resolve so we can exit early
 	if (m_calculate_iterations) m_resolver->set_iterations(m_collision_data->m_contact_count * 4); // the number of iterations we perform is dependent on the nbumber of contacts
 	m_resolver->resolve_contacts(m_collision_data->m_contact_base, m_collision_data->m_contact, duration);
-	for (auto& objs : *m_collision_objects) { // update all rigidbodies everyframe because we integrated all the bodies
-		objs->m_body->update();
-	}
 }
 void CollisionEngine::update(double duration) {
-	start_frame();
+	start_frame(duration);
 	run_frame(duration);
 }
 void CollisionEngine::add_object(CollisionObject* coll_obj) {

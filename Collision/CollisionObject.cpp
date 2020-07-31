@@ -70,3 +70,7 @@ void CollisionObject::add_rigid_body() {
 		m_oriented_boxes[i].m_body = m_body;
 	}
 }
+bool CollisionObject::get_awake() { // if we have a rigidbody then the collision object can be asleep or awake, if we dont have a rigidbody then we dont need to do anything to update it and can treat it as if it were asleep
+	if (m_body) return m_body->get_awake();
+	return false;
+}

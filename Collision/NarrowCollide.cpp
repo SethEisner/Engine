@@ -16,7 +16,7 @@ void OrientedBoundingBox::set_transform_pointers(GameObject* obj, Mesh* mesh, Su
 	m_submodel_to_model =	&submesh->m_transform;
 }
 
-void OrientedBoundingBox::calculate_internals() {
+void OrientedBoundingBox::calculate_internals() { // update the transform for the OBB
 	using namespace DirectX;
 	calculate_transform(); // update the transform to world space
 	transform();
