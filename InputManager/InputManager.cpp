@@ -13,6 +13,7 @@ InputManager::InputManager() : m_name_to_action(NEW(HashTable<uint32_t COMMA Gam
 }
 
 void InputManager::init() {
+	add_action(HASH("jump"), InputManager::Key(' '));
 	add_action(HASH("right"), InputManager::Key('D'));
 	add_action(HASH("left"), InputManager::Key('A'));
 	add_action(HASH("forward"), InputManager::Key('W'));
@@ -78,7 +79,16 @@ void InputManager::get_input(const MSG& message) {
 		break;
 	}
 }
-
+bool InputManager::is_activated(uint32_t hashed_action_name) const {
+	const GameAction action = m_name_to_action->at(hashed_action_name);
+	State state;
+	if (action.m_type == GameAction::GameAction_t::MOUSEBUTTON) { // find which array we need to index into (super low overhead because this type rarely changes)
+		state = m_mouse_state.m_buttons[static_cast<uint32_t>(action.m_value.m_button)].m_curr_state;
+		return state == State::PRESSED || state == State::HELD;
+	}
+	state = m_key_state[action.m_value.m_key].m_curr_state;
+	return state == State::PRESSED || state == State::HELD;
+}
 bool InputManager::is_pressed(uint32_t hashed_action_name) const {
 	//const GameAction* action = &(this->m_name_to_action[hashed_action_name % m_action_count]); // return a const gameaction pointer so we dont modify the object here
 	const GameAction action = m_name_to_action->at(hashed_action_name);
@@ -169,10 +179,10 @@ void InputManager::update_key_states() { // used to make sure released only exis
 			m_key_state[i].m_prev_state = State::RELEASED;
 			break;
 		case State::PRESSED: // update the state to pressed here too because we have to do it for the mouse anyway and it should be consistent
-			if (curr_time - m_key_state[i].m_timestamp >= m_held_delay) { // message clock uses GetTickCount which is milliseconds since startup
+			// if (curr_time - m_key_state[i].m_timestamp >= m_held_delay) { // message clock uses GetTickCount which is milliseconds since startup
 				m_key_state[i].m_curr_state = State::HELD;
-				m_key_state[i].m_timestamp = curr_time;
-			}
+				// m_key_state[i].m_timestamp = curr_time;
+			// }
 			m_key_state[i].m_prev_state = State::PRESSED;
 			break;
 		}
@@ -185,10 +195,10 @@ void InputManager::update_key_states() { // used to make sure released only exis
 			m_mouse_state.m_buttons[i].m_prev_state = State::RELEASED;
 			break;
 		case State::PRESSED: // if the current state of a mouse button is released, change it to unheld
-			if (curr_time - m_mouse_state.m_buttons[i].m_timestamp >= m_held_delay) { // message clock uses GetTickCount which is milliseconds since startup
+			// if (curr_time - m_mouse_state.m_buttons[i].m_timestamp >= m_held_delay) { // message clock uses GetTickCount which is milliseconds since startup
 				m_mouse_state.m_buttons[i].m_curr_state = State::HELD;
-				m_mouse_state.m_buttons[i].m_timestamp = curr_time;
-			}
+				// m_mouse_state.m_buttons[i].m_timestamp = curr_time;
+			// }
 			m_mouse_state.m_buttons[i].m_prev_state = State::PRESSED;
 			break;
 		}

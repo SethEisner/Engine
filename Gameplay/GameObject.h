@@ -35,28 +35,31 @@ struct GameObject {
 	DirectX::XMFLOAT4X4 m_transform; // transform from Model space to World Space
 	DirectX::XMFLOAT3 m_position; // use to build the transform's translation
 	DirectX::XMFLOAT3 m_scale; // use to build the transform's scaling
+	// DirectX::XMFLOAT3 m_velocity; // used for rigidbody calculations, allows the Player integration to share the same data with the RigidBody integration
 	Mesh* m_mesh = nullptr;
 	CollisionObject* m_collision_object = nullptr;
-	Camera* m_camera = nullptr; // may not want to have a camera in the game object
+	// Camera* m_camera = nullptr; // may not want to have a camera in the game object
 	GameObjectComponents m_components = EMPTY;
-	void update(double duration); // call every frame with the frame duration, can adjust the transform for now
+	virtual void update(double duration); // call every frame with the frame duration, can adjust the transform for now
 	void add_mesh(Mesh* mesh);
 	Mesh* remove_mesh();
 	void add_collision_object(CollisionObject* collision_obj);
 	CollisionObject* remove_collision_object();
-	void add_camera(Camera* camera);
-	Camera* remove_camera();
+	// void add_camera(Camera* camera);
+	// Camera* remove_camera();
 	void calculate_transform();
 	GameObject() = delete;
-	explicit GameObject(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f }) : m_position(pos), m_scale(scale) {
+	explicit GameObject(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f }) : m_position(pos), m_scale(scale)  {
 		calculate_transform();
 		// DirectX::XMStoreFloat4x4(&m_transform, DirectX::XMMatrixTranslation(m_position.x, m_position.y, m_position.z)); // make the transform correcpond to the position we initialize it with
 	}
-	~GameObject() {
-		delete m_camera;
+	virtual ~GameObject() { // virtual destructor allows us to delete a Player with a pointer to a GameObject
+		// delete m_camera;
 		delete m_collision_object;
 		delete m_mesh;
 	}
+	// virtual void add_camera(Camera* camera);
+	// virtual Camera* remove_camera();
 };
 
 // is the player a gameobject, or does the player contain a gameobejct

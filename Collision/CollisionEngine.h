@@ -55,4 +55,6 @@ public:
 	// just stores pointers, does not control ownership of any of the gameobject members
 	void add_object(CollisionObject*); // function to add collision objects to the array of bodies
 	void remove_object(CollisionObject*); // function to remove the collision object from the array of bodies 
+
+	// inorder to remove an element from the BVH quickly, we could store a map of pointers to BVH nodes and 
 };

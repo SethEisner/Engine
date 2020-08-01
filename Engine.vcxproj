@@ -27,6 +27,7 @@
     <ClCompile Include="Collision\RigidBody.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Gameplay\GameObject.cpp" />
+    <ClCompile Include="Gameplay\Player.cpp" />
     <ClCompile Include="Math\Matrix.cpp" />
     <ClCompile Include="Math\Quaternion.cpp" />
     <ClCompile Include="Math\Vector.cpp" />
@@ -57,6 +58,7 @@
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Gameplay\GameObject.h" />
+    <ClInclude Include="Gameplay\Player.h" />
     <ClInclude Include="Math\Line.h" />
     <ClInclude Include="Math\Matrix.h" />
     <ClInclude Include="Math\Plane.h" />

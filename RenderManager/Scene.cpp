@@ -5,6 +5,7 @@
 #include "../Gameplay/GameObject.h"
 #include "../Collision/CollisionEngine.h"
 #include "../Collision/CollisionObject.h"
+#include "../Gameplay/Player.h"
 
 // Scene::Scene() : m_items(new std::vector<RenderItem>()) {}\
 // Scene::~Scene() {
@@ -202,6 +203,7 @@ void Scene::init() {
 	m_game_objects.emplace_back(crate_1);
 
 	
+	/*
 	scene = engine->resource_manager->get_scene_pointer("crate.zip/crate.dae");
 	GameObject* Sword = new GameObject({ 24.0f, 5.0f, 0.0f });// , { 10.0f, 10.0f, 10.0f });
 	Sword->add_mesh(new Mesh());
@@ -221,6 +223,25 @@ void Scene::init() {
 	Sword->m_collision_object->m_body->set_velocity({ -24.0f, 0.0f, 0.0f });
 	engine->collision_engine->add_object(Sword->m_collision_object);
 	m_game_objects.emplace_back(Sword);
+	*/
+
+
+
+	// finally add the player
+	GameObject* player = new Player({ 0.0f, 4.0f, -10.0f }, { 0.25f, 1.0f, 0.5f });
+	player->add_mesh(new Mesh());
+	scene = engine->resource_manager->get_scene_pointer("crate.zip/crate.dae");
+	create_mesh(scene, player->m_mesh);
+	player->add_collision_object(new CollisionObject(player, player->m_mesh));
+	player->m_collision_object->add_rigid_body();
+	player->m_collision_object->m_body->set_mass(99999.0f); // give us a ton of mass so we dont get knocked around
+	player->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
+	player->m_collision_object->m_body->set_linear_damping(1.0f);
+	player->m_collision_object->m_body->set_velocity({0.0f, 0.0f, 0.0f });
+	engine->collision_engine->add_object(player->m_collision_object);
+	reinterpret_cast<Player*>(player)->add_camera(engine->camera);
+	m_game_objects.emplace_back(player);
+
 }
 void Scene::update(double duration) {
 	// call the update method on each GameObject

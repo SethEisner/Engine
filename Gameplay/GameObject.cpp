@@ -30,16 +30,16 @@ CollisionObject* GameObject::remove_collision_object() {
 	m_components = m_components & ~HAS_COLLISION;
 	return ret;
 }
-void GameObject::add_camera(Camera* camera) {
-	m_camera = camera;
-	m_components = m_components | HAS_CAMERA;
-}
-Camera* GameObject::remove_camera() {
-	Camera* ret = m_camera;
-	m_camera = nullptr;
-	m_components = m_components & ~HAS_CAMERA;
-	return ret;
-}
+// void GameObject::add_camera(Camera* camera) {
+// 	m_camera = camera;
+// 	m_components = m_components | HAS_CAMERA;
+// }
+// Camera* GameObject::remove_camera() {
+// 	Camera* ret = m_camera;
+// 	m_camera = nullptr;
+// 	m_components = m_components & ~HAS_CAMERA;
+// 	return ret;
+// }
 void GameObject::update(double duration) {
 	calculate_transform();
 }

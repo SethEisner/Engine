@@ -56,6 +56,7 @@ PRESSED  --->  HELD    UNHELD  <--- start
 	void update();
 	void get_input(const MSG&);
 	// get state of a game action using a hashed string literal (e.g. HASH("shoot"))
+	bool is_activated(uint32_t) const;
 	bool is_pressed(uint32_t) const;
 	bool is_released(uint32_t) const;
 	bool is_held(uint32_t) const;

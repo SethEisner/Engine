@@ -21,7 +21,8 @@ bool Engine::init(HINSTANCE hInstance) {
 	input_manager = new InputManager();
 	input_manager->init();
 	camera = new Camera();
-
+	// camera position can be set anywhere
+	camera->set_position(0.0f, 3.0f, -10.0f);
 
 	renderer = new Renderer();
 	collision_engine = new CollisionEngine();
@@ -49,6 +50,7 @@ void Engine::run() {
 			input_manager->get_input(msg); // call input manager with the message so it can process it
 		}
 		if (global_timer->running()) {
+			
 			update();
 			renderer->draw();
 		}
@@ -65,6 +67,18 @@ void Engine::shutdown() {
 	delete engine;
 }
 void Engine::update() {
+	if (input_manager->is_released(HASH("jump"))) {
+		OutputDebugStringA("released\n");
+	}
+	if (input_manager->is_held(HASH("jump"))) {
+		OutputDebugStringA("held\n");
+	}
+	if (input_manager->is_pressed(HASH("jump"))) {
+		OutputDebugStringA("pressed\n");
+	}
+	if (input_manager->is_unheld(HASH("jump"))) {
+		OutputDebugStringA("unheld\n");
+	}
 	global_timer->tick();
 	double duration = global_timer->delta_time();
 	window->update(duration);

@@ -5,10 +5,12 @@
 // the player / rotatable, which prevents the body from rotating, can
 // contact should use a pair of body pointers, doing it this way allows us to use RTTI and a single contact type
 class GameObject;
+class Player;
 
 static constexpr float g_sleep_epsilon = 1.0f; // the larger this number the faster an object will stop jiggling once it hits the ground
 
 class RigidBody {
+	friend class Player;
 public:
 	// virtual void calculate_derived_data(); // a rigid body will need to calculate different values
 	void update(); // currently updates the transform of the rigidbody/mesh to allow the CollisionEngine to control the mesh position
@@ -62,18 +64,17 @@ public:
 	// should have the virtual functions needed by the rigid body but they should be inlined and do nothing so that the contact code can work with the parent or child class
 	RigidBody(GameObject* obj);  // : m_game_object(obj), m_position(obj->m_position) {}
 protected:
-	// m_transform is a pointer to the transform in Mesh so we dont need to worry about when to update, updating one updates the other
+	DirectX::XMFLOAT3 m_force_accum;
+	float m_inverse_mass; // holds the inverse mass of the body
+	DirectX::XMFLOAT3 m_acceleration;
+	DirectX::XMFLOAT3 m_velocity; // holds the linear velocity of the body
+	DirectX::XMFLOAT3 m_last_frame_accleration;
+	DirectX::XMFLOAT3* m_position; // holds the position of the body in world space// m_transform is a pointer to the transform in Mesh so we dont need to worry about when to update, updating one updates the other
 	GameObject* m_game_object = nullptr;
 	// DirectX::XMFLOAT4X4* m_transform; // convert from body space to world space; // use the inverse to go from world space to body space
 	// DirectX::XMFLOAT4X4* m_initial_transform; // convert from model space to world space initially 
 	// DirectX::XMFLOAT4X4 m_inverse_transform;// = m_transform; // converts from world space to body space, inverse of m_transform. inverse of identity is identity
-	float m_inverse_mass; // holds the inverse mass of the body
 	float m_linear_damping; // holds the amound of dampening applied to linear motion, for the player we want high damping so we dont get pushed super far
-	DirectX::XMFLOAT3 m_position; // holds the position of the body in world space
-	DirectX::XMFLOAT3 m_velocity; // holds the linear velocity of the body
-	DirectX::XMFLOAT3 m_force_accum;
-	DirectX::XMFLOAT3 m_acceleration;
-	DirectX::XMFLOAT3 m_last_frame_accleration;
 	// optimizations that may not be needed yet
 	float m_motion;
 	bool m_is_awake; // can sleep the body so it doesnt get updated by the integration nor can it collide with the world

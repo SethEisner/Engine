@@ -98,8 +98,6 @@ bool Renderer::init() {
 	create_dummy_texture();
 	m_cbv_srv_descriptor_size = m_d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	// m_frame_resources.resize(g_num_frame_resources);
-	// camera position can be set anywhere
-	engine->camera->set_position(0.0f, 3.0f, -10.0f);
 	// build the basic structures the rending pipeline can use to render our objects
 	build_root_signature();
 	build_shaders_and_input_layout();
