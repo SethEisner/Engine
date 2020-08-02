@@ -8,7 +8,7 @@ using namespace DirectX;
 
 Camera::Camera() {
 	// create default lens with an fov of 90, an aspect ratio of 1.0f, a near plane at 1.0f,a nd a far plane at 1000.0f
-	set_lens(radians(90.0f), engine->window->get_aspect_ratio(), 1.0f, 1000.0f);
+	set_lens(radians(90.0f), engine->window->get_aspect_ratio(), 0.01f, 1000.0f);
 	//update_view_matrix();
 }
 XMVECTOR Camera::get_position() const{

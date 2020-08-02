@@ -10,6 +10,7 @@
 #include <wrl/client.h>
 #include <D3DCompiler.h>
 #include <d3d12.h>
+#include <DirectXMath.h>
 //#include <stringutils.h>
 /*TODO: 
 add random number generator
@@ -22,6 +23,7 @@ static constexpr float rad_per_deg = 0.01745329252;
 static constexpr float deg_per_rad = 57.2957795131;
 float degrees(float rads); // convert radians to degrees;
 float radians(float degrees); // convert degrees to radians;
+void print_matrix(const DirectX::XMFLOAT4X4&);
 
 // string hashing macro
 #define H1(s,i,x)   (x*65599u+(uint8_t)s[(i)<strlen(s)?strlen(s)-1-(i):strlen(s)])

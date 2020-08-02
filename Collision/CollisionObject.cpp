@@ -74,3 +74,9 @@ bool CollisionObject::get_awake() { // if we have a rigidbody then the collision
 	if (m_body) return m_body->get_awake();
 	return false;
 }
+// inline float CollisionObject::get_friction() const {
+// 	return (m_body ? m_body->m_friction : 1.0f);
+// }
+// inline float CollisionObject::get_restitution() const {
+// 	return (m_body ? m_body->m_restitution : 1.0f);
+// }

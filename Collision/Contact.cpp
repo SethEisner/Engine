@@ -1,6 +1,7 @@
 #include "Contact.h"
 #include <memory>
 #include <assert.h>
+#include <algorithm>
 
 // Contact implementation
 void Contact::set_body_data(RigidBody* first, RigidBody* second, float friction, float restitution) {
@@ -8,6 +9,15 @@ void Contact::set_body_data(RigidBody* first, RigidBody* second, float friction,
 	m_body[1] = second;
 	m_friction = friction;
 	m_restitution = restitution;
+}
+void Contact::set_body_data(RigidBody* first, RigidBody* second) {
+	if (first && second) {
+		void* temp = nullptr;
+	}
+	m_body[0] = first;
+	m_body[1] = second;
+	m_friction = std::max((first ? first->get_friction() : 0.0f), (second ? second->get_friction() : 0.0f)); // use max friction
+	m_restitution = std::min((first ? first->get_restitution() : 1.0f), (second ? second->get_restitution() : 1.0f));
 }
 void Contact::calculate_internals(double duration) {
 	if (!m_body[0]) swap_bodies(); // the first body in the collision must have a valid pointer, the second can be a nullptr to mark it as unmovable scenery 
@@ -154,7 +164,7 @@ inline DirectX::XMFLOAT3 Contact::calculate_frictionless_impulse(/*DirectX::XMFL
 	if (m_body[1]) {
 		delta_velocity += m_body[1]->get_inverse_mass();
 	}
-	impulse_contact.x = delta_velocity;
+	impulse_contact.x = m_desired_delta_velocity / delta_velocity;
 	return impulse_contact;
 }
 inline DirectX::XMFLOAT3 Contact::calculate_friction_impulse(/*DirectX::XMFLOAT3X3* inverse_inertia_tensor*/) { // impulse to solve the contact die to a non-zero coefficient of friction

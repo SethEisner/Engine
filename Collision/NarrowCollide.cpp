@@ -5,6 +5,19 @@
 #include "../RenderManager/FrameResources.h"
 #include <assert.h>
 #include <limits>
+#include <algorithm>
+
+// static constexpr float max_friction = 0.3f;
+// static constexpr float max_restitution = 1.0f;
+// static inline float choose_friction(const RigidBody* first, const RigidBody* second) {
+// 	if (first && second) {
+// 		void* temp = nullptr;
+// 	}
+// 	return std::min((first ? first->get_friction() : max_friction), (second ? second->get_friction() : max_friction));
+// }
+// static inline float choose_restitution(const RigidBody* first, const RigidBody* second) {
+// 	return std::min((first ? first->get_restitution() : 1.0f), (second ? second->get_restitution() : 1.0f));
+// }
 
 // should use iterators and stl ADTs for searching
 void OrientedBoundingBox::create_from_points(size_t vertex_count, Vertex* vertex_buffer, size_t base_vertex, size_t start_index) {
@@ -115,7 +128,8 @@ void fill_point_face_box_box(const OrientedBoundingBox& first, const OrientedBou
 	XMStoreFloat3(&contact->m_contact_normal, normal);
 	contact->m_penetration = penetration;
 	XMStoreFloat3(&contact->m_contact_point, XMVector3Transform(XMLoadFloat3(&vertex), XMLoadFloat4x4(&second.get_transform()))); // convert the vertex to world space
-	contact->set_body_data(first.m_body, second.m_body, data->m_friction, data->m_restitution);
+	// contact->set_body_data(first.m_body, second.m_body, data->m_friction, data->m_restitution);
+	contact->set_body_data(first.m_body, second.m_body);// , choose_friction(first.m_body, second.m_body), choose_restitution(first.m_body, second.m_body));
 }
 uint32_t CollisionDetector::collides(const OrientedBoundingBox& first, const OrientedBoundingBox& second, CollisionData* data) {
 	using namespace DirectX;
@@ -206,8 +220,8 @@ uint32_t CollisionDetector::collides(const OrientedBoundingBox& first, const Ori
 		XMStoreFloat3(&contact->m_contact_normal, normal); // axis is perpendicular to both edges so we can use it as the contact normal
 		contact->m_contact_point = vertex;
 		if (!first.m_body->has_finite_mass() && !second.m_body->has_finite_mass()) return 0; // if they both have infinite mass, dont consider it a collision
-		contact->set_body_data((first.m_body->has_finite_mass() ? first.m_body : nullptr), 
-							   (second.m_body->has_finite_mass() ? second.m_body : nullptr), data->m_friction, data->m_restitution);
+		// contact->set_body_data(first.m_body, second.m_body, data->m_friction, data->m_restitution);
+		contact->set_body_data(first.m_body, second.m_body);// , choose_friction(first.m_body, second.m_body), choose_restitution(first.m_body, second.m_body));
 		data->add_contacts(1);
 		return 1;
 	}

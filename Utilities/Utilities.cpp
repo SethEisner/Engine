@@ -1,7 +1,7 @@
 #include "Utilities.h"
 #include <assert.h>
 #include <Windows.h>
-
+#include <DirectXMath.h>
 float fast_invsqrt(float x) {
 	long i;
 	float x2, y;
@@ -22,4 +22,11 @@ float degrees(float rads) { // convert radians to degrees;
 }
 float radians(float degrees) { // convert degrees to radians;
 	return degrees * rad_per_deg;
+}
+
+void print_matrix(const DirectX::XMFLOAT4X4& mat) {
+	OutputDebugStringA(((std::to_string(mat._11) + ", " + std::to_string(mat._12) + ", " + std::to_string(mat._13) + ", " + std::to_string(mat._14) + "\n") +
+	(std::to_string(mat._21) + ", " + std::to_string(mat._22) + ", " + std::to_string(mat._23) + ", " + std::to_string(mat._24) + "\n") + 
+	(std::to_string(mat._31) + ", " + std::to_string(mat._32) + ", " + std::to_string(mat._33) + ", " + std::to_string(mat._34) + "\n") +
+	(std::to_string(mat._41) + ", " + std::to_string(mat._42) + ", " + std::to_string(mat._43) + ", " + std::to_string(mat._44) + "\n\n")).c_str());
 }

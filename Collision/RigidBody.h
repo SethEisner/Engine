@@ -11,6 +11,7 @@ static constexpr float g_sleep_epsilon = 1.0f; // the larger this number the fas
 
 class RigidBody {
 	friend class Player;
+	// friend class CollisionObject;
 public:
 	// virtual void calculate_derived_data(); // a rigid body will need to calculate different values
 	void update(); // currently updates the transform of the rigidbody/mesh to allow the CollisionEngine to control the mesh position
@@ -27,6 +28,18 @@ public:
 	void set_position(const DirectX::XMFLOAT3& pos);
 	void set_position(const float x, const float y, const float z);
 	void get_position(DirectX::XMFLOAT3*) const;
+	inline void set_friction(float friction) {
+		m_friction = friction;
+	}
+	inline void set_restitution(float restitution){
+		m_restitution = restitution;
+	}
+	inline float get_friction() const {
+		return m_friction;
+	}
+	inline float get_restitution() const {
+		return m_restitution;
+	}
 	DirectX::XMFLOAT3 get_position() const;
 	// void get_transform(DirectX::XMFLOAT4X4* transform) const;
 	// DirectX::XMFLOAT4X4 get_transform() const;
@@ -75,6 +88,8 @@ protected:
 	// DirectX::XMFLOAT4X4* m_initial_transform; // convert from model space to world space initially 
 	// DirectX::XMFLOAT4X4 m_inverse_transform;// = m_transform; // converts from world space to body space, inverse of m_transform. inverse of identity is identity
 	float m_linear_damping; // holds the amound of dampening applied to linear motion, for the player we want high damping so we dont get pushed super far
+	float m_friction;
+	float m_restitution;
 	// optimizations that may not be needed yet
 	float m_motion;
 	bool m_is_awake; // can sleep the body so it doesnt get updated by the integration nor can it collide with the world

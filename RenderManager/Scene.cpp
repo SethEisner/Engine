@@ -182,8 +182,10 @@ void Scene::init() {
 	crate->m_collision_object->add_rigid_body();
 	crate->m_collision_object->m_body->set_mass(10.0f);
 	crate->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
-	crate->m_collision_object->m_body->set_linear_damping(0.8f);
+	crate->m_collision_object->m_body->set_linear_damping(1.0f);
 	crate->m_collision_object->m_body->set_velocity({ 0.0f, 0.0f, 0.0f });
+	crate->m_collision_object->m_body->set_friction(0.3f);
+	crate->m_collision_object->m_body->set_restitution(0.1f);
 	engine->collision_engine->add_object(crate->m_collision_object);
 	m_game_objects.emplace_back(crate);
 
@@ -197,8 +199,10 @@ void Scene::init() {
 	crate_1->m_collision_object->add_rigid_body();
 	crate_1->m_collision_object->m_body->set_mass(5.0f);
 	crate_1->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
-	crate_1->m_collision_object->m_body->set_linear_damping(0.8f);
+	crate_1->m_collision_object->m_body->set_linear_damping(1.0f);
 	crate_1->m_collision_object->m_body->set_velocity({ 0.0f, 0.0f, 0.0f });
+	crate_1->m_collision_object->m_body->set_friction(0.3f);
+	crate_1->m_collision_object->m_body->set_restitution(0.1f);
 	engine->collision_engine->add_object(crate_1->m_collision_object);
 	m_game_objects.emplace_back(crate_1);
 
@@ -238,6 +242,8 @@ void Scene::init() {
 	player->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
 	player->m_collision_object->m_body->set_linear_damping(1.0f);
 	player->m_collision_object->m_body->set_velocity({0.0f, 0.0f, 0.0f });
+	player->m_collision_object->m_body->set_friction(0.0f);
+	player->m_collision_object->m_body->set_restitution(0.0f);
 	engine->collision_engine->add_object(player->m_collision_object);
 	reinterpret_cast<Player*>(player)->add_camera(engine->camera);
 	m_game_objects.emplace_back(player);

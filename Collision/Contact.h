@@ -12,11 +12,11 @@ public:
 	Contact() = default;
 	RigidBody* m_body[2] = { nullptr, nullptr }; // pair of bodies involved in the contact
 	float m_friction; // lateral friction at contact
-	float m_restitution; // the normal resitution coefficient at the contact, affects how much energy is lost from the collision
+	float m_restitution; // the normal resitution coefficient at the contact, affects how much energy is preserved in the collision
 	float m_penetration; // the depth of penetration at the contact point;
 	DirectX::XMFLOAT3 m_contact_point;
 	DirectX::XMFLOAT3 m_contact_normal;
-	
+	void set_body_data(RigidBody* first, RigidBody* second);
 	void set_body_data(RigidBody* first, RigidBody* second, float friction, float restitution);
 protected:
 	DirectX::XMFLOAT3X3 m_contact_to_world;

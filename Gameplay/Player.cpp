@@ -71,13 +71,10 @@ void Player::update(double duration) {
 	XMStoreFloat4(&m_rotation, rotation);
 	// need to update the transform at the end
 	calculate_transform();
-	OutputDebugStringA(((std::to_string(m_transform._11) + ", " + std::to_string(m_transform._12) + ", " + std::to_string(m_transform._13) + ", " + std::to_string(m_transform._14) + "\n") +
-						(std::to_string(m_transform._21) + ", " + std::to_string(m_transform._22) + ", " + std::to_string(m_transform._23) + ", " + std::to_string(m_transform._24) + "\n") + 
-						(std::to_string(m_transform._31) + ", " + std::to_string(m_transform._32) + ", " + std::to_string(m_transform._33) + ", " + std::to_string(m_transform._34) + "\n") +
-						(std::to_string(m_transform._41) + ", " + std::to_string(m_transform._42) + ", " + std::to_string(m_transform._43) + ", " + std::to_string(m_transform._44) + "\n\n")).c_str());
-	// OutputDebugStringA((std::to_string(m_transform._21) + ", " + std::to_string(m_transform._22) + ", " + std::to_string(m_transform._23) + ", " + std::to_string(m_transform._24) + "\n").c_str());
-	// OutputDebugStringA((std::to_string(m_transform._31) + ", " + std::to_string(m_transform._32) + ", " + std::to_string(m_transform._33) + ", " + std::to_string(m_transform._34) + "\n").c_str());
-	// OutputDebugStringA((std::to_string(m_transform._41) + ", " + std::to_string(m_transform._42) + ", " + std::to_string(m_transform._43) + ", " + std::to_string(m_transform._44) + "\n\n").c_str());
+	// OutputDebugStringA(((std::to_string(m_transform._11) + ", " + std::to_string(m_transform._12) + ", " + std::to_string(m_transform._13) + ", " + std::to_string(m_transform._14) + "\n") +
+	// 					(std::to_string(m_transform._21) + ", " + std::to_string(m_transform._22) + ", " + std::to_string(m_transform._23) + ", " + std::to_string(m_transform._24) + "\n") + 
+	// 					(std::to_string(m_transform._31) + ", " + std::to_string(m_transform._32) + ", " + std::to_string(m_transform._33) + ", " + std::to_string(m_transform._34) + "\n") +
+	// 					(std::to_string(m_transform._41) + ", " + std::to_string(m_transform._42) + ", " + std::to_string(m_transform._43) + ", " + std::to_string(m_transform._44) + "\n\n")).c_str());
 }
 bool  Player::airborne() {
 	// update the value of airborne
