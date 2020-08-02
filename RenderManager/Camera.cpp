@@ -242,18 +242,18 @@ void Camera::update(float delta_t) {
 		XMStoreFloat3(&m_look, XMVector3TransformCoord(m_default_forward, rotate_y));
 
 		// update position here later
-		if (engine->input_manager->is_held(HASH("forward")) || engine->input_manager->is_pressed(HASH("forward"))) {
-			walk(delta_t*10.0f);
-		}
-		if (engine->input_manager->is_held(HASH("backward")) || engine->input_manager->is_pressed(HASH("backward"))) {
-			walk(-delta_t * 10.0f);
-		}
-		if (engine->input_manager->is_held(HASH("right")) || engine->input_manager->is_pressed(HASH("right"))) {
-			strafe(delta_t * 10.0f);
-		}
-		if (engine->input_manager->is_held(HASH("left")) || engine->input_manager->is_pressed(HASH("left"))) {
-			strafe(-delta_t * 10.0f);
-		}
+		// if (engine->input_manager->is_held(HASH("forward")) || engine->input_manager->is_pressed(HASH("forward"))) {
+		// 	walk(delta_t*10.0f);
+		// }
+		// if (engine->input_manager->is_held(HASH("backward")) || engine->input_manager->is_pressed(HASH("backward"))) {
+		// 	walk(-delta_t * 10.0f);
+		// }
+		// if (engine->input_manager->is_held(HASH("right")) || engine->input_manager->is_pressed(HASH("right"))) {
+		// 	strafe(delta_t * 10.0f);
+		// }
+		// if (engine->input_manager->is_held(HASH("left")) || engine->input_manager->is_pressed(HASH("left"))) {
+		// 	strafe(-delta_t * 10.0f);
+		// }
 
 
 		// update the view matrix to be our rotation

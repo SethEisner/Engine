@@ -13,6 +13,7 @@ struct Player : public GameObject {
 	Camera* remove_camera();
 	Player(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f });
 	bool airborne();
+	//virtual void calculate_transform(); // replace GameObject calculate transform function because we only want to rotate about the y axis
 private:
 	DirectX::XMVECTOR get_direction();
 	DirectX::XMFLOAT3* m_velocity = nullptr; // pointer to the velocity the rigidbody uses for integration

@@ -104,7 +104,6 @@ void fill_point_face_box_box(const OrientedBoundingBox& first, const OrientedBou
 	// called when we know that a vertex from box two is in contact with a face on box one
 	Contact* contact = data->m_contact;
 	using namespace DirectX;
-	assert(best >= 0 && best <= 2); // assert that best is either the x,y, or z axis
 	XMVECTOR normal = XMVector3Normalize(XMLoadFloat3(&first.get_axis(best))); // normal of the face is in the same direction as the axis the face lies on
 	float dot = XMVectorGetX(XMVector3Dot(normal, XMLoadFloat3(&to_center)));
 	if (dot > 0) normal *= -1.0f; // determine if the positive or negative face on the axis collided

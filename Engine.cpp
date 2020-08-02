@@ -67,18 +67,6 @@ void Engine::shutdown() {
 	delete engine;
 }
 void Engine::update() {
-	if (input_manager->is_released(HASH("jump"))) {
-		OutputDebugStringA("released\n");
-	}
-	if (input_manager->is_held(HASH("jump"))) {
-		OutputDebugStringA("held\n");
-	}
-	if (input_manager->is_pressed(HASH("jump"))) {
-		OutputDebugStringA("pressed\n");
-	}
-	if (input_manager->is_unheld(HASH("jump"))) {
-		OutputDebugStringA("unheld\n");
-	}
 	global_timer->tick();
 	double duration = global_timer->delta_time();
 	window->update(duration);

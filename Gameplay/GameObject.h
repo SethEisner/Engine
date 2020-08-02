@@ -33,6 +33,7 @@ class Camera;
 // the remove functions relinquish ownership of the passed pointer
 struct GameObject {
 	DirectX::XMFLOAT4X4 m_transform; // transform from Model space to World Space
+	DirectX::XMFLOAT4 m_rotation; // orientation quaternion of the GameObject, defaults to no rotation
 	DirectX::XMFLOAT3 m_position; // use to build the transform's translation
 	DirectX::XMFLOAT3 m_scale; // use to build the transform's scaling
 	// DirectX::XMFLOAT3 m_velocity; // used for rigidbody calculations, allows the Player integration to share the same data with the RigidBody integration
@@ -49,7 +50,7 @@ struct GameObject {
 	// Camera* remove_camera();
 	void calculate_transform();
 	GameObject() = delete;
-	explicit GameObject(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f }) : m_position(pos), m_scale(scale)  {
+	explicit GameObject(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f }) : m_position(pos), m_rotation{ 0.0f,0.0f,0.0f,1.0f }, m_scale(scale) {
 		calculate_transform();
 		// DirectX::XMStoreFloat4x4(&m_transform, DirectX::XMMatrixTranslation(m_position.x, m_position.y, m_position.z)); // make the transform correcpond to the position we initialize it with
 	}

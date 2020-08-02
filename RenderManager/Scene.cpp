@@ -234,7 +234,7 @@ void Scene::init() {
 	create_mesh(scene, player->m_mesh);
 	player->add_collision_object(new CollisionObject(player, player->m_mesh));
 	player->m_collision_object->add_rigid_body();
-	player->m_collision_object->m_body->set_mass(99999.0f); // give us a ton of mass so we dont get knocked around
+	player->m_collision_object->m_body->set_mass(30.0f); // give us a ton of mass so we dont get knocked around
 	player->m_collision_object->m_body->set_acceleration({ 0.0f, 0.0f, 0.0f });
 	player->m_collision_object->m_body->set_linear_damping(1.0f);
 	player->m_collision_object->m_body->set_velocity({0.0f, 0.0f, 0.0f });
