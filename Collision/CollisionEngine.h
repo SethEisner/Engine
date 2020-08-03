@@ -37,6 +37,7 @@ class CollisionEngine {
 	// because this is cheap to determine and false positives dont count for anything. also we still have the same number of actual contacts
 	// size_t m_potential_contacts_count;
 	BVHNode<BoundingBox>* m_bvh; // the bounding volume hierarchy
+	std::vector<CollisionObject*>* m_raycast_intersections; // stores the CollisionObjects the most recenetly given ray could intersect
 public:
 	explicit CollisionEngine(size_t max_contacts = 256, size_t iterations = 0);
 	~CollisionEngine() {
@@ -55,5 +56,9 @@ public:
 	// just stores pointers, does not control ownership of any of the gameobject members
 	void add_object(CollisionObject*); // function to add collision objects to the array of bodies
 	void remove_object(CollisionObject*); // function to remove the collision object from the array of bodies 
+	// ray_cast returns the existance of a ray intersection between the two distances (t's) along the ray, ignoring self intersection
+	// given origin should be in world space
+	// direction need not be normalized but should be a nonzero vector
+	bool ray_cast(const CollisionObject* ourself, const DirectX::XMFLOAT3& origin, const DirectX::XMFLOAT3& direction, float min_dist, float max_dist) const;
 	// inorder to remove an element from the BVH quickly, we could store a map of pointers to BVH nodes and 
 };

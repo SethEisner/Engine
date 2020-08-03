@@ -28,6 +28,7 @@ CollisionObject::CollisionObject(GameObject* game_object, Mesh* mesh) :
 		m_oriented_boxes[i].m_body = nullptr;
 		m_oriented_boxes[i].set_transform_pointers(game_object, mesh, mesh->m_submeshes.data() + i);
 		m_oriented_boxes[i].calculate_transform();
+		m_oriented_boxes[i].transform();
 	}
 
 	// create the AABB
@@ -50,6 +51,7 @@ CollisionObject::CollisionObject(GameObject* game_object, Mesh* mesh) :
 		m_box->create_merged(temp); // would technically be faster if we didnt add them one by one, but this is simple enough for now
 	}
 	m_box->m_transform = &mesh->m_transform;
+	// XMStoreFloat4x4(m_box->m_transform, DirectX::XMMatrixIdentity());
 	m_box->set_game_object(m_game_object);
 	m_box->transform(); // calculate the world box 
 	// the rigidbody is created from the gameobject

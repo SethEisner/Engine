@@ -384,6 +384,7 @@ void Renderer::build_descriptor_heaps(const Mesh* mesh) { // create heaps to hol
 		if (supported_textures & mask) { // bind the real texture
 			tex = m_texture_map[mesh->m_mesh_id][i]->m_resource; // get the corresponding texture pointer
 		}
+		auto temp = tex->GetDesc();
 		srv_desc.Format = tex->GetDesc().Format;
 		srv_desc.Texture2D.MipLevels = tex->GetDesc().MipLevels;
 		m_d3d_device->CreateShaderResourceView(tex.Get(), &srv_desc, h_desc);

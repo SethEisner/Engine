@@ -11,7 +11,8 @@ CollisionEngine::CollisionEngine(size_t max_contacts, size_t iterations) :
 		m_collision_data(new CollisionData(m_max_contacts)),
 		// m_potential_contacts(new std::vector<PotentialCollision>()),
 	m_potential_contacts(new PotentialContact[m_max_contacts]),
-		m_bvh(nullptr) {// new BVHNode<BoundingBox>(nullptr, std::move(BoundingBox()) ,nullptr)) {
+		m_bvh(nullptr),
+		m_raycast_intersections(new std::vector<CollisionObject*>()){
 	m_collision_data->reset(m_max_contacts);
 	// m_collision_data->m_friction = 0.1f;
 	// m_collision_data->m_restitution = 0.2f; // 0.2 makes stacks stable
@@ -77,4 +78,28 @@ void CollisionEngine::add_object(CollisionObject* coll_obj) {
 void CollisionEngine::remove_object(CollisionObject* coll_obj) {
 	// probably okay for this to be slower, because we should rarely be removing collision objects, as collision objects are tied to gameobjects
 	// m_collision_objects->erase(find(m_collision_objects->begin(), m_collision_objects->end(), coll_obj));
+}
+bool CollisionEngine::ray_cast(const CollisionObject* ourself, const DirectX::XMFLOAT3& origin, const DirectX::XMFLOAT3& direction, float min_dist, float max_dist) const {
+	if (min_dist > max_dist) return false; // malformed ray
+	if (!m_bvh) return false; // no BVH to check for intersections with so there isn't any collision objects the engine is aware of to intersect with
+	using namespace DirectX;
+	// the cirection vector doesnt need to be normalized, but it should be because the distance of intersection is how many direction vectors are summed together.
+	// this sum will make more sense if the direction vector has a length of 1
+	XMVECTOR origin_vec = XMLoadFloat3(&origin);
+	XMVECTOR normalized_direction = XMVector3Normalize(XMLoadFloat3(&direction)); // normalize the direction vector
+	// check the BVH for intersection, should get an array of CollisionObjects we are intersecting the AABB of, and for which we will need to check their OBB
+	// dont check distance of AABB intersections because they're allowed to be inaccurate and have empty space
+	m_bvh->get_potential_intersections(m_raycast_intersections, ourself, origin_vec, normalized_direction);
+	if (m_raycast_intersections->empty()) return false; // no intersections found against the BVH so we can return 
+	// found some potential raycast intersections
+	// need to test each OBB for ray intersection returning true iff an intersection is found with the distance in our range
+	for (const CollisionObject* obj : *m_raycast_intersections) { // for each collision object we intersect the AABB of
+		const size_t obb_count = obj->m_obb_count;
+		for (OrientedBoundingBox* obb = obj->m_oriented_boxes; obb != obj->m_oriented_boxes + obb_count; ++obb) { // check each OBB for intersection
+			if (obb->intersects(origin_vec, normalized_direction, min_dist, max_dist)) {
+				return true; // can exit early as soon as we find an intersection in our desired range
+			}
+		}
+	}
+	return false;
 }

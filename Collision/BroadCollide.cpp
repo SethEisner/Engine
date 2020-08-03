@@ -17,10 +17,13 @@ BoundingBox::BoundingBox(GameObject* obj) : m_box(DirectX::BoundingBox()), m_wor
 BoundingBox::BoundingBox(const BoundingBox& first, const BoundingBox& second) : m_box(DirectX::BoundingBox()), m_world_box(DirectX::BoundingBox()), m_game_object(nullptr), m_transform(new DirectX::XMFLOAT4X4()) {
 	// create the new box from the transformed boxes, and then set the transform of the new box to be the identiy matrix
 	m_box.CreateMerged(m_box, first.m_world_box, second.m_world_box);
+	m_world_box = m_box;
 	DirectX::XMStoreFloat4x4(m_transform, DirectX::XMMatrixIdentity());
 	m_world_box = m_box;
 }
 void BoundingBox::transform() {
+	DirectX::XMFLOAT4X4 model = *this->m_transform;
+	DirectX::XMFLOAT4X4 game_obj_transform = m_game_object->m_transform;
 	this->m_box.Transform(this->m_world_box, DirectX::XMMatrixMultiply(DirectX::XMLoadFloat4x4(this->m_transform), DirectX::XMLoadFloat4x4(&m_game_object->m_transform)));
 }
 

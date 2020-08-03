@@ -48,6 +48,17 @@ public:
 	const DirectX::XMFLOAT4X4& get_model_transform() {
 		return *m_submodel_to_model;
 	}
+	bool intersects(DirectX::XMVECTOR& origin, DirectX::XMVECTOR& direction, float& distance) const {
+		// return true if we found an intersection with the ray and the intersection at all and return the distance of the intersections
+		return m_world_box.Intersects(origin, direction, distance);
+	}
+	bool intersects(DirectX::XMVECTOR& origin, DirectX::XMVECTOR& direction, float min_dist, float max_dist) const {
+		// return true if we found an intersection with the ray and the intersection within the distance range provided
+		float distance = 0.0f;
+		bool intersects = m_world_box.Intersects(origin, direction, distance);
+		return (intersects && distance <= max_dist && distance >= min_dist);
+		// return (m_world_box.Intersects(origin, direction, distance) && distance <= max_dist && distance >= min_dist);
+	}
 	void create_from_points(size_t vertex_count, Vertex* vertex_buffer, size_t base_vertex, size_t start_index);
 	void set_transform_pointers(GameObject* obj, Mesh* mesh, SubMesh* submesh);
 private:

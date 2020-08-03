@@ -12,7 +12,8 @@ struct Player : public GameObject {
 	void add_camera(Camera* camera);
 	Camera* remove_camera();
 	Player(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f });
-	bool airborne();
+	bool update_grounded(); // update the value of airborne with a raycase
+	bool grounded() const; // return the value of airborne
 	//virtual void calculate_transform(); // replace GameObject calculate transform function because we only want to rotate about the y axis
 private:
 	DirectX::XMVECTOR get_direction();
@@ -21,7 +22,7 @@ private:
 	float m_acceleration; // movement acceleration
 	float m_max_speed; // max movement speed
 	float m_max_speed_sqrd;
-	bool m_airborne; 
+	bool m_grounded; 
 	// implement once we have a remove from BVH function
 	// bool m_perform_collision; // flag to determine if we perform collision (allow no-clip), if this is true we remove the collision object from the BVH and delete the node
 };

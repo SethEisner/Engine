@@ -5,6 +5,7 @@
 #include "../Utilities/Utilities.h"
 #include "../Collision/CollisionObject.h"
 #include "../Collision/RigidBody.h"
+#include "../Collision/CollisionEngine.h"
 
 static const DirectX::XMVECTOR up_vector =       DirectX::XMVectorSet( 0.0f, 1.0f,  0.0f, 0.0f);
 static const DirectX::XMVECTOR left_vector =     DirectX::XMVectorSet(-1.0f, 0.0f,  0.0f, 0.0f);
@@ -14,7 +15,7 @@ static const DirectX::XMVECTOR backward_vector = DirectX::XMVectorSet( 0.0f, 0.0
 
 
 Player::Player(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 scale) : GameObject(pos, scale),
-m_jump_velocity(4.0f), m_acceleration(20.0f), m_max_speed(3.5), m_max_speed_sqrd(m_max_speed* m_max_speed), m_airborne(false) {}
+m_jump_velocity(4.0f), m_acceleration(20.0f), m_max_speed(3.5), m_max_speed_sqrd(m_max_speed* m_max_speed), m_grounded(false) {}
 
 void Player::update(double duration) {
 	using namespace DirectX;
@@ -57,8 +58,8 @@ void Player::update(double duration) {
 	else { // our horizontal velocity is super small so we can set it to zero
 		velocity *= up_vector; // cancel out all horizontal velocity  
 	}
-	// perform a jump if we are 
-	if (!airborne() && engine->input_manager->is_pressed(HASH("jump"))) { // if we are not airborne then we can jump
+	// perform a jump if we are grounded (i.e. on the ground)
+	if (engine->input_manager->is_pressed(HASH("jump")) && update_grounded()) { // if we are not airborne then we can jump
 		velocity += up_vector * m_jump_velocity;
 	}
 	// wake up the rigid body if we move it
@@ -71,14 +72,19 @@ void Player::update(double duration) {
 	XMStoreFloat4(&m_rotation, rotation);
 	// need to update the transform at the end
 	calculate_transform();
+	// OutputDebugStringA(((std::to_string(m_camera->get_position3f().x) + ", " + std::to_string(m_camera->get_position3f().y) + ", " + std::to_string(m_camera->get_position3f().x) + "\n")).c_str());
 	// OutputDebugStringA(((std::to_string(m_transform._11) + ", " + std::to_string(m_transform._12) + ", " + std::to_string(m_transform._13) + ", " + std::to_string(m_transform._14) + "\n") +
 	// 					(std::to_string(m_transform._21) + ", " + std::to_string(m_transform._22) + ", " + std::to_string(m_transform._23) + ", " + std::to_string(m_transform._24) + "\n") + 
 	// 					(std::to_string(m_transform._31) + ", " + std::to_string(m_transform._32) + ", " + std::to_string(m_transform._33) + ", " + std::to_string(m_transform._34) + "\n") +
 	// 					(std::to_string(m_transform._41) + ", " + std::to_string(m_transform._42) + ", " + std::to_string(m_transform._43) + ", " + std::to_string(m_transform._44) + "\n\n")).c_str());
 }
-bool  Player::airborne() {
+bool Player::update_grounded() {
 	// update the value of airborne
-	return m_airborne;
+	m_grounded = engine->collision_engine->ray_cast(this->m_collision_object, m_position, { 0.0f, -1.0f, 0.0f }, 0.0f, 1.2f);
+	return m_grounded;
+}
+bool Player::grounded() const{
+	return m_grounded;
 }
 void Player::add_camera(Camera* camera) {
 	m_camera = camera;

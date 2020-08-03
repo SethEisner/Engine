@@ -11,25 +11,24 @@ class GameObject;
 // broad-phase collision detection using a BVH of spheres because it's super fast
 
 // float because DirectX collision volumes store their geometric attributes in floats
-static constexpr float four_pi = 2.566370614359172953850573533118;
-static constexpr float four_over_three_pi = 4.1887902047863909846168578443727;
-struct BoundingSphere {
-	DirectX::BoundingSphere m_sphere;
-	BoundingSphere(const DirectX::XMFLOAT3& center, float radius);
-	BoundingSphere(const BoundingSphere& first, const BoundingSphere& second);
-	bool overlaps(const BoundingSphere& other) const;
-	float get_growth(const BoundingSphere& other) const; // returns how much the bs would have to grow to incorporate the given bounding sphere , should be percentage growth in surface area
-	inline float get_size() const { // size is the volume
-		return four_over_three_pi * m_sphere.Radius * m_sphere.Radius * m_sphere.Radius;
-	}
-};
+// static constexpr float four_pi = 2.566370614359172953850573533118;
+// static constexpr float four_over_three_pi = 4.1887902047863909846168578443727;
+// struct BoundingSphere {
+// 	DirectX::BoundingSphere m_sphere;
+// 	BoundingSphere(const DirectX::XMFLOAT3& center, float radius);
+// 	BoundingSphere(const BoundingSphere& first, const BoundingSphere& second);
+// 	bool overlaps(const BoundingSphere& other) const;
+// 	float get_growth(const BoundingSphere& other) const; // returns how much the bs would have to grow to incorporate the given bounding sphere , should be percentage growth in surface area
+// 	inline float get_size() const { // size is the volume
+// 		return four_over_three_pi * m_sphere.Radius * m_sphere.Radius * m_sphere.Radius;
+// 	}
+// };
 struct BoundingBox { // AABB
 private: // to be private should have an extents and center function
 	DirectX::BoundingBox m_box; // the AABB in model space that we transform from so we dont get acculuated errors
-	DirectX::BoundingBox m_world_box; // the AABB in world space for comapring
 	GameObject* m_game_object = nullptr;
 public:
-	
+	DirectX::BoundingBox m_world_box; // the AABB in world space for comapring
 	// std::shared_ptr<DirectX::XMFLOAT4X4> m_transform; // same transform as in Mesh and also RigidBody
 	DirectX::XMFLOAT4X4* m_transform = nullptr; // get's set when we create the CollisionObject, transform from model space to world space
 	// DirectX::XMFLOAT4X4* m_model_transform;
@@ -46,6 +45,15 @@ public:
 		}
 		return false;
 
+	}
+	bool intersects(const DirectX::XMVECTOR& origin, const DirectX::XMVECTOR& direction, float& distance) const {
+		// return true if we found an intersection with the ray and the intersection at all and return the distance of the intersections
+		return m_world_box.Intersects(origin, direction, distance);
+	}
+	bool intersects(const DirectX::XMVECTOR& origin, const DirectX::XMVECTOR& direction, float min_dist, float max_dist) const {
+		// return true if we found an intersection with the ray and the intersection within the distance range provided
+		float distance = 0.0f;
+		return (m_world_box.Intersects(origin, direction, distance) && distance <= max_dist && distance >= min_dist);
 	}
 	float get_growth(const BoundingBox& other) const;
 	inline float get_size() const { // volume of the box, can determine growth from the volume delta
@@ -101,6 +109,7 @@ public:
 		return m_parent == nullptr;
 	}
 	size_t get_potential_contacts(PotentialContact* contacts, size_t limit) const; // build the array of potential contacts
+	void get_potential_intersections(std::vector<CollisionObject*>*, const CollisionObject* ourself,  const DirectX::XMVECTOR& origin, const DirectX::XMVECTOR& direction) const;
 	// void insert(RigidBody* body, const BoundingVolume& volume);
 	void insert(CollisionObject* coll_obj); // collision objects have their own BoundingVolume
 	void update();
@@ -116,7 +125,6 @@ bool BVHNode<BoundingVolume>::overlaps(const BVHNode<BoundingVolume>* other) con
 	return m_volume.overlaps(other->m_volume); // call the overlap function for the Bounding volume we use for the hierarchy
 	// return m_collision_object->m_box->overlaps(*other->m_collision_object->m_box);
 }
-
 template<class BoundingVolume>
 void BVHNode<BoundingVolume>::insert(CollisionObject* coll_obj) {
 	if (is_leaf()) { // if we are a leaf then we must create two new children and make ourself the internal node
@@ -138,7 +146,6 @@ void BVHNode<BoundingVolume>::insert(CollisionObject* coll_obj) {
 		}
 	}
 }
-
 template<class BoundingVolume>
 void BVHNode<BoundingVolume>::update() { // called every frame
 	// need to recalculate internal node volumes
@@ -149,10 +156,14 @@ void BVHNode<BoundingVolume>::update() { // called every frame
 		m_volume = BoundingVolume(m_children[0]->m_volume, m_children[1]->m_volume);
 	}
 	else{ // if we are a leaf, recalculate the leaf's volume because the collision object has moved
+		if (isnan(m_collision_object->m_box->m_world_box.Extents.x)) {
+ 			void* temp = nullptr;
+		}
 		m_volume = *m_collision_object->m_box;
+		OutputDebugStringA((std::to_string(m_collision_object->m_box->m_world_box.Extents.x) + "\n").c_str());
+		OutputDebugStringA((std::to_string(m_volume.m_world_box.Extents.x) + "\n\n").c_str());
 	}
 }
-
 template<class BoundingVolume>
 BVHNode<BoundingVolume>::~BVHNode() {
 	// delete the BVH from the root node down, the root has no parent so we just process the children and not the sibling
@@ -195,13 +206,11 @@ void BVHNode<BoundingVolume>::recalculate_bounding_volume() { // O(log(n))
 	m_volume = BoundingVolume(m_children[0]->m_volume, m_children[1]->m_volume);
 	if (m_parent) m_parent->recalculate_bounding_volume(); // recalculate the bounding volume up the tree
 }
-
 template<class BoundingVolume>
 size_t BVHNode<BoundingVolume>::get_potential_contacts(PotentialContact* contacts, size_t limit) const {
 	if (is_leaf() || limit == 0) return 0; // return if we dont have any more room for contacts or we are a leaf ( if root is a leaf then we could never have any contacts)
 	return m_children[0]->get_potential_contacts_with(m_children[1], contacts, limit);
 }
-
 template<class BoundingVolume>
 size_t BVHNode<BoundingVolume>::get_potential_contacts_with(const BVHNode<BoundingVolume>* other, PotentialContact* contacts, size_t limit) const {
 	size_t count = 0;
@@ -227,4 +236,18 @@ size_t BVHNode<BoundingVolume>::get_potential_contacts_with(const BVHNode<Boundi
 		}
 	}
 	return count;
+}
+template<class BoundingVolume>
+void BVHNode<BoundingVolume>::get_potential_intersections(std::vector<CollisionObject*>* intersections, const CollisionObject* ourself, const DirectX::XMVECTOR& origin, const DirectX::XMVECTOR& direction) const {
+	float distance = 0.0f;
+	// the raycast will find an intersection even if we are within the node
+	if (!m_volume.intersects(origin, direction, distance)) return; // no intersection was found with the current node so we dont need to do any other work on this branch
+	if (is_leaf()) { // have a collision with a leaf node
+		// if we are checking for intersection against a leaf node that is not the requestor of the raycast, then add it to the intersections vector
+		if (ourself != m_collision_object) intersections->emplace_back(m_collision_object); // add the collision object of this node to the intersections vector
+		return;
+	}
+	// check each child for intersections. if we are not a leaf then our collisionobject is nullptr and we dont need to worry about self intersections
+	m_children[0]->get_potential_intersections(intersections, ourself, origin, direction); // check for intersections with the first child
+	m_children[1]->get_potential_intersections(intersections, ourself, origin, direction); // check for intersections with the second child
 }

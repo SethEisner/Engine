@@ -148,10 +148,10 @@ void Scene::create_mesh(const aiScene* scene, Mesh* mesh) {
 	mesh->m_vertex_buffer_size = vb_byte_size;
 	mesh->m_index_format = DXGI_FORMAT_R16_UINT;
 	mesh->m_index_buffer_size = ib_byte_size;
-	// for (size_t i = 0; i != scene->mRootNode->mNumChildren; ++i) { // for each child of the root node...
-	// 	process_node(DirectX::XMMatrixIdentity(), scene->mRootNode->mChildren[i], scene, m_floor->m_mesh); // build the submeshes based on how assimp has them, because we need their unique transforms
-	// }
-	process_node(XMLoadFloat4x4(&mesh->m_transform), scene->mRootNode, scene, mesh);
+	for (size_t i = 0; i != scene->mRootNode->mNumChildren; ++i) { // for each child of the root node...
+		process_node(DirectX::XMMatrixIdentity(), scene->mRootNode->mChildren[i], scene, mesh); // build the submeshes based on how assimp has them, because we need their unique transforms
+	}
+	// process_node(XMLoadFloat4x4(&mesh->m_transform), scene->mRootNode, scene, mesh);
 }
 void Scene::init() {
 	// use the resource manager to load the items into memory
@@ -163,7 +163,7 @@ void Scene::init() {
 	//while (!engine->resource_manager->resource_loaded("Sword.zip")) {}
 
 	const aiScene* scene = engine->resource_manager->get_scene_pointer("floor.zip/floor.dae");
-	GameObject* floor = new GameObject({ 0.0f, -1.0f, 0.0f });
+	GameObject* floor = new GameObject({ 0.0f, 0.0f, 0.0f });
 	floor->add_mesh(new Mesh());
 	create_mesh(scene, floor->m_mesh);
 	engine->renderer->create_and_add_texture("base_color", "floor.zip/checkerboard.dds", 0, floor->m_mesh, TextureFlags::COLOR);

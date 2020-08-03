@@ -212,6 +212,7 @@ void ResourceManager::get_external_dependencies(GUID resource, const std::string
 	case FileType::DAE: { // zip file contains a dae file
 		//const aiScene* scene_ptr = m_importer->ReadFileFromMemory(p_mem, entry.m_size, flags);
 		const aiScene* scene_ptr = aiImportFileFromMemory(p_mem, entry.m_size, flags, "dae");
+		assert(scene_ptr);
 		if (!scene_ptr) { // will be a nullptr if there was an error
 			//OutputDebugStringA(m_importer->GetErrorString());
 			break;
