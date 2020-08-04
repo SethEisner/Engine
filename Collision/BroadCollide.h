@@ -156,12 +156,7 @@ void BVHNode<BoundingVolume>::update() { // called every frame
 		m_volume = BoundingVolume(m_children[0]->m_volume, m_children[1]->m_volume);
 	}
 	else{ // if we are a leaf, recalculate the leaf's volume because the collision object has moved
-		if (isnan(m_collision_object->m_box->m_world_box.Extents.x)) {
- 			void* temp = nullptr;
-		}
 		m_volume = *m_collision_object->m_box;
-		OutputDebugStringA((std::to_string(m_collision_object->m_box->m_world_box.Extents.x) + "\n").c_str());
-		OutputDebugStringA((std::to_string(m_volume.m_world_box.Extents.x) + "\n\n").c_str());
 	}
 }
 template<class BoundingVolume>

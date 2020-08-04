@@ -19,6 +19,7 @@
 // represents an independent simulation of physics. it keeps track of a set of rigid bodies, and prvides the means to update them all
 // engine should keep a copy of the CollisionEngine pointer and should build the BVH from the objects in the scene
 // should be renamed to CollisionEngine
+
 class CollisionEngine {
 	bool m_calculate_iterations; // true if the CollisionEngine should calculate the number of iterations to give the contact resolver at each frame
 	const size_t m_max_contacts;

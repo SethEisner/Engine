@@ -229,8 +229,6 @@ void Scene::init() {
 	m_game_objects.emplace_back(Sword);
 	*/
 
-
-
 	// finally add the player
 	GameObject* player = new Player({ 0.0f, 4.0f, -10.0f }, { 0.25f, 1.0f, 0.5f });
 	player->add_mesh(new Mesh());

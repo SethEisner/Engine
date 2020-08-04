@@ -26,7 +26,7 @@ public:
 	void calculate_internals();
 	DirectX::XMFLOAT3 get_axis(uint32_t index) const {
 		// get's a row of the transformation matrix, return a row because if we want the translation of the transformation matrix, that would be the last row of the column matrix
-		return DirectX::XMFLOAT3(m_world_transform.m[index][0], m_world_transform.m[index][1], m_world_transform.m[index][2]);
+		return { m_world_transform.m[index][0], m_world_transform.m[index][1], m_world_transform.m[index][2] };
 	}
 	const DirectX::XMFLOAT4X4& get_transform() const {
 		return m_world_transform;

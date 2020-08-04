@@ -2,6 +2,7 @@
 #include <memory>
 #include <assert.h>
 #include <algorithm>
+#include "../Gameplay/GameObject.h"
 
 // Contact implementation
 void Contact::set_body_data(RigidBody* first, RigidBody* second, float friction, float restitution) {
@@ -11,9 +12,6 @@ void Contact::set_body_data(RigidBody* first, RigidBody* second, float friction,
 	m_restitution = restitution;
 }
 void Contact::set_body_data(RigidBody* first, RigidBody* second) {
-	if (first && second) {
-		void* temp = nullptr;
-	}
 	m_body[0] = first;
 	m_body[1] = second;
 	m_friction = std::max((first ? first->get_friction() : 0.0f), (second ? second->get_friction() : 0.0f)); // use max friction
@@ -152,7 +150,6 @@ void Contact::apply_position_change(DirectX::XMFLOAT3 linear_change[2], float pe
 		XMStoreFloat3(linear_change + i, normal * linear_move[i]);
 		XMVECTOR position = XMLoadFloat3(&m_body[i]->get_position());
 		position += normal * linear_move[i];
-
 		m_body[i]->set_position(position);
 	}
 }
@@ -228,6 +225,7 @@ void ContactResolver::resolve_contacts(Contact* contact_array, Contact* contact_
 	if (!this->is_valid()) return; // out of iterations or the epsilons are wrong
 	// preprocess the contacts so all the data is there when we start
 	preprocess_contacts(contact_array, contact_end, duration);
+	// preprocess contacts is what makes the 0th body not null
 	// resolve interpenetration of contacting objects
 	adjust_positions(contact_array, contact_end, duration);
 	// resolve the velocity of the contact

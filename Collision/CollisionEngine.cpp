@@ -1,7 +1,7 @@
 #include "CollisionEngine.h"
-//#include <cstdlib>
 #include <algorithm>
 #include <math.h>
+#include "../Gameplay/GameObject.h"
 
 CollisionEngine::CollisionEngine(size_t max_contacts, size_t iterations) :
 		m_calculate_iterations(iterations == 0),
@@ -21,6 +21,9 @@ CollisionEngine::CollisionEngine(size_t max_contacts, size_t iterations) :
 
 void CollisionEngine::start_frame(double duration) { // integrate all the objects, and update their internal data for collision detection
 	for (auto& objs : *m_collision_objects) { // reset the forces on each body and calculate the necessary data
+		if (isnan(objs->m_game_object->m_position.x)) { // the extents of our object became nan
+			OutputDebugStringA("NAN in start frame\n");
+		}
 		if (!objs->get_awake()) continue; // if the object is asleep we can skip it
 		// otherwise if it's awake it must have a rigidbody that is awake and we can integrate
 		objs->m_body->clear_accumulators();
@@ -53,13 +56,13 @@ void CollisionEngine::generate_contacts() {
 	return (contacts > 0) ? narrow_phase(contacts) : (void)0;
 }
 void CollisionEngine::run_frame(double duration) {
-	
 	m_bvh->update(); // update directly after integrating
 	m_collision_data->reset(m_max_contacts); // reset the contacts for this frame
 	// generate the contacts for this frame
 	generate_contacts(); // data is in m_collision_data
 	// resolve the generated contacts
 	if (m_collision_data->m_contact_count == 0) return; // no collisions to resolve so we can exit early
+	// search contact array for the player
 	if (m_calculate_iterations) m_resolver->set_iterations(m_collision_data->m_contact_count * 4); // the number of iterations we perform is dependent on the nbumber of contacts
 	m_resolver->resolve_contacts(m_collision_data->m_contact_base, m_collision_data->m_contact, duration);
 }

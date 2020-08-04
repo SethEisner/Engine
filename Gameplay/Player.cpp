@@ -13,8 +13,7 @@ static const DirectX::XMVECTOR right_vector =    DirectX::XMVectorSet( 1.0f, 0.0
 static const DirectX::XMVECTOR forward_vector =  DirectX::XMVectorSet( 0.0f, 0.0f,  1.0f, 0.0f);
 static const DirectX::XMVECTOR backward_vector = DirectX::XMVectorSet( 0.0f, 0.0f, -1.0f, 0.0f);
 
-
-Player::Player(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 scale) : GameObject(pos, scale),
+Player::Player(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 scale) : GameObject(pos, scale), m_camera(nullptr),
 m_jump_velocity(4.0f), m_acceleration(20.0f), m_max_speed(3.5), m_max_speed_sqrd(m_max_speed* m_max_speed), m_grounded(false) {}
 
 void Player::update(double duration) {
@@ -62,7 +61,7 @@ void Player::update(double duration) {
 	if (engine->input_manager->is_pressed(HASH("jump")) && update_grounded()) { // if we are not airborne then we can jump
 		velocity += up_vector * m_jump_velocity;
 	}
-	// wake up the rigid body if we move it
+	// wake up the rigid body if we move it ourself and we are asleep
 	if (m_collision_object && !m_collision_object->m_body->get_awake() && XMVectorGetX(XMVector3LengthSq(velocity)) > 0.0f) { 
 		m_collision_object->m_body->set_awake(true);
 	}
@@ -72,7 +71,7 @@ void Player::update(double duration) {
 	XMStoreFloat4(&m_rotation, rotation);
 	// need to update the transform at the end
 	calculate_transform();
-	// OutputDebugStringA(((std::to_string(m_camera->get_position3f().x) + ", " + std::to_string(m_camera->get_position3f().y) + ", " + std::to_string(m_camera->get_position3f().x) + "\n")).c_str());
+	// OutputDebugStringA((("player update:\t" + std::to_string(m_position.x) + ", " + std::to_string(m_position.y) + ", " + std::to_string(m_position.x) + "\n")).c_str());
 	// OutputDebugStringA(((std::to_string(m_transform._11) + ", " + std::to_string(m_transform._12) + ", " + std::to_string(m_transform._13) + ", " + std::to_string(m_transform._14) + "\n") +
 	// 					(std::to_string(m_transform._21) + ", " + std::to_string(m_transform._22) + ", " + std::to_string(m_transform._23) + ", " + std::to_string(m_transform._24) + "\n") + 
 	// 					(std::to_string(m_transform._31) + ", " + std::to_string(m_transform._32) + ", " + std::to_string(m_transform._33) + ", " + std::to_string(m_transform._34) + "\n") +
