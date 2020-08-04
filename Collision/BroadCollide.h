@@ -232,6 +232,7 @@ void BVHNode<BoundingVolume>::update() { // called every frame
 				// swap parent pointers
 				// recalculate the parents volume only
 				// recaluclate the parents surface area
+				// reclaculate the height of the parents
 			*/
 			if (!(first_node && second_node)) return;
 			assert(first_node->m_parent != second_node->m_parent); // the nodes must have different parents
@@ -245,6 +246,8 @@ void BVHNode<BoundingVolume>::update() { // called every frame
 			second_parent->m_volume = BoundingVolume(second_parent->m_children[0]->m_volume, second_parent->m_children[1]->m_volume);
 			first_parent->m_sah_cost = first_parent->m_volume.calculate_surface_area();
 			second_node->m_parent->m_sah_cost = second_parent->m_volume.calculate_surface_area();
+			first_parent->m_height = std::max(first_parent->m_children[0]->m_height, first_parent->m_children[1]->m_height) + 1;
+			second_parent->m_height = std::max(second_parent->m_children[0]->m_height, second_parent->m_children[1]->m_height) + 1;
 		}
 	}
 	else{ // if we are a leaf, recalculate the leaf's volume because the collision object has moved
