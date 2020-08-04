@@ -76,7 +76,7 @@ void CollisionEngine::add_object(CollisionObject* coll_obj) {
 		m_bvh->insert(coll_obj);
 		return;
 	}
-	m_bvh = new BVHNode<BoundingBox>(nullptr, *coll_obj->m_box, coll_obj);
+	m_bvh = new BVHNode<BoundingBox>(nullptr, *coll_obj->m_box, coll_obj->m_box->calculate_surface_area(), coll_obj);
 }
 void CollisionEngine::remove_object(CollisionObject* coll_obj) {
 	// probably okay for this to be slower, because we should rarely be removing collision objects, as collision objects are tied to gameobjects

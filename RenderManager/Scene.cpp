@@ -161,17 +161,8 @@ void Scene::init() {
 	while (!engine->resource_manager->resource_loaded("floor.zip")) {}
 	while (!engine->resource_manager->resource_loaded("crate.zip")) {}
 	//while (!engine->resource_manager->resource_loaded("Sword.zip")) {}
+	const aiScene* scene;
 
-	const aiScene* scene = engine->resource_manager->get_scene_pointer("floor.zip/floor.dae");
-	GameObject* floor = new GameObject({ 0.0f, 0.0f, 0.0f });
-	floor->add_mesh(new Mesh());
-	create_mesh(scene, floor->m_mesh);
-	engine->renderer->create_and_add_texture("base_color", "floor.zip/checkerboard.dds", 0, floor->m_mesh, TextureFlags::COLOR);
-	engine->renderer->add_mesh(floor->m_mesh); // add mesh at the end because we bind the textures it uses in this function
-	floor->add_collision_object(new CollisionObject(floor, floor->m_mesh));
-	engine->collision_engine->add_object(floor->m_collision_object);
-	m_game_objects.emplace_back(floor);
-	
 	scene = engine->resource_manager->get_scene_pointer("crate.zip/crate.dae");
 	GameObject* crate = new GameObject({ 0.0f, 5.0f, 0.0f });
 	crate->add_mesh(new Mesh());
@@ -189,6 +180,19 @@ void Scene::init() {
 	engine->collision_engine->add_object(crate->m_collision_object);
 	m_game_objects.emplace_back(crate);
 
+	scene = engine->resource_manager->get_scene_pointer("floor.zip/floor.dae");
+	GameObject* floor = new GameObject({ 0.0f, 0.0f, 0.0f });
+	floor->add_mesh(new Mesh());
+	create_mesh(scene, floor->m_mesh);
+	engine->renderer->create_and_add_texture("base_color", "floor.zip/checkerboard.dds", 0, floor->m_mesh, TextureFlags::COLOR);
+	engine->renderer->add_mesh(floor->m_mesh); // add mesh at the end because we bind the textures it uses in this function
+	floor->add_collision_object(new CollisionObject(floor, floor->m_mesh));
+	engine->collision_engine->add_object(floor->m_collision_object);
+	m_game_objects.emplace_back(floor);
+	
+	
+
+	
 	scene = engine->resource_manager->get_scene_pointer("crate.zip/crate.dae");
 	GameObject* crate_1 = new GameObject({ 0.0f, 8.0f, 0.0f });
 	crate_1->add_mesh(new Mesh());
@@ -205,7 +209,7 @@ void Scene::init() {
 	crate_1->m_collision_object->m_body->set_restitution(0.1f);
 	engine->collision_engine->add_object(crate_1->m_collision_object);
 	m_game_objects.emplace_back(crate_1);
-
+	
 	
 	/*
 	scene = engine->resource_manager->get_scene_pointer("crate.zip/crate.dae");
