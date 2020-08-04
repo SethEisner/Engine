@@ -7,18 +7,6 @@
 #include <limits>
 #include <algorithm>
 
-// static constexpr float max_friction = 0.3f;
-// static constexpr float max_restitution = 1.0f;
-// static inline float choose_friction(const RigidBody* first, const RigidBody* second) {
-// 	if (first && second) {
-// 		void* temp = nullptr;
-// 	}
-// 	return std::min((first ? first->get_friction() : max_friction), (second ? second->get_friction() : max_friction));
-// }
-// static inline float choose_restitution(const RigidBody* first, const RigidBody* second) {
-// 	return std::min((first ? first->get_restitution() : 1.0f), (second ? second->get_restitution() : 1.0f));
-// }
-
 // should use iterators and stl ADTs for searching
 void OrientedBoundingBox::create_from_points(size_t vertex_count, Vertex* vertex_buffer, size_t base_vertex, size_t start_index) {
 	m_oriented_box.CreateFromPoints(m_oriented_box, vertex_count, &vertex_buffer->m_pos, sizeof(Vertex));
@@ -32,8 +20,7 @@ void OrientedBoundingBox::set_transform_pointers(GameObject* obj, Mesh* mesh, Su
 void OrientedBoundingBox::calculate_internals() { // update the transform for the OBB
 	using namespace DirectX;
 	calculate_transform(); // update the transform to world space
-	transform();
-	// XMStoreFloat4x4(&m_transform, XMMatrixMultiply(XMLoadFloat4x4(&m_offset), XMLoadFloat4x4(&m_body->get_transform()))); // probably incorrect calculation of transform...
+	transform(); // transform the m_box obb to world space m_world_obb
 }
 
 inline bool IntersectionTests::intersects(const OrientedBoundingBox& first, const OrientedBoundingBox& second) { // checks for intersection in world space on the oriented boxes
@@ -136,17 +123,12 @@ uint32_t CollisionDetector::collides(const OrientedBoundingBox& first, const Ori
 	for (size_t i = 0; i != 3; i++) { // get x,y,z axes for each box, dont need to store translation
 		axes[i] = XMLoadFloat3(&first.get_axis(i));
 		axes[i + 3] = XMLoadFloat3(&second.get_axis(i));
-		// axes[i] = first.get_axis(i);
-		// axes[i + 3] = second.get_axis(i);
 	}
 	XMVECTOR to_center = XMLoadFloat3(&second.get_axis(3)) - XMLoadFloat3(&first.get_axis(3));
-	// XMFLOAT3 to_center;
-	// XMStoreFloat3(&to_center, XMLoadFloat3(&second.get_axis(3)) - XMLoadFloat3(&first.get_axis(3))); // get_axis function may be wrong because idk how this caluclates the distace from their centers
 	float penetration = std::numeric_limits<float>::max();
 	int best = -1; // place to store penetration results of the try_axis function
 	XMFLOAT3 axis; // stores the current axis as an XMFLOAT3 we can easily pass to try_axis
 	for (size_t i = 0; i != 6; ++i) { // try to find a separating axis using the axis we stored (starting with x,y,z of first, and then x,y,z of second
-		// XMStoreFloat3(&axis, axes[i]);
 		if (!try_axis(first, second, axes[i], to_center, i, penetration, best)) return 0; // return 0 if we find a sparating axis because we found no collision
 	}
 	int best_axis = best; // store the best axis so far before we do the cross products
@@ -154,7 +136,6 @@ uint32_t CollisionDetector::collides(const OrientedBoundingBox& first, const Ori
 	XMFLOAT3 cross;
 	for (size_t i = 0; i != 3; ++i) {
 		for (size_t j = 3; j != 6; ++j) { // start from 3 so we can start from the base data of the second box
-			//XMStoreFloat3(&cross, XMVector3Cross(axes[i], axes[j])); 
 			if (!try_axis(first, second, XMVector3Cross(axes[i], axes[j]), to_center, index, penetration, best)) return 0;
 			++index;
 		}
