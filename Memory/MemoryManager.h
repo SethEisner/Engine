@@ -49,8 +49,8 @@ template<typename T, typename Allocator>
 static inline T* new_array_helper(size_t count, size_t alignment, Allocator* allocator) {
 	T* ptr = reinterpret_cast<T*>(allocator->allocate(sizeof(T) * count, alignment));
 	const T* const end = ptr + count;
-	for (T* curr = ptr; curr != end; ++curr) new (curr) T; // call placement new on each element
-	return ptr;
+	while (ptr != end) new (ptr++) T; // call placement new on each element
+	return ptr - count;
 }
 template <typename T>
 static inline T* new_array(size_t count, size_t alignment, LinearAllocator* allocator) {

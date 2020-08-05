@@ -10,48 +10,24 @@
 class CollisionObject;
 class GameObject;
 // broad-phase collision detection using a BVH of spheres because it's super fast
-
-// float because DirectX collision volumes store their geometric attributes in floats
-// static constexpr float four_pi = 2.566370614359172953850573533118;
-// static constexpr float four_over_three_pi = 4.1887902047863909846168578443727;
-// struct BoundingSphere {
-// 	DirectX::BoundingSphere m_sphere;
-// 	BoundingSphere(const DirectX::XMFLOAT3& center, float radius);
-// 	BoundingSphere(const BoundingSphere& first, const BoundingSphere& second);
-// 	bool overlaps(const BoundingSphere& other) const;
-// 	float get_growth(const BoundingSphere& other) const; // returns how much the bs would have to grow to incorporate the given bounding sphere , should be percentage growth in surface area
-// 	inline float get_size() const { // size is the volume
-// 		return four_over_three_pi * m_sphere.Radius * m_sphere.Radius * m_sphere.Radius;
-// 	}
-// };
 struct BoundingBox { // AABB
 private: // to be private should have an extents and center function
 	DirectX::BoundingBox m_box; // the AABB in model space that we transform from so we dont get acculuated errors
 	GameObject* m_game_object = nullptr;
-public:
 	DirectX::BoundingBox m_world_box; // the AABB in world space for comapring
-	// std::shared_ptr<DirectX::XMFLOAT4X4> m_transform; // same transform as in Mesh and also RigidBody
+public:
 	DirectX::XMFLOAT4X4* m_transform = nullptr; // get's set when we create the CollisionObject, transform from model space to world space
-	// DirectX::XMFLOAT4X4* m_model_transform;
-	// DirectX::XMFLOAT4X4* m_world_transform;
-	// BoundingBox();
 	BoundingBox();
 	BoundingBox(GameObject* obj);
-	// BoundingBox(const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT3& extents) : m_box(center, extents) {}
 	BoundingBox(const BoundingBox& first, const BoundingBox& second);
 	inline bool overlaps(const BoundingBox& other) const { // check for intersection in world space
-		// return this->m_world_box.Intersects(other.m_world_box);
-		if (this->m_world_box.Intersects(other.m_world_box)) {
-			return true;
-		}
-		return false;
-
+		return this->m_world_box.Intersects(other.m_world_box);
 	}
-	bool intersects(const DirectX::XMVECTOR& origin, const DirectX::XMVECTOR& direction, float& distance) const {
+	inline bool intersects(const DirectX::XMVECTOR& origin, const DirectX::XMVECTOR& direction, float& distance) const {
 		// return true if we found an intersection with the ray and the intersection at all and return the distance of the intersections
 		return m_world_box.Intersects(origin, direction, distance);
 	}
-	bool intersects(const DirectX::XMVECTOR& origin, const DirectX::XMVECTOR& direction, float min_dist, float max_dist) const {
+	inline bool intersects(const DirectX::XMVECTOR& origin, const DirectX::XMVECTOR& direction, float min_dist, float max_dist) const {
 		// return true if we found an intersection with the ray and the intersection within the distance range provided
 		float distance = 0.0f;
 		return (m_world_box.Intersects(origin, direction, distance) && distance <= max_dist && distance >= min_dist);
@@ -62,29 +38,15 @@ public:
 		assert(surface_area > 0.0f);
 		return surface_area;
 	}
-	// inline float get_surface_area() const { // surface area of the box
-	// 	// m_surface_area = 8.0f * m_box.Extents.x * m_box.Extents.y + m_box.Extents.x * m_box.Extents.z + m_box.Extents.y * m_box.Extents.z;
-	// 	assert(m_surface_area > 0.0f);
-	// 	return m_surface_area;
-	// 	// volume return fabsf(8.0f * m_box.Extents.x * m_box.Extents.y * m_box.Extents.z); // extents is distance from center to edge, so need to multiply by 8
-	// }
-	void create_from_points(size_t count, const DirectX::XMFLOAT3* points, size_t stride) {
+	inline void create_from_points(size_t count, const DirectX::XMFLOAT3* points, size_t stride) {
 		m_box.CreateFromPoints(m_box, count, points, stride);
 	}
-	// create merged is wrong, if we merge two bounding boxes into a single one, we should do it based on their transformed bounding box, and set our transform to be a nullptr
-	// the transform we store is from model space to world space, if we merge two bounding boxes, what do we do with the gameobjects? doesnt make sense to merge boundingboxes if they are tied to gameobjects...
-	void create_merged(const BoundingBox& other) { // merge this BoundingBox with another bounding box, should be in the same space because we dont change the transform
-		// m_box.CreateMerged(this->m_box, this->m_world_box, other.m_world_box);
-		// XMStoreFloat4x4(m_transform, XMLoadFloat4x4(&m_game_object->m_transform)); // store the identity matrix for the transfrom as the new box is in world space
-		// m_world_box = m_box;
+	inline void create_merged(const BoundingBox& other) { // merge this BoundingBox with another bounding box, should be in the same space because we dont change the transform
 		m_box.CreateMerged(this->m_box, this->m_box, other.m_box);
 	}
 	// needs to be in ccp file because it uses the CollisionObject pointer
-	void transform(); // applied the internal transform, and then the GameObject transform
-	void transform(const DirectX::XMFLOAT4X4& M) {
-		this->m_box.Transform(this->m_world_box, DirectX::XMLoadFloat4x4(&M));
-	}
-	void set_game_object(GameObject* obj) {
+	void transform(); // applies the internal transform, and then the GameObject transform
+	inline void set_game_object(GameObject* obj) {
 		m_game_object = obj;
 	}
 };
@@ -169,7 +131,6 @@ void BVHNode<BoundingVolume>::update() { // called every frame
 		m_sah_cost = m_volume.calculate_surface_area();
 		if (m_height >= 2) { // we can optionally perform tree rotations on this node as we have children and grandchildren
 			float float_max = std::numeric_limits<float>::max();
-			// float rotation_costs[6] = { float_max, float_max, float_max, float_max, float_max, float_max, float_max, float_max };
 			// we are guaranteed to have two children, and at least one of our children has two children
 			// first four rotations is trying to swap a child with either of its nephew
 			uint32_t first_height = m_children[0]->m_height;

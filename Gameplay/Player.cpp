@@ -79,7 +79,7 @@ void Player::update(double duration) {
 }
 bool Player::update_grounded() {
 	// update the value of airborne
-	m_grounded = engine->collision_engine->ray_cast(this->m_collision_object, m_position, { 0.0f, -1.0f, 0.0f }, 0.0f, 1.2f);
+	m_grounded = engine->collision_engine->ray_cast(this->m_collision_object, m_position, { 0.0f, -1.0f, 0.0f }, 0.0f, 1.1f);
 	return m_grounded;
 }
 bool Player::grounded() const{
