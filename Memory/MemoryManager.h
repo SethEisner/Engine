@@ -48,6 +48,38 @@ void free(void* ptr, Allocator* allocator) {
 	allocator->free(ptr);
 }
 #define COMMA , // allows passing templated types to the NEW* macros
-#define NEW(type, allocator) new(static_cast<size_t>(alignof(type)), allocator) type
-#define NEW_ARRAY(type, count, allocator) new(static_cast<size_t>(count), static_cast<size_t>(alignof(type)), allocator) type
+#define NEW(type, allocator) new(static_cast<size_t>(alignof(type)), allocator) type // calls placement new
+// template funcitons cannot be partially specialized so we cannot combine the LinearAllocator and Stack Allocator function into one function
+// and have a second specialized template function for GeneralAllocators only
+// do it this way because the GeneralAllocator uses handles to enable defragmentation and I want to force the user to deal with the handle and
+// to explicityly request the handle when necessary
+template <typename T>
+T* new_array(size_t count, size_t alignment, LinearAllocator* allocator) {
+	T* ptr = reinterpret_cast<T*>(allocator->allocate(sizeof(T) * count, alignment));
+	const T* end = ptr + count;
+	while (ptr != end) {
+		new (ptr++) T; // use placement new because we already have to memory required
+	}
+	return ptr - count;
+}
+template <typename T>
+T* new_array(size_t count, size_t alignment, StackAllocator* allocator) {
+	T* ptr = reinterpret_cast<T*>(allocator->allocate(sizeof(T) * count, alignment));
+	//*m_size_t++ = count; // store the number of elements 
+	const T* end = ptr + count;
+	while (ptr != end) {
+		new (ptr++) T; // use placement new because we already have to memory required
+	}
+	return ptr - count;
+}
+template <typename T>
+Handle new_array(size_t count, size_t alignment, GeneralAllocator* allocator) {
+	T* ptr = reinterpret_cast<T*>(allocator->allocate(sizeof(T) * count, alignment));
+	const T* end = ptr + count;
+	while (ptr != end) {
+		new(ptr++) T; // use placement new because we already have to memory required
+	}
+	return allocator->register_allocated_mem(ptr - count); // return the handle to the data we allocated
+}
+#define NEW_ARRAY(type, count, allocator) new_array<type>(static_cast<size_t>(count), static_cast<size_t>(alignof(type)), allocator)
 #define FREE(object, allocator) free(object, allocator)

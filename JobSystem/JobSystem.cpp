@@ -8,7 +8,7 @@ namespace JobSystem {
 		shutdown_flag = false;
 		g_worker_count = worker_count + 1;
 		// m_workers = new Worker[g_worker_count];
-		m_workers = NEW_ARRAY(Worker, g_worker_count, memory_manager->get_linear_allocator())();
+		m_workers = reinterpret_cast<Worker*>(NEW_ARRAY(Worker, g_worker_count, memory_manager->get_linear_allocator()));
 		for (uint8_t i = 1; i != g_worker_count; ++i) {
 			m_workers[i].m_queue = NEW(Queue<Job*>, memory_manager->get_linear_allocator())(1024);
 		}

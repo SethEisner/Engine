@@ -154,13 +154,13 @@ void ResourceManager::unzip_resource(const std::string& zip_file, byte* compress
 	size_t external_resource_index = 0;
 	while (get_compressed_file_info(compressed, compressed_size, uncompressed_size, offset, file_name)) { // there is still a file that needs decompressing
 		//uncompressed_size++; // add space for the null terminator so we can use strstr later
-		byte* uncompressed = NEW_ARRAY(byte, uncompressed_size, m_allocator); // create space for the uncompressed file
-		assert(uncompressed != nullptr);
-		Handle h_uncompressed = m_allocator->register_allocated_mem(uncompressed);// +1);
+		// byte* uncompressed = NEW_ARRAY(byte, uncompressed_size, m_allocator); // create space for the uncompressed file
+		// assert(uncompressed != nullptr);
+		Handle h_uncompressed = NEW_ARRAY(byte, uncompressed_size, m_allocator); // m_allocator->register_allocated_mem(uncompressed);// +1);
 		infstream.avail_in = static_cast<uInt>(compressed_size);//(uInt)((unsigned char*)defstream.next_out - b); // size of input
 		infstream.next_in = compressed + offset; // input char array
 		infstream.avail_out = static_cast<uInt>(uncompressed_size); // size of output
-		infstream.next_out = uncompressed; // output char array
+		infstream.next_out = reinterpret_cast<byte*>(m_allocator->get_pointer(h_uncompressed)); // output char array
 		inflateInit2(&infstream, -15); // inflateInit2 skips the headers and looks for a raw stream 
 		int ret = inflate(&infstream, Z_NO_FLUSH);
 		assert(ret >= 0); // inflate must have succeeded

@@ -78,14 +78,71 @@ void* operator new (size_t bytes, size_t alignment, GeneralAllocator* allocator)
 	return allocator->allocate(bytes, alignment);
 }
 // allocate count number of contiguous objects aligned to the given alignment 
-void* operator new (size_t bytes, size_t count, size_t alignment, LinearAllocator* allocator) {
-	return allocator->allocate(bytes * count, alignment);
+// void* operator new (size_t bytes, size_t count, size_t alignment, LinearAllocator* allocator) {
+// 	return allocator->allocate(bytes * count, alignment);
+// }
+// void* operator new (size_t bytes, size_t count, size_t alignment, StackAllocator* allocator) {
+// 	return allocator->allocate(bytes * count, alignment);
+// }
+// void* operator new (size_t bytes, size_t count, size_t alignment, GeneralAllocator* allocator) {
+// 	return allocator->allocate(bytes * count, alignment);
+// }
+
+// type T is the type of the array elements
+/*template <typename T>
+T* new_array(size_t count, size_t alignment, LinearAllocator* allocator) {
+	union { // fast conversion between void* size_t* and T*
+		void* m_void;
+		size_t* m_size_t;
+		T* m_t;
+	};
+	m_void = allocator->allocate(sizeof(T) * count + sizeof(T), alignment);
+	*m_size_t++ = count; // store the number of elements 
+	const T* end = m_t + count;
+	while (m_t != end) {
+		new(m_t++) T;
+	}
+	return (m_t - count);
 }
-void* operator new (size_t bytes, size_t count, size_t alignment, StackAllocator* allocator) {
-	return allocator->allocate(bytes * count, alignment);
+template <typename T>
+T* new_array(size_t count, size_t alignment, StackAllocator* allocator) {
+	union { // fast conversion between void* size_t* and T*
+		void* m_void;
+		size_t* m_size_t;
+		T* m_t;
+	};
+	m_void = allocator->allocate(sizeof(T) * count + sizeof(T), alignment);
+	*m_size_t++ = count; // store the number of elements 
+	const T* end = m_t + count;
+	while (m_t != end) {
+		new(m_t++) T;
+	}
+	return (m_t - count);
 }
-void* operator new (size_t bytes, size_t count, size_t alignment, GeneralAllocator* allocator) {
-	return allocator->allocate(bytes * count, alignment);
-}
+template <typename T>
+T* new_array(size_t count, size_t alignment, GeneralAllocator* allocator) {
+	union { // fast conversion between void* size_t* and T*
+		void* m_void;
+		size_t* m_size_t;
+		T* m_t;
+	};
+	m_void = allocator->allocate(sizeof(T) * count + sizeof(T), alignment);
+	*m_size_t++ = count; // store the number of elements 
+	const T* end = m_t + count;
+	while (m_t != end) {
+		new(m_t++) T;
+	}
+	return (m_t - count);
+}*/
+// these dont initialize the memory allocated for each element
+// void* operator new(size_t bytes, size_t count, size_t alignment, LinearAllocator* allocator) {
+// 	return allocator->allocate(bytes * count, alignment);
+// }
+// void* operator new(size_t bytes, size_t count, size_t alignment, StackAllocator* allocator) {
+// 	return allocator->allocate(bytes * count, alignment);
+// }
+// void* operator new(size_t bytes, size_t count, size_t alignment, GeneralAllocator* allocator) {
+// 	return allocator->allocate(bytes * count, alignment);
+// }
 
 void operator delete(void* ptr) noexcept {}

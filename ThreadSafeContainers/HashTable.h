@@ -23,8 +23,9 @@ class HashTable {
 	
 public:
 	HashTable(size_t size = 127) : m_item_count(0), m_table_size(size) { // size is the max number of elements 
-		void* temp_pointer = NEW_ARRAY(Bucket, size, memory_manager->get_general_allocator());
-		m_table_handle = memory_manager->get_general_allocator()->register_allocated_mem(temp_pointer);
+		// void* temp_pointer = NEW_ARRAY(Bucket, size, memory_manager->get_general_allocator());
+		// m_table_handle = memory_manager->get_general_allocator()->register_allocated_mem(temp_pointer);
+		m_table_handle = NEW_ARRAY(Bucket, size, memory_manager->get_general_allocator());
 		this->reset();
 	}
 	~HashTable() {
