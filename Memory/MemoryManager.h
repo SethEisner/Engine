@@ -34,14 +34,10 @@ extern MemoryManager* memory_manager;
 
 void* operator new (size_t bytes, size_t alignment, LinearAllocator* allocator);
 void* operator new (size_t bytes, size_t alignment, StackAllocator* allocator);
-void* operator new(size_t bytes, size_t alignment, PoolAllocator* _pool_allocator);
+void* operator new (size_t bytes, size_t alignment, PoolAllocator* _pool_allocator);
 void* operator new (size_t bytes, size_t alignment, GeneralAllocator* allocator);
-// allocate count number of contiguous objects aligned to the given alignment 
-void* operator new (size_t bytes, size_t count, size_t alignment, LinearAllocator* allocator);
-void* operator new (size_t bytes, size_t count, size_t alignment, StackAllocator* allocator);
-void* operator new (size_t bytes, size_t count, size_t alignment, GeneralAllocator* allocator);
 
-void operator delete(void* ptr) noexcept; // dont do anything here. if we throw while making memory then the engine wont ever run anyway
+void operator delete(void* ptr) noexcept;
 
 template <class Allocator>
 void free(void* ptr, Allocator* allocator) {
@@ -49,37 +45,24 @@ void free(void* ptr, Allocator* allocator) {
 }
 #define COMMA , // allows passing templated types to the NEW* macros
 #define NEW(type, allocator) new(static_cast<size_t>(alignof(type)), allocator) type // calls placement new
-// template funcitons cannot be partially specialized so we cannot combine the LinearAllocator and Stack Allocator function into one function
-// and have a second specialized template function for GeneralAllocators only
-// do it this way because the GeneralAllocator uses handles to enable defragmentation and I want to force the user to deal with the handle and
-// to explicityly request the handle when necessary
-template <typename T>
-T* new_array(size_t count, size_t alignment, LinearAllocator* allocator) {
+template<typename T, typename Allocator>
+static inline T* new_array_helper(size_t count, size_t alignment, Allocator* allocator) {
 	T* ptr = reinterpret_cast<T*>(allocator->allocate(sizeof(T) * count, alignment));
-	const T* end = ptr + count;
-	while (ptr != end) {
-		new (ptr++) T; // use placement new because we already have to memory required
-	}
-	return ptr - count;
+	const T* const end = ptr + count;
+	for (T* curr = ptr; curr != end; ++curr) new (curr) T; // call placement new on each element
+	return ptr;
 }
 template <typename T>
-T* new_array(size_t count, size_t alignment, StackAllocator* allocator) {
-	T* ptr = reinterpret_cast<T*>(allocator->allocate(sizeof(T) * count, alignment));
-	//*m_size_t++ = count; // store the number of elements 
-	const T* end = ptr + count;
-	while (ptr != end) {
-		new (ptr++) T; // use placement new because we already have to memory required
-	}
-	return ptr - count;
+static inline T* new_array(size_t count, size_t alignment, LinearAllocator* allocator) {
+	return new_array_helper<T>(count, alignment, allocator);
 }
 template <typename T>
-Handle new_array(size_t count, size_t alignment, GeneralAllocator* allocator) {
-	T* ptr = reinterpret_cast<T*>(allocator->allocate(sizeof(T) * count, alignment));
-	const T* end = ptr + count;
-	while (ptr != end) {
-		new(ptr++) T; // use placement new because we already have to memory required
-	}
-	return allocator->register_allocated_mem(ptr - count); // return the handle to the data we allocated
+static inline T* new_array(size_t count, size_t alignment, StackAllocator* allocator) {
+	return new_array_helper<T>(count, alignment, allocator);
+}
+template <typename T>
+static inline Handle new_array(size_t count, size_t alignment, GeneralAllocator* allocator) {
+	return allocator->register_allocated_mem(new_array_helper<T>(count, alignment, allocator)); // return the handle to the data we allocated
 }
 #define NEW_ARRAY(type, count, allocator) new_array<type>(static_cast<size_t>(count), static_cast<size_t>(alignof(type)), allocator)
 #define FREE(object, allocator) free(object, allocator)
